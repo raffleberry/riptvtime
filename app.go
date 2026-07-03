@@ -2,30 +2,18 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
-	"os"
+	"strconv"
 
-	tmdb "github.com/cyruzin/golang-tmdb"
+	"gitlab.com/raffleberry/riptvtime/metadata"
 	"gitlab.com/raffleberry/riptvtime/server"
 )
 
 func main() {
 	fmt.Println("Hello World")
 
-	tmdbClient, err := tmdb.Init(os.Getenv("TMDB_API_KEY"))
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	testTmdb := func() {
-		movie, err := tmdbClient.GetMovieDetails(297802, nil)
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println(movie)
-
-		fmt.Println(movie.Title)
-	}
+	source := metadata.NewTmdbSource()
 
 	mux := http.NewServeMux()
 
@@ -34,15 +22,24 @@ func main() {
 
 	mux.Handle("GET /", server.NewSpaHandler("server/ui", "index.html"))
 
-	mux.HandleFunc("GET /test", func(w http.ResponseWriter, r *http.Request) {
-		testTmdb()
-		w.Write([]byte("Check Console"))
-	})
+	mux.HandleFunc("GET /search", server.WithCtx(func(c *server.Context) error {
+		query := c.R.URL.Query().Get("query")
+		pageStr := c.R.URL.Query().Get("page")
+		page, err := strconv.Atoi(pageStr)
+		if err != nil {
+			log.Printf("Invalid Request, `page` should be an int, but received '%v'\n", page)
+			page = 1
+		}
+		res, err := source.SearchShows(query, page)
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, res)
+	}))
 
 	fmt.Printf("Starting server...\n")
 
-	err = s.Start()
-	if err != nil {
+	if err := s.Start(); err != nil {
 		panic(err)
 	}
 

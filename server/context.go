@@ -25,7 +25,7 @@ func WithCtx(handler func(*Context) error) http.HandlerFunc {
 	}
 }
 
-func (c *Context) JSON(status int, data interface{}) error {
+func (c *Context) JSON(status int, data any) error {
 	c.W.Header().Set("Content-Type", "application/json")
 	c.W.WriteHeader(status)
 	return json.NewEncoder(c.W).Encode(data)
