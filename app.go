@@ -2,40 +2,38 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
-	"strconv"
+	"os"
 
-	"gitlab.com/raffleberry/riptvtime/metadata"
 	"gitlab.com/raffleberry/riptvtime/server"
 )
 
 func main() {
-	fmt.Println("Hello World")
 
-	source := metadata.NewTmdbSource()
+	// source := metadata.NewTmdbSource()
+
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slog.LevelDebug,
+		AddSource: true,
+	}))
+	slog.SetDefault(logger)
 
 	mux := http.NewServeMux()
 
 	addr := "127.0.0.1:5667"
 	s := server.New(addr, mux)
 
-	mux.Handle("GET /", server.NewSpaHandler("server/ui", "index.html"))
+	// mux.HandleFunc("GET /api/series", apiSeriesAll())
+	mux.HandleFunc("GET /api/series/search", apiSeriesSearch())
+	mux.HandleFunc("GET /api/series/feed", apiSeriesFeed())
+	// mux.HandleFunc("GET /api/series/{tmdbId}", apiSeriesGet())
+	// mux.HandleFunc("GET /api/series/{tmdbId}/{episode}", apiSeriesEpisode())
+	mux.HandleFunc("POST /api/series/", apiSeriesAdd())
+	// mux.HandleFunc("DELETE /api/series/{tmdbId}", apiSeriesRemove())
+	// mux.HandleFunc("PUT /api/series/{tmdbId}", apiSeriesUpdateStatus())
 
-	mux.HandleFunc("GET /search", server.WithCtx(func(c *server.Context) error {
-		query := c.R.URL.Query().Get("query")
-		pageStr := c.R.URL.Query().Get("page")
-		page, err := strconv.Atoi(pageStr)
-		if err != nil {
-			log.Printf("Invalid Request, `page` should be an int, but received '%v'\n", page)
-			page = 1
-		}
-		res, err := source.SearchShows(query, page)
-		if err != nil {
-			return err
-		}
-		return c.JSON(http.StatusOK, res)
-	}))
+	mux.Handle("GET /", server.NewSpaHandler("server/ui", "index.html"))
 
 	fmt.Printf("Starting server...\n")
 

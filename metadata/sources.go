@@ -17,12 +17,12 @@ type Show struct {
 }
 
 type Episode struct {
-	ID          string
-	ShowID      string
-	Title       string
-	Description string
-	Season      int64
-	Episode     int64
+	ID       string
+	ShowID   string
+	Title    string
+	Overview string
+	Season   int64
+	Episode  int64
 }
 
 type SearchResultShows struct {
