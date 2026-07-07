@@ -115,14 +115,20 @@ func apiSeriesEpisodeWatch() http.HandlerFunc {
 			return err
 		}
 
-		var seriesLen int64
-		res := db.Db.Model(&db.TvSeries{}).Where("tmdb_id = ?", payload.SeriesTmdbId).Count(&seriesLen)
+		var isAdded bool
 
-		if res.Error != nil {
-			return res.Error
+		err := db.Db.Model(&db.TvSeason{}).
+			Select("count(*) > 0").
+			Where("tmdb_id = ?", payload.SeriesTmdbId).
+			Limit(1).
+			Find(&isAdded).Error
+
+		if err != nil {
+			slog.Error("Failed to check if tv series was added", "err", err)
+			return err
 		}
 
-		if seriesLen == 0 {
+		if !isAdded {
 			slog.Debug("Tv show isn't added, creating a record for tracking", "tmdb_id", payload.SeriesTmdbId)
 			_, err := db.NewTrackTv(payload.SeriesTmdbId)
 			if err != nil {
@@ -145,11 +151,11 @@ func apiSeriesEpisodeWatch() http.HandlerFunc {
 			Runtime:       ep.Runtime,
 		}
 
-		res = db.Db.Create(&trackItem)
+		err = db.Db.Create(&trackItem).Error
 
-		if res.Error != nil {
-			slog.Error("Error while creating a TvTracking Entry", "err", res.Error)
-			return res.Error
+		if err != nil {
+			slog.Error("Error while creating a TvTracking Entry", "err", err)
+			return err
 		}
 
 		return ctx.JSON(http.StatusOK, trackItem)
@@ -177,16 +183,12 @@ func apiSeriesEpisodeUnWatch() http.HandlerFunc {
 			Find(&isTracking).Error
 
 		if err != nil {
-			slog.Error("Failed to check if series is being tracked", "err", err)
+			slog.Error("Failed to check if episode was tracked", "err", err)
 			return err
 		}
 
 		if !isTracking {
-			slog.Debug("Tv show isn't added, creating a record for tracking", "tmdb_id", payload.SeriesTmdbId)
-			_, err := db.NewTrackTv(payload.SeriesTmdbId)
-			if err != nil {
-				return err
-			}
+			return ctx.Error(http.StatusBadRequest, "Not Tracked")
 		}
 
 		var epTrack db.TvTracking
@@ -203,11 +205,7 @@ func apiSeriesEpisodeUnWatch() http.HandlerFunc {
 			return res.Error
 		}
 
-		return ctx.JSON(http.StatusOK, struct {
-			DeletedId int
-		}{
-			DeletedId: int(epTrack.ID),
-		})
+		return ctx.JSON(http.StatusOK, epTrack.ID)
 	})
 }
 
