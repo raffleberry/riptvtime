@@ -35,6 +35,7 @@ type TvSeries struct {
 }
 
 type TvTracking struct {
+	gorm.Model
 	EpisodeTmdbId int64
 	SeriesTmdbId  int64
 	Name          string
@@ -42,12 +43,10 @@ type TvTracking struct {
 	Season        int
 	Episode       int
 	Runtime       int
-
-	CreatedAt time.Time
-	UpdatedAt time.Time
 }
 
 type TvEpisode struct {
+	gorm.Model
 	TmdbID     int64
 	SeriesTmdb int64
 	Name       string
@@ -55,6 +54,18 @@ type TvEpisode struct {
 	Season     int
 	Episode    int
 	Runtime    int
+	AirDate    time.Time
+}
+
+type TvSeason struct {
+	gorm.Model
+	TmdbID     int64
+	AirDate    time.Time
+	SeriesTmdb int64
+	Season     int
+	Name       string
+	Overview   string
+	Episodes   []TvEpisode `gorm:"foreignkey:SeriesTmdb;references:SeriesTmdb"`
 }
 
 // func GetSeries(tmdbId int64) (*TvSeries, error) {

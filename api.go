@@ -16,12 +16,14 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type TvSeriesFeedItem struct {
+type tvSeriesFeedItem struct {
 	db.TvSeries
-	EpisodesTotal      int
-	EpisodesAired      int
-	EpisodesWatched    int
-	NextEpisodeToWatch db.TvEpisode
+	EpisodesTotal   int
+	EpisodesAired   int
+	EpisodesWatched int
+	UpNextS         int
+	UpNextE         int
+	UpToDate        bool
 }
 
 func apiSeriesSearch() http.HandlerFunc {
@@ -55,7 +57,7 @@ func apiSeriesSearch() http.HandlerFunc {
 func apiSeriesAdd() http.HandlerFunc {
 	return server.WithCtx(func(c *server.Context) error {
 		var payload struct {
-			TmdbId int `json:"tmdbId"`
+			TmdbId int `json:"tmdb_id"`
 		}
 
 		if err := json.NewDecoder(c.R.Body).Decode(&payload); err != nil {
@@ -64,29 +66,13 @@ func apiSeriesAdd() http.HandlerFunc {
 
 		slog.Debug("tv add", "payload", payload)
 
-		td, err := db.TmdbClient.GetTVDetails(payload.TmdbId, nil)
+		insertId, err := db.NewTrackTv(payload.TmdbId)
 
 		if err != nil {
 			return err
 		}
 
-		ts := db.TvSeries{
-			TmdbId:         td.ID,
-			Name:           td.Name,
-			Overview:       td.Overview,
-			Genres:         db.GenreToStr(td.Genres),
-			Year:           db.ParseYear(td.FirstAirDate),
-			FirstAirDate:   db.ParseAirDate(td.FirstAirDate),
-			TrackingStatus: db.TvStatusWatching,
-		}
-
-		res := db.Conn.Create(&ts)
-
-		if res.Error != nil {
-			return res.Error
-		}
-
-		return c.JSON(http.StatusOK, ts)
+		return c.JSON(http.StatusOK, insertId)
 	})
 }
 
@@ -117,10 +103,118 @@ func apiSeriesAdd() http.HandlerFunc {
 // 	})
 // }
 
+func apiSeriesEpisodeWatch() http.HandlerFunc {
+	return server.WithCtx(func(ctx *server.Context) error {
+		var payload struct {
+			SeriesTmdbId int `json:"series_tmdb_id"`
+			SeasonNo     int `json:"season_no"`
+			EpisodeNo    int `json:"episode_no"`
+		}
+
+		if err := json.NewDecoder(ctx.R.Body).Decode(&payload); err != nil {
+			return err
+		}
+
+		var seriesLen int64
+		res := db.Db.Model(&db.TvSeries{}).Where("tmdb_id = ?", payload.SeriesTmdbId).Count(&seriesLen)
+
+		if res.Error != nil {
+			return res.Error
+		}
+
+		if seriesLen == 0 {
+			slog.Debug("Tv show isn't added, creating a record for tracking", "tmdb_id", payload.SeriesTmdbId)
+			_, err := db.NewTrackTv(payload.SeriesTmdbId)
+			if err != nil {
+				return err
+			}
+		}
+
+		ep, err := db.GetEpisodeDetails(int64(payload.SeriesTmdbId), payload.SeasonNo, payload.EpisodeNo)
+		if err != nil {
+			return err
+		}
+
+		trackItem := db.TvTracking{
+			EpisodeTmdbId: ep.TmdbID,
+			SeriesTmdbId:  ep.SeriesTmdb,
+			Name:          ep.Name,
+			Overview:      ep.Overview,
+			Season:        ep.Season,
+			Episode:       ep.Episode,
+			Runtime:       ep.Runtime,
+		}
+
+		res = db.Db.Create(&trackItem)
+
+		if res.Error != nil {
+			slog.Error("Error while creating a TvTracking Entry", "err", res.Error)
+			return res.Error
+		}
+
+		return ctx.JSON(http.StatusOK, trackItem)
+	})
+}
+
+func apiSeriesEpisodeUnWatch() http.HandlerFunc {
+	return server.WithCtx(func(ctx *server.Context) error {
+		var payload struct {
+			SeriesTmdbId int `json:"series_tmdb_id"`
+			SeasonNo     int `json:"season_no"`
+			EpisodeNo    int `json:"episode_no"`
+		}
+
+		if err := json.NewDecoder(ctx.R.Body).Decode(&payload); err != nil {
+			return err
+		}
+
+		var isTracking bool
+
+		err := db.Db.Model(&db.TvTracking{}).
+			Select("count(*) > 0").
+			Where("series_tmdb_id = ? AND season = ? AND episode = ?", payload.SeriesTmdbId, payload.SeasonNo, payload.EpisodeNo).
+			Limit(1).
+			Find(&isTracking).Error
+
+		if err != nil {
+			slog.Error("Failed to check if series is being tracked", "err", err)
+			return err
+		}
+
+		if !isTracking {
+			slog.Debug("Tv show isn't added, creating a record for tracking", "tmdb_id", payload.SeriesTmdbId)
+			_, err := db.NewTrackTv(payload.SeriesTmdbId)
+			if err != nil {
+				return err
+			}
+		}
+
+		var epTrack db.TvTracking
+		err = db.Db.First(&epTrack, "series_tmdb_id = ? AND season = ? AND episode = ?", payload.SeriesTmdbId, payload.SeasonNo, payload.EpisodeNo).Error
+		if err != nil {
+			slog.Error("Failed to get episode tracking details", "err", err)
+			return err
+		}
+
+		res := db.Db.Delete(&epTrack)
+
+		if res.Error != nil {
+			slog.Error("Error while deleting a TvTracking Entry", "err", res.Error)
+			return res.Error
+		}
+
+		return ctx.JSON(http.StatusOK, struct {
+			DeletedId int
+		}{
+			DeletedId: int(epTrack.ID),
+		})
+	})
+}
+
 func apiSeriesFeed() http.HandlerFunc {
 	return server.WithCtx(func(c *server.Context) error {
 		var series []db.TvSeries
-		res := db.Conn.Find(&series).Where("tracking_status = ?", db.TvStatusWatching)
+		res := db.Db.Find(&series).Where("tracking_status = ?", db.TvStatusWatching)
 		if res.Error != nil {
 			return res.Error
 		}
@@ -162,14 +256,14 @@ func apiSeriesFeed() http.HandlerFunc {
 
 		slog.Debug("Fetched Data from Tmdb", "count", len(freshSeriesData))
 
-		var respItem []*TvSeriesFeedItem
+		var respItem []*tvSeriesFeedItem
 
 		for _, show := range series {
 
 			slog.Debug("::::Start Calculating Resp data")
 
 			var trackedEps []db.TvTracking
-			res := db.Conn.Find(&trackedEps).Where("series_tmdb_id = ?", show.TmdbId)
+			res := db.Db.Find(&trackedEps).Where("series_tmdb_id = ?", show.TmdbId)
 			watched := make(map[string]struct{})
 			for _, t := range trackedEps {
 				key := fmt.Sprintf("%d-%d", t.Season, t.Episode)
@@ -193,7 +287,8 @@ func apiSeriesFeed() http.HandlerFunc {
 			show.Overview = fd.Overview
 			show.Year = db.ParseYear(fd.FirstAirDate)
 
-			var nextEpisodeToWatch *db.TvEpisode
+			upNextS := 1
+			upNextE := 1
 
 			episodesAired := 0
 			lastAiredS := fd.LastEpisodeToAir.SeasonNumber
@@ -208,38 +303,25 @@ func apiSeriesFeed() http.HandlerFunc {
 				} else if s.SeasonNumber == lastAiredS {
 					episodesAired += lastAiredE
 				}
-				if nextEpisodeToWatch == nil {
-					for epNo := 1; epNo <= s.EpisodeCount; epNo++ {
-						key := fmt.Sprintf("%d-%d", s.SeasonNumber, epNo)
-						if _, seen := watched[key]; !seen {
-							nextEpisodeToWatch = &db.TvEpisode{
-								TmdbID:     -1,
-								SeriesTmdb: show.TmdbId,
-								Season:     s.SeasonNumber,
-								Episode:    epNo,
-							}
-							slog.Debug("Not Watched, Selecting & Breaking", "series", s.Name, "s", s.SeasonNumber, "e", epNo, "nextEpisodeToWatch", *nextEpisodeToWatch)
-							break
+				for epNo := 1; epNo <= s.EpisodeCount; epNo++ {
+					key := fmt.Sprintf("%d-%d", s.SeasonNumber, epNo)
+					if _, seen := watched[key]; !seen {
+						if s.SeasonNumber > upNextS || (s.SeasonNumber == upNextS && epNo > upNextE) {
+							upNextS = s.SeasonNumber
+							upNextE = epNo
 						}
-						slog.Debug("Watched", "series", s.Name, "s", s.SeasonNumber, "e", epNo, "key", key)
 					}
 				}
 			}
 
-			if nextEpisodeToWatch == nil {
-				nextEpisodeToWatch = &db.TvEpisode{
-					TmdbID:  show.TmdbId,
-					Season:  1,
-					Episode: 1,
-				}
-			}
-
-			respItem = append(respItem, &TvSeriesFeedItem{
-				TvSeries:           show,
-				EpisodesTotal:      fd.NumberOfEpisodes,
-				EpisodesAired:      episodesAired,
-				EpisodesWatched:    len(trackedEps),
-				NextEpisodeToWatch: *nextEpisodeToWatch,
+			respItem = append(respItem, &tvSeriesFeedItem{
+				TvSeries:        show,
+				EpisodesTotal:   fd.NumberOfEpisodes,
+				EpisodesAired:   episodesAired,
+				EpisodesWatched: len(watched),
+				UpNextS:         upNextS,
+				UpNextE:         upNextE,
+				UpToDate:        episodesAired == len(watched),
 			})
 
 			slog.Debug("::::End Calculating Resp data")

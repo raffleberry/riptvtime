@@ -30,6 +30,8 @@ func main() {
 	// mux.HandleFunc("GET /api/series/{tmdbId}", apiSeriesGet())
 	// mux.HandleFunc("GET /api/series/{tmdbId}/{episode}", apiSeriesEpisode())
 	mux.HandleFunc("POST /api/series/", apiSeriesAdd())
+	mux.HandleFunc("POST /api/series/episode/", apiSeriesEpisodeWatch())
+	mux.HandleFunc("DELETE /api/series/episode/", apiSeriesEpisodeUnWatch())
 	// mux.HandleFunc("DELETE /api/series/{tmdbId}", apiSeriesRemove())
 	// mux.HandleFunc("PUT /api/series/{tmdbId}", apiSeriesUpdateStatus())
 

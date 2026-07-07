@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"log/slog"
 	"path/filepath"
 
@@ -9,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var Conn *gorm.DB
+var Db *gorm.DB
 var err error
 var SQLITE_DB_PATH string
 
@@ -23,12 +24,44 @@ func initDb() {
 
 	slog.Debug("Initializing Sqlite Database", "path", SQLITE_DB_PATH)
 
-	Conn, err = gorm.Open(sqlite.Open(SQLITE_DB_PATH), &gorm.Config{})
+	Db, err = gorm.Open(sqlite.Open(fmt.Sprintf("%v?", SQLITE_DB_PATH)), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
 	if err != nil {
 		panic("failed to connect database")
 	}
 
-	Conn.AutoMigrate(&TvSeries{})
-	Conn.AutoMigrate(&TvTracking{})
+	err := Db.AutoMigrate(&TvSeries{}, &TvTracking{}, &TvSeason{}, &TvEpisode{})
 
+	if err != nil {
+		slog.Error("Failed to migrate", "err", err)
+		panic("Failed to migrate database")
+	}
+
+}
+
+func NewTrackTv(tmdbId int) (uint, error) {
+	td, err := TmdbClient.GetTVDetails(tmdbId, nil)
+
+	if err != nil {
+		return 0, err
+	}
+
+	ts := TvSeries{
+		TmdbId:         td.ID,
+		Name:           td.Name,
+		Overview:       td.Overview,
+		Genres:         GenreToStr(td.Genres),
+		Year:           ParseYear(td.FirstAirDate),
+		FirstAirDate:   ParseAirDate(td.FirstAirDate),
+		TrackingStatus: TvStatusWatching,
+	}
+
+	res := Db.Create(&ts)
+
+	if res.Error != nil {
+		return 0, res.Error
+	}
+
+	return ts.ID, nil
 }
