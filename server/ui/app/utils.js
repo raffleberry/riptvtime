@@ -1,0 +1,52 @@
+import { ref, watch } from "./vue.js";
+
+export const PAGE = {
+    FEED: { name: 'Feed', path: '/' },
+    UPCOMING: { name: 'Upcoming', path: '/upcoming' },
+    STATS: { name: 'Stats', path: '/stats' },
+    MY_SHOWS: { name: 'My Shows', path: '/my' },
+    DISCOVER: { name: 'Discover', path: '/discover' },
+    SEARCH: { name: 'Search', path: '/search' },
+}
+
+// use updatePageTitle to update the page title
+export const currentPage = ref(PAGE.FEED)
+
+
+export const updatePage = (page) => {
+    currentPage.value = page;
+    document.title = page.name;
+}
+
+export const highlight = (text, highlight) => {
+    if (!highlight) return text;
+    const regex = new RegExp(`(${highlight})`, 'gi');
+    return text.replace(regex, `<strong>$1</strong>`);
+}
+
+export const formatDuration = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+};
+
+const mediaQuery = window.matchMedia('(max-width: 1000px)')
+export const isMobile = ref(mediaQuery.matches)
+const updateIsMobile = (event) => { isMobile.value = event.matches }
+mediaQuery.addEventListener('change', updateIsMobile)
+
+export const theme = ref(localStorage.getItem("theme") || "light");
+watch(theme, () => {
+    document.documentElement.setAttribute("data-bs-theme", theme.value);
+    localStorage.setItem("theme", theme.value);
+}, { immediate: true });
+
+export function generateRandomString(length) {
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const charactersLength = characters.length;
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+}

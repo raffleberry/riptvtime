@@ -1,0 +1,111 @@
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(13, 110, 253, 1) whitesmoke;
+}
+
+/*Chrome, Edge, and Safari */
+*::-webkit-scrollbar {
+    width: 12px;
+}
+
+*::-webkit-scrollbar-track {
+    background: whitesmoke;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: rgba(13, 110, 253, 1);
+    border-radius: 20px;
+    border: 3px solid whitesmoke;
+}
+
+.preformat {
+    text-wrap: pretty;
+    white-space: pre-line;
+}
+
+.now-playing-artwork-container {
+    height: 60vh;
+    align-self: self-start;
+    padding-top: 32px;
+    position: sticky;
+    top: 20px;
+}
+
+@media (max-width: 768px) {
+    .now-playing-artwork-container {
+        position: static;
+        margin-bottom: 20px;
+    }
+}
+
+.router-text-link {
+    color: inherit;
+    /* match normal text */
+    text-decoration: none;
+    /* remove underline */
+    cursor: text;
+    /* normal text cursor */
+}
+
+.router-text-link:hover {
+    color: var(--bs-link-color);
+    /* Bootstrap's link color */
+    text-decoration: underline;
+    /* underline on hover */
+    cursor: pointer;
+    /* pointer cursor on hover */
+}
+
+.ellipsis-2 {
+    display: -webkit-box;
+    display: box;
+    -webkit-box-orient: vertical;
+    box-orient: vertical;
+
+    -webkit-line-clamp: 2;
+    /* Safari, Chrome, etc. */
+    line-clamp: 2;
+    /* Future standard */
+
+    overflow: hidden;
+}
+
+.invisible {
+    visibility: hidden;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes pulseActive {
+    0% {
+        background-color: var(--bs-primary);
+    }
+
+    50% {
+        background-color: var(--bs-primary-bg-subtle);
+    }
+
+    100% {
+        background-color: var(--bs-primary);
+    }
+}
+
+.list-group-item.active.playing {
+    position: relative;
+    color: #fff;
+    background: linear-gradient(110deg,
+            var(--bs-primary) 25%,
+            #854fca 50%,
+            var(--bs-primary) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 10s linear infinite;
+}
