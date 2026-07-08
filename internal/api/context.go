@@ -1,10 +1,10 @@
-package server
+package api
 
 import (
 	"encoding/json"
 	"errors"
 	"io/fs"
-	"log"
+	"log/slog"
 	"net/http"
 	"syscall"
 )
@@ -19,7 +19,7 @@ func WithCtx(handler func(*Context) error) http.HandlerFunc {
 		ctx := &Context{W: w, R: r}
 		err := handler(ctx)
 		if err != nil && !errors.Is(err, syscall.EPIPE) {
-			log.Printf("%s - Error: %v\n", r.RequestURI, err)
+			slog.Error("Error while handling request", "uri", r.RequestURI, "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}

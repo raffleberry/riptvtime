@@ -1,8 +1,21 @@
-package server
+package utils
 
 import (
+	"log/slog"
 	"net"
+	"os"
+	"path/filepath"
+	"strings"
 )
+
+func IsGoRun() bool {
+	execPath, err := os.Executable()
+	if err != nil {
+		return false
+	}
+	slog.Debug("Executable path", "path", execPath)
+	return strings.HasPrefix(execPath, filepath.Join(os.TempDir(), "go-build"))
+}
 
 func GetIps() []string {
 	ips := make([]string, 0)

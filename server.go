@@ -1,10 +1,10 @@
-package server
+package main
 
 import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -27,7 +27,7 @@ type Server struct {
 	mux  http.Handler
 }
 
-func New(addr string, mux http.Handler) *Server {
+func NewServer(addr string, mux http.Handler) *Server {
 	s := &Server{
 		addr: addr,
 		mux:  mux,
@@ -54,7 +54,7 @@ func (s *Server) Start() error {
 		err = s.server.Serve(listener)
 
 		if err != nil && err != http.ErrServerClosed {
-			log.Println("Error starting server: ", err.Error())
+			slog.Error("Error starting server", "err", err)
 		}
 	}()
 
@@ -81,7 +81,7 @@ func (s *Server) StartHttps(tlsConfig *tls.Config) error {
 		err = s.server.ServeTLS(listener, "", "")
 
 		if err != nil && err != http.ErrServerClosed {
-			log.Println("Error starting server: ", err.Error())
+			slog.Error("Error starting server", "err", err)
 		}
 	}()
 

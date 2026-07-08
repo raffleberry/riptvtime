@@ -1,4 +1,4 @@
-package server
+package ui
 
 import (
 	"embed"
@@ -8,10 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/raffleberry/riptvtime/utils"
+	"gitlab.com/raffleberry/riptvtime/internal/utils"
 )
 
-//go:embed ui
+//go:embed static
 var ui embed.FS
 
 type spaHandler struct {
@@ -34,7 +34,9 @@ func (h *spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, p)
 }
 
-func NewSpaHandler(publicDir string, indexFile string) http.Handler {
+func NewSpaHandler() http.Handler {
+	publicDir := "static"
+	indexFile := "index.html"
 	var fsys fs.FS
 	var err error
 	if utils.IsGoRun() {
