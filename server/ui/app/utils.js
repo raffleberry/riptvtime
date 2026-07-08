@@ -1,3 +1,6 @@
+import { Feed } from "./tabs/Feed.js";
+import { Search } from "./tabs/Search.js";
+import { Upcoming } from "./tabs/Upcoming.js";
 import { ref, watch } from "./vue.js";
 
 export const PAGE = {
@@ -12,6 +15,11 @@ export const PAGE = {
 // use updatePageTitle to update the page title
 export const currentPage = ref(PAGE.FEED)
 
+export const routes = [
+    { path: PAGE.FEED.path, component: Feed, name: PAGE.FEED.name },
+    { path: PAGE.UPCOMING.path, component: Upcoming, name: PAGE.UPCOMING.name },
+    { path: PAGE.SEARCH.path, component: Search, name: PAGE.SEARCH.name },
+];
 
 export const updatePage = (page) => {
     currentPage.value = page;

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,5 +28,6 @@ func IsGoRun() bool {
 	if err != nil {
 		return false
 	}
+	slog.Debug("Executable path", "path", execPath)
 	return strings.HasPrefix(execPath, filepath.Join(os.TempDir(), "go-build"))
 }

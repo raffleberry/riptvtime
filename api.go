@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	tmdb "github.com/cyruzin/golang-tmdb"
 	"gitlab.com/raffleberry/riptvtime/db"
@@ -23,7 +24,7 @@ type tvSeriesFeedItem struct {
 	EpisodesWatched int
 	UpNextS         int
 	UpNextE         int
-	UpToDate        bool
+	RecentlyAired   bool
 }
 
 func apiSeriesSearch() http.HandlerFunc {
@@ -258,7 +259,7 @@ func apiSeriesFeed() http.HandlerFunc {
 
 		for _, show := range series {
 
-			slog.Debug("::::Start Calculating Resp data")
+			slog.Debug("::::Start Calculating Resp data", "Series Name", show.Name)
 
 			var trackedEps []db.TvTracking
 			res := db.Db.Find(&trackedEps).Where("series_tmdb_id = ?", show.TmdbId)
@@ -312,6 +313,17 @@ func apiSeriesFeed() http.HandlerFunc {
 				}
 			}
 
+			if len(watched) == episodesAired {
+				continue
+			}
+
+			recentlyAired := false
+
+			DaysAgo14 := time.Now().Add(-2 * time.Hour * 24 * 7)
+			if db.ParseAirDate(fd.LastEpisodeToAir.AirDate).After(DaysAgo14) {
+				recentlyAired = true
+			}
+
 			respItem = append(respItem, &tvSeriesFeedItem{
 				TvSeries:        show,
 				EpisodesTotal:   fd.NumberOfEpisodes,
@@ -319,10 +331,10 @@ func apiSeriesFeed() http.HandlerFunc {
 				EpisodesWatched: len(watched),
 				UpNextS:         upNextS,
 				UpNextE:         upNextE,
-				UpToDate:        episodesAired == len(watched),
+				RecentlyAired:   recentlyAired,
 			})
 
-			slog.Debug("::::End Calculating Resp data")
+			slog.Debug("::::End Calculating Resp data", "Series Name", show.Name)
 		}
 
 		return c.JSON(http.StatusOK, respItem)

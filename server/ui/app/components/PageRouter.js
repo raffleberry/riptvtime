@@ -1,19 +1,17 @@
-import { Navigation } from "./components/Navigation.js";
-import { RouterView } from "./vue.js";
+import { Navigation } from "./Navigation.js";
+import { RouterView } from "../vue.js";
 
 
 const PageRouter = {
     components: {
         Navigation,
-    },
-    props: {
         RouterView,
     },
+    props: {
+    },
     setup() {
-
         return {
         }
-
     },
 
     template: `

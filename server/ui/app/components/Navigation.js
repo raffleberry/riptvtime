@@ -1,4 +1,4 @@
-import { currentPage, isMobile, PAGE, theme, updatePage } from "../utils.js";
+import { currentPage, isMobile, PAGE, theme, updatePage, routes } from "../utils.js";
 import { ref } from "../vue.js";
 
 
@@ -31,6 +31,7 @@ const Navigation = {
             theme,
             toggleTheme,
             PAGE,
+            routes,
             toggleFullscreen,
             isFullscreen,
             isMobile
@@ -39,8 +40,10 @@ const Navigation = {
     template: `
     <div class="nav nav-tabs d-flex justify-content-between bg-body" >
       <div class="d-flex flex-row flex-wrap">
-        <li class="nav-item"><router-link :class="{'nav-link': true, active: c.name === PAGE.FEED.name }" :to="PAGE.FEED.path" >Feed</router-link></li>
-        <li class="nav-item"><router-link :class="{'nav-link': true, active: c.name === PAGE.UPCOMING.name }" :to="PAGE.UPCOMING.path" >Upcoming</router-link></li>
+        <li v-for="route in routes" :key="route.path" class="nav-item">
+            <router-link :class="{'nav-link': true, active: route.path === c.path }" :to="route.path" >{{ route.name }}</router-link>
+        </li>
+
       </div>
       <div class="d-flex flex-grow-1 flex-row-reverse">
         <button v-if="isMobile" class="btn btn-link" @click="toggleFullscreen" aria-label="fullscreenToggle">
