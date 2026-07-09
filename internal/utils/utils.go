@@ -1,20 +1,14 @@
 package utils
 
 import (
-	"log/slog"
 	"net"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
 func IsGoRun() bool {
-	execPath, err := os.Executable()
-	if err != nil {
-		return false
-	}
-	slog.Debug("Executable path", "path", execPath)
-	return strings.HasPrefix(execPath, filepath.Join(os.TempDir(), "go-build"))
+	execPath := os.Args[0]
+	return strings.Contains(execPath, "go-build")
 }
 
 func GetIps() []string {

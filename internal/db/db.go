@@ -1,65 +1,91 @@
 package db
 
 import (
-	"fmt"
-	"log/slog"
-	"path/filepath"
+	"errors"
+	"time"
 
-	"gitlab.com/raffleberry/riptvtime/internal/config"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-type Db struct {
-	orm *gorm.DB
-	err error
+type TvStatus int
+
+var (
+	ErrNotFound = errors.New("Record Not Found")
+)
+
+const (
+	TvStatusWatching TvStatus = iota
+	TvStatusStopped
+	TvStatusCompleted
+)
+
+func (s TvStatus) String() string {
+	strings := [...]string{"not watching", "watching", "stopped", "completed"}
+	if s < TvStatusWatching || int(s) >= len(strings) {
+		return "unknown"
+	}
+	return strings[s]
 }
 
-func NewDb(c *config.Config) *Db {
-	db := &Db{}
-	sqliteDbPath := filepath.Join(c.ConfigDir, "riptvtime.db")
-
-	slog.Debug("Initializing Sqlite Database", "path", sqliteDbPath)
-
-	db.orm, db.err = gorm.Open(sqlite.Open(fmt.Sprintf("%v?", sqliteDbPath)), &gorm.Config{
-		DisableForeignKeyConstraintWhenMigrating: true,
-	})
-	if db.err != nil {
-		panic("failed to connect database")
-	}
-
-	err := db.orm.AutoMigrate(&TvSeries{}, &TvTracking{}, &TvSeason{}, &TvEpisode{})
-
-	if err != nil {
-		slog.Error("Failed to migrate", "err", err)
-		panic("Failed to migrate database")
-	}
-
-	return db
+type TvSeries struct {
+	gorm.Model
+	MName          string
+	MId            int64
+	Name           string
+	Overview       string
+	Year           int
+	TrackingStatus TvStatus
+	RuntimeApprox  int
 }
 
-// func NewTrackTv(tmdbId int) (uint, error) {
-// 	td, err := TmdbClient.GetTVDetails(tmdbId, nil)
+type TvTrackedEps struct {
+	gorm.Model
+	MName      string
+	EpisodeMId int64
+	SeriesMId  int64
+	Name       string
+	Overview   string
+	Season     int
+	Episode    int
+	Runtime    int
+}
 
-// 	if err != nil {
-// 		return 0, err
-// 	}
+type TvEpisode struct {
+	gorm.Model
+	MName     string
+	MId       int64
+	SeriesMId int64
+	Name      string
+	Overview  string
+	Season    int
+	Episode   int
+	Runtime   int
+	AirDate   time.Time
+}
 
-// 	ts := TvSeries{
-// 		TmdbId:         td.ID,
-// 		Name:           td.Name,
-// 		Overview:       td.Overview,
-// 		Genres:         genreToStr(td.Genres),
-// 		Year:           ParseYear(td.FirstAirDate),
-// 		FirstAirDate:   ParseAirDate(td.FirstAirDate),
-// 		TrackingStatus: TvStatusWatching,
-// 	}
+type TvSeason struct {
+	gorm.Model
+	MName     string
+	MId       int64
+	SeriesMId int64
+	AirDate   time.Time
+	Season    int
+	Name      string
+	Overview  string
+	Episodes  []TvEpisode `gorm:"foreignkey:SeriesMId;references:SeriesMId"`
+}
 
-// 	res := Db.Create(&ts)
+type Db interface {
+	SeriesWatching() (*[]TvSeries, error)
+	SeriesAdd(t *TvSeries) (int, error)
+	SeriesIsAdded(mId int) (bool, error)
 
-// 	if res.Error != nil {
-// 		return 0, res.Error
-// 	}
+	SeriesTrackedEps(mId int) (*[]TvTrackedEps, error)
+	SeriesTrackedEpsAdd(ep *TvTrackedEps) (int, error)
+	SeriesTrackedEpRemove(mId int, season int, episode int) (int, error)
 
-// 	return ts.ID, nil
-// }
+	SeriesSeasonAdd(t *TvSeason) (int, error)
+
+	SeriesEpisodeGet(mId int, season int, episode int) (*TvEpisode, error)
+	SeriesEpisodeExists(mId int, season int, episode int) (bool, error)
+}

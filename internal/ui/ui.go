@@ -4,9 +4,12 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gitlab.com/raffleberry/riptvtime/internal/utils"
 )
@@ -15,39 +18,55 @@ import (
 var ui embed.FS
 
 type spaHandler struct {
-	serveDir  string
-	indexFile string
-	fsys      fs.FS
+	fsys fs.FS
 }
 
 func (h *spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	p := filepath.Join(h.serveDir, filepath.Clean(r.URL.Path))
+	p := filepath.Join(filepath.Clean(r.URL.Path))
 
-	if info, err := fs.Stat(h.fsys, p); err != nil {
-		http.ServeFile(w, r, filepath.Join(h.serveDir, h.indexFile))
-		return
-	} else if info.IsDir() {
-		http.ServeFile(w, r, filepath.Join(h.serveDir, h.indexFile))
+	p = strings.TrimPrefix(p, "/")
+
+	if info, err := fs.Stat(h.fsys, p); err != nil || info.IsDir() {
+		http.ServeFileFS(w, r, h.fsys, filepath.Join("index.html"))
 		return
 	}
 
-	http.ServeFile(w, r, p)
+	http.ServeFileFS(w, r, h.fsys, p)
 }
 
-func NewSpaHandler() http.Handler {
-	publicDir := "static"
-	indexFile := "index.html"
+func debugFsys(fsys fs.FS) {
+	_ = fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !d.IsDir() {
+			fmt.Println("::::Debug Fsys:::: - " + path)
+		}
+		return nil
+	})
+
+}
+
+// path: Path to static folder from root of this code repo
+func NewSpaHandler(path string) http.Handler {
 	var fsys fs.FS
 	var err error
 	if utils.IsGoRun() {
-		fsys = os.DirFS(".")
-		fmt.Println("UI - using live mode")
+		fsys = os.DirFS(path)
+		slog.Info("UI - using live mode")
 	} else {
-		fmt.Println("UI - using embed mode")
-		fsys, err = fs.Sub(ui, "ui")
+		slog.Info("UI - using embed mode")
+		fsys, err = fs.Sub(ui, "static")
 		if err != nil {
 			panic(err)
 		}
 	}
-	return &spaHandler{publicDir, indexFile, fsys}
+
+	// debugFsys(fsys)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &spaHandler{fsys}
 }
