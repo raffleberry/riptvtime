@@ -1,5 +1,5 @@
-import { TvTile } from "../components/TvTile.js";
-import { currentPage, PAGE, theme, updatePage } from "../utils.js";
+import { TvFeedTile } from "../components/TvFeedTile.js";
+import { currentPage, ENDPOINT, PAGE, theme, updatePage } from "../utils.js";
 import { onMounted, ref } from "../vue.js";
 
 let calledOnce = false;
@@ -7,10 +7,9 @@ const loading = ref(true)
 const feedData = ref([])
 
 const fetchFeed = async () => {
-    let url = `/api/series/feed`;
     loading.value = true
     try {
-        const response = await fetch(url);
+        const response = await fetch(ENDPOINT.FEED);
         const result = await response.json();
         if (result) {
             console.log(result)
@@ -30,7 +29,7 @@ const Feed = {
 
     },
     components: {
-        TvTile
+        TvFeedTile
     },
     setup: (props) => {
 
@@ -42,30 +41,7 @@ const Feed = {
             }
         });
 
-        let testData = {
-            "CreatedAt": "2026-07-07T16:31:23.416745591+05:30",
-            "DeletedAt": null,
-            "EpisodesAired": 144,
-            "EpisodesTotal": 144,
-            "EpisodesWatched": 3,
-            "FirstAirDate": "2018-10-16T00:00:00Z",
-            "Genres": "Crime,Drama,Comedy",
-            "ID": 2,
-            "Name": "The Rookie",
-            "Overview": "Starting over isn't easy, especially for small-town guy John Nolan who, after a life-altering incident, is pursuing his dream of being an LAPD officer. As the force's oldest rookie, he's met with skepticism from some higher-ups who see him as just a walking midlife crisis.",
-            "RuntimeApprox": 0,
-            "TmdbId": 79744,
-            "TrackingStatus": 0,
-            "UpNextE": 18,
-            "UpNextS": 8,
-            "UpToDate": false,
-            "UpdatedAt": "2026-07-07T16:31:23.416745591+05:30",
-            "Year": 2018
-        };
-
-
         return {
-            testData,
             feedData,
             loading
         }
@@ -79,7 +55,7 @@ const Feed = {
         </div>
         <div v-else>
             <div v-for="tv in feedData" :key="tv.ID" class="mb-3">
-                <TvTile :tv="tv"></TvTile>
+                <TvFeedTile :tv="tv"></TvFeedTile>
             </div>
         </div>
     </div>

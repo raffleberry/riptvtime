@@ -3,6 +3,11 @@ import { Search } from "./tabs/Search.js";
 import { Upcoming } from "./tabs/Upcoming.js";
 import { ref, watch } from "./vue.js";
 
+export const ENDPOINT = {
+    FEED: '/api/series/feed',
+    SEARCH_SERIES: '/api/series/search',
+}
+
 export const PAGE = {
     FEED: { name: 'Feed', path: '/' },
     UPCOMING: { name: 'Upcoming', path: '/upcoming' },

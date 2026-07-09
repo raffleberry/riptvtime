@@ -4,7 +4,7 @@ import { onMounted, ref, RouterView } from "../vue.js";
 
 
 
-const TvTile = {
+const TvFeedTile = {
     components: {},
     props: {
         tv: Object
@@ -60,4 +60,4 @@ const TvTile = {
 `
 }
 
-export { TvTile };
+export { TvFeedTile };
