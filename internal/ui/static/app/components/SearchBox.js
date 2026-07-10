@@ -1,8 +1,6 @@
 import { Navigation } from "./Navigation.js";
 import { ref, RouterView } from "../vue.js";
-import { handleSearch } from "../tabs/Search.js";
-
-export const searchTerm = ref('')
+import { useSearchStore } from "../stores/search.js";
 
 const SearchBox = {
     components: {
@@ -11,9 +9,15 @@ const SearchBox = {
     },
 
     setup() {
+
+      const searchTerm = ref('')
+
+      const store = useSearchStore()
+      const { onSearch } = store
+
       return {
           searchTerm,
-          handleSearch,
+          onSearch,
         }
     },
 
@@ -23,9 +27,9 @@ const SearchBox = {
         <input v-model="searchTerm"
           type="text" class="form-control search-input"
           placeholder="Search..."
-          @keyup.enter="handleSearch(searchTerm)">
+          @keyup.enter="onSearch(searchTerm)">
         <button class="btn btn-outline-primary" type="button" id="searchButton"
-          @click="handleSearch(searchTerm)">
+          @click="onSearch(searchTerm)">
           <i class="bi bi-search"></i>
         </button>
         

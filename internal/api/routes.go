@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
+	"strconv"
 	"sync"
 	"time"
 
@@ -31,6 +32,17 @@ type tvSeriesFeedItem struct {
 	RecentlyAired   bool
 }
 
+type tvSeriesSearchItem struct {
+	meta.TvSearchResult
+	Status db.TvStatus
+}
+type tvSeriesSearchResult struct {
+	Page         int
+	Results      []tvSeriesSearchItem
+	TotalPages   int
+	TotalResults int
+}
+
 // queryParams = { q: query, p: page }
 func (a *Api) SeriesSearch() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
@@ -38,27 +50,36 @@ func (a *Api) SeriesSearch() http.HandlerFunc {
 		query := urlVals.Get("q")
 		page := urlVals.Get("p")
 		slog.Debug("search", "page", page, "query", query)
-		res, err := a.meta.Search(query, page)
+		metaRes, err := a.meta.Search(query, page)
 		if err != nil {
 			return err
 		}
-		return c.JSON(http.StatusOK, res)
+
+		respRes := tvSeriesSearchResult{
+			Page:         metaRes.Page,
+			TotalPages:   metaRes.TotalPages,
+			TotalResults: metaRes.TotalResults,
+		}
+
+		for _, r := range metaRes.Results {
+
+			status, err := a.db.SeriesStatusGet(r.Id)
+			if err != nil {
+				return err
+			}
+
+			item := tvSeriesSearchItem{
+				TvSearchResult: r,
+				Status:         status,
+			}
+
+			respRes.Results = append(respRes.Results, item)
+
+		}
+
+		return c.JSON(http.StatusOK, respRes)
 	})
 }
-
-// func apiSeriesUpdateStatus() http.HandlerFunc {
-// 	return WithCtx(func(c *Context) error {
-// 		tmdbId := c.R.PathValue("tmdbId")
-// 		return nil
-// 	})
-// }
-
-// func apiSeriesRemove() http.HandlerFunc {
-// 	return WithCtx(func(c *Context) error {
-// 		tmdbId := c.R.PathValue("tmdbId")
-// 		return nil
-// 	})
-// }
 
 func (a *Api) SeriesAdd() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
@@ -126,13 +147,13 @@ func (a *Api) SeriesEpisodeWatch() http.HandlerFunc {
 			return err
 		}
 
-		isAdded, err := a.db.SeriesIsAdded(payload.SeriesMId)
+		status, err := a.db.SeriesStatusGet(payload.SeriesMId)
 
 		if err != nil {
 			return err
 		}
 
-		if !isAdded {
+		if status == db.TvStatusNotWatching {
 			slog.Debug("Tv show isn't added, creating a record for tracking", "mId", payload.SeriesMId)
 			_, err := a.addNewSeries(payload.SeriesMId)
 			if err != nil {
@@ -191,7 +212,7 @@ func (a *Api) SeriesEpisodeUnWatch() http.HandlerFunc {
 func (a *Api) SeriesFeed() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
 
-		series, err := a.db.SeriesWatching()
+		series, err := a.db.SeriesWatchingAll()
 		if err != nil {
 			return err
 		}
@@ -323,8 +344,39 @@ func (a *Api) SeriesFeed() http.HandlerFunc {
 	})
 }
 
-// func apiSeriesAll() http.HandlerFunc {
-// 	return WithCtx(func(c *Context) error {
-// 		return nil
-// 	})
-// }
+func (a *Api) SeriesUpdateStatus() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		mIdStr := c.R.PathValue("mId")
+
+		mId, err := strconv.Atoi(mIdStr)
+
+		if err != nil {
+			return c.Error(http.StatusBadRequest, err.Error())
+		}
+
+		var payload struct {
+			Status int `json:"status"`
+		}
+
+		if err := json.NewDecoder(c.R.Body).Decode(&payload); err != nil {
+			return err
+		}
+
+		if payload.Status < 0 || payload.Status > len(db.TvStatusVals) {
+			return c.Error(http.StatusBadRequest, "Invalid Status")
+		}
+
+		status, err := a.db.SeriesStatusGet(mId)
+		if err != nil {
+			return err
+		}
+
+		if status == db.TvStatusNotWatching {
+			return c.Error(http.StatusBadRequest, "Tv show isn't added, cannot update status")
+		}
+
+		_, err = a.db.SeriesStatusUpdate(mId, db.TvStatus(payload.Status))
+
+		return err
+	})
+}

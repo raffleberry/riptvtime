@@ -3,13 +3,13 @@
 ## Essential Features list
 | Features | Done |
 | :--- | :---: |
-| Watch Next Feed | ❌ |
+| Watch Next Feed | 80% |
 | Upcoming(To Be Aired) Episodes Feed | ❌ |
-| Search & Add TV show, Stop TV show, Remove TV show | ❌ |
-| Episode Mark as watched/Pop up to mark all previous as watched | ❌ |
-| Import TVTime gdpr data | ❌ |
-| Total Time Watched | ❌ |
-| Episodes Watched/Rewatched that count towards total time | ❌ |
+| Search & Add TV show, Stop TV show, Remove TV show | 60% |
+| Episode Mark as watched/Pop up to mark all previous as watched | 0% |
+| Import TVTime gdpr data | 0% |
+| Total Time Watched | 0% |
+| Episodes Watched/Rewatched that count towards total time | 0% |
 
 ## Optional Features list
 | Features | Done |

@@ -1,4 +1,5 @@
 import { PageRouter } from "./components/PageRouter.js";
+import { SeriesOptions } from "./overlays/SeriesOptions.js";
 import { Feed } from "./tabs/Feed.js";
 import { Upcoming } from "./tabs/Upcoming.js";
 import { PAGE, currentPage, routes } from "./utils.js";
@@ -13,6 +14,7 @@ const router = createRouter({
 const app = createApp({
     components: {
         PageRouter,
+        SeriesOptions,
     },
 
     setup() {

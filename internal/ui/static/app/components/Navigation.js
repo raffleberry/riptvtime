@@ -15,25 +15,12 @@ const Navigation = {
             theme.value = theme.value === "light" ? "dark" : "light";
         };
 
-        const isFullscreen = ref(false)
-
-        const toggleFullscreen = async () => {
-            if (document.fullscreenElement) {
-                await document.exitFullscreen();
-            } else {
-                await document.documentElement.requestFullscreen();
-            }
-            isFullscreen.value = document.fullscreenElement !== null
-        }
-
         return {
             c: currentPage,
             theme,
             toggleTheme,
             PAGE,
             routes,
-            toggleFullscreen,
-            isFullscreen,
             isMobile
         }
     },
@@ -46,9 +33,6 @@ const Navigation = {
 
       </div>
       <div class="d-flex flex-grow-1 flex-row-reverse">
-        <button v-if="isMobile" class="btn btn-link" @click="toggleFullscreen" aria-label="fullscreenToggle">
-            <i :class="[ isFullscreen ? 'bi-fullscreen-exit' : 'bi-arrows-fullscreen' ]" style="font-size: 1.25rem;"></i>
-        </button>
         <button class="btn btn-link" @click="toggleTheme" aria-label="darkMode">
           <i :class="{'bi bi-brightness-high-fill': theme !== 'light', 'bi bi-moon-fill': theme !== 'dark'}" style="font-size: 1.25rem;"></i>
         </button>

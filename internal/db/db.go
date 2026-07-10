@@ -9,22 +9,24 @@ import (
 
 type TvStatus int
 
-var (
-	ErrNotFound = errors.New("Record Not Found")
-)
+var TvStatusVals = []string{"not watching", "watching", "stopped", "completed"}
 
 const (
-	TvStatusWatching TvStatus = iota
+	TvStatusNotWatching TvStatus = iota
+	TvStatusWatching
 	TvStatusStopped
 	TvStatusCompleted
 )
 
+var (
+	ErrNotFound = errors.New("Record Not Found")
+)
+
 func (s TvStatus) String() string {
-	strings := [...]string{"not watching", "watching", "stopped", "completed"}
-	if s < TvStatusWatching || int(s) >= len(strings) {
+	if s < TvStatusWatching || int(s) >= len(TvStatusVals) {
 		return "unknown"
 	}
-	return strings[s]
+	return TvStatusVals[s]
 }
 
 type TvSeries struct {
@@ -34,7 +36,7 @@ type TvSeries struct {
 	Name           string
 	Overview       string
 	Year           int
-	TrackingStatus TvStatus
+	TrackingStatus TvStatus `gorm:"default:1"`
 	RuntimeApprox  int
 }
 
@@ -76,9 +78,12 @@ type TvSeason struct {
 }
 
 type Db interface {
-	SeriesWatching() (*[]TvSeries, error)
+	SeriesWatchingAll() (*[]TvSeries, error)
 	SeriesAdd(t *TvSeries) (int, error)
-	SeriesIsAdded(mId int) (bool, error)
+
+	// 0 if series doesn't exist
+	SeriesStatusGet(mId int) (TvStatus, error)
+	SeriesStatusUpdate(mId int, newStatus TvStatus) (TvStatus, error)
 
 	SeriesTrackedEps(mId int) (*[]TvTrackedEps, error)
 	SeriesTrackedEpsAdd(ep *TvTrackedEps) (int, error)

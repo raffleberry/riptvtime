@@ -1,5 +1,5 @@
-import { ref } from "../vue.js";
-import { handleSearchNxtBtn, handleSearchPrvBtn, searchLoading, searchResults } from "../tabs/Search.js";
+import { useSearchStore } from "../stores/search.js";
+import { ref, storeToRefs } from "../vue.js";
 
 
 const SearchButtons = {
@@ -8,11 +8,25 @@ const SearchButtons = {
     props: {
     },
     setup() {
+
+        const store = useSearchStore()
+
+        const { onSearch, onNxtBtn, onPrvBtn } = store
+        
+        const {
+            loading, pageCur, pageTotal, resultsCnt,
+        } = storeToRefs(store)
+
+        
         return {
-            searchLoading,
-            searchResults,
-            handleSearchNxtBtn,
-            handleSearchPrvBtn,
+            loading,
+            pageCur,
+            pageTotal,
+            resultsCnt,
+
+            onSearch,
+            onNxtBtn,
+            onPrvBtn,
         }
     },
 
@@ -20,19 +34,19 @@ const SearchButtons = {
     <div class="d-flex flex-column justify-content-center align-items-center">
         <div class="input-group mt-3 justify-content-center">
             <button
-                :disabled="searchResults.Page === 1 || searchLoading"
+                :disabled="pageCur === 1 || loading"
                 type="button"
-                class="btn btn-outline-primary" @click="handleSearchPrvBtn">
+                class="btn btn-outline-primary" @click="onPrvBtn">
                 <i class="bi bi-arrow-left"></i>
             </button>
             <div class="mx-3 d-flex flex-column align-items-center">
-              <div>{{ searchResults.TotalResults }} Results</div>
-              <div>{{ searchResults.Page }} / {{ searchResults.TotalPages }}</div>
+              <div>{{ pageTotal }} Results</div>
+              <div>{{ pageCur }} / {{ pageTotal }}</div>
             </div>
             <button
-                :disabled="searchResults.Page === searchResults.TotalPages || searchLoading"
+                :disabled="pageCur === pageTotal || loading"
                 type="button"
-                class="btn btn-outline-primary" @click="handleSearchNxtBtn">
+                class="btn btn-outline-primary" @click="onNxtBtn">
                 <i class="bi bi-arrow-right"></i>
             </button>
         </div>

@@ -3,28 +3,36 @@ import { Search } from "./tabs/Search.js";
 import { Upcoming } from "./tabs/Upcoming.js";
 import { ref, watch } from "./vue.js";
 
-export const ENDPOINT = {
-    FEED: '/api/series/feed',
-    SEARCH_SERIES: '/api/series/search',
-}
+export const ENDPOINT = Object.freeze({
+    FEED: ()=>{return '/api/series/feed'},
+    SEARCH_SERIES: ()=>{return '/api/series/search'},
+    SERIES_STATUS: (mId)=>{return `/api/series/${mId}/status`},
+})
 
-export const PAGE = {
+export const PAGE = Object.freeze({
     FEED: { name: 'Feed', path: '/' },
     UPCOMING: { name: 'Upcoming', path: '/upcoming' },
     STATS: { name: 'Stats', path: '/stats' },
     MY_SHOWS: { name: 'My Shows', path: '/my' },
     DISCOVER: { name: 'Discover', path: '/discover' },
     SEARCH: { name: 'Search', path: '/search' },
-}
+})
+
+export const TvStatus = Object.freeze({
+    NotWatching: 0,
+	Watching: 1,
+	Stopped: 2,
+	Completed: 3,
+});
 
 // use updatePageTitle to update the page title
 export const currentPage = ref(PAGE.FEED)
 
-export const routes = [
+export const routes = Object.freeze([
     { path: PAGE.FEED.path, component: Feed, name: PAGE.FEED.name },
     { path: PAGE.UPCOMING.path, component: Upcoming, name: PAGE.UPCOMING.name },
     { path: PAGE.SEARCH.path, component: Search, name: PAGE.SEARCH.name },
-];
+]);
 
 export const updatePage = (page) => {
     currentPage.value = page;

@@ -30,13 +30,13 @@ func NewApi(db db.Db, meta meta.Meta) *Api {
 
 	mux.HandleFunc("POST /api/series", a.SeriesAdd())
 
+	mux.HandleFunc("PUT /api/series/{mId}/status", a.SeriesUpdateStatus())
+
 	mux.HandleFunc("POST /api/series/episode", a.SeriesEpisodeWatch())
 	mux.HandleFunc("PUT /api/series/episode", a.SeriesEpisodeUnWatch())
 
 	// mux.HandleFunc("GET /api/series/{tmdbId}", apiSeriesGet())
 	// mux.HandleFunc("GET /api/series/{tmdbId}/{episode}", apiSeriesEpisode())
-
-	// mux.HandleFunc("PUT /api/series/{tmdbId}", apiSeriesUpdateStatus())
 
 	mux.Handle("GET /", ui.NewSpaHandler("internal/ui/static"))
 	return a

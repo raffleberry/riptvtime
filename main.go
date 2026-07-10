@@ -39,7 +39,7 @@ func main() {
 	}
 
 	addr := fmt.Sprintf("%v:%v", c.Ip, c.Port)
-	d := db.NewDbSqlite(c)
+	d := db.NewDbSqlite(c, logger)
 	m := meta.NewTmdbMeta(c)
 	a := api.NewApi(d, m)
 	s := NewServer(addr, a.Router)

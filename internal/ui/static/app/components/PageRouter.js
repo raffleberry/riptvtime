@@ -1,9 +1,9 @@
 import { Navigation } from "./Navigation.js";
-import { RouterView } from "../vue.js";
+import { RouterView, storeToRefs } from "../vue.js";
 import { currentPage, PAGE } from "../utils.js";
 import { SearchBox } from "./SearchBox.js";
-import { searchResults } from "../tabs/Search.js";
 import { SearchButtons } from "./SearchButtons.js";
+import { useSearchStore } from "../stores/search.js";
 
 
 const PageRouter = {
@@ -16,11 +16,14 @@ const PageRouter = {
     props: {
     },
     setup() {
+        const store = useSearchStore()
+        const { resultsCnt } = storeToRefs(store)
+
         return {
           PAGE,
           currentPage,
 
-          searchResults
+          resultsCnt
         }
     },
 
@@ -36,7 +39,7 @@ const PageRouter = {
       </div>
 
       <SearchButtons class="my-2"
-        v-if="currentPage.path === PAGE.SEARCH.path && searchResults.TotalResults > 0">
+        v-if="currentPage.path === PAGE.SEARCH.path && resultsCnt > 0">
       </SearchButtons>
     </div>
 `

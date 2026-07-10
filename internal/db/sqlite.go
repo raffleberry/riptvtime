@@ -9,6 +9,7 @@ import (
 	"gitlab.com/raffleberry/riptvtime/internal/config"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	glog "gorm.io/gorm/logger"
 )
 
 type DbSqlite struct {
@@ -16,7 +17,7 @@ type DbSqlite struct {
 	err error
 }
 
-func NewDbSqlite(c *config.Config) *DbSqlite {
+func NewDbSqlite(c *config.Config, logger *slog.Logger) *DbSqlite {
 	db := &DbSqlite{}
 	sqliteDbPath := filepath.Join(c.ConfigDir, "riptvtime.db")
 
@@ -24,6 +25,9 @@ func NewDbSqlite(c *config.Config) *DbSqlite {
 
 	db.orm, db.err = gorm.Open(sqlite.Open(fmt.Sprintf("%v?", sqliteDbPath)), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
+		Logger: glog.NewSlogLogger(logger, glog.Config{
+			IgnoreRecordNotFoundError: true,
+		}),
 	})
 	if db.err != nil {
 		panic("failed to connect database")
@@ -39,7 +43,7 @@ func NewDbSqlite(c *config.Config) *DbSqlite {
 	return db
 }
 
-func (db *DbSqlite) SeriesWatching() (*[]TvSeries, error) {
+func (db *DbSqlite) SeriesWatchingAll() (*[]TvSeries, error) {
 	var series []TvSeries
 	err := db.orm.Find(&series).Where("tracking_status = ?", TvStatusWatching).Error
 	return &series, err
@@ -63,10 +67,15 @@ func (db *DbSqlite) SeriesSeasonAdd(t *TvSeason) (int, error) {
 	return int(t.ID), err
 }
 
-func (db *DbSqlite) SeriesIsAdded(mId int) (bool, error) {
-	var added bool
-	err := db.orm.Model(&TvSeries{}).Select("count(*) > 0").Where("m_id = ?", mId).Limit(1).Find(&added).Error
-	return added, err
+func (db *DbSqlite) SeriesStatusGet(mId int) (TvStatus, error) {
+	var res TvSeries
+	err := db.orm.Model(&TvSeries{}).Select("tracking_status").Where("m_id = ?", mId).Limit(1).First(&res).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return TvStatusNotWatching, nil
+		}
+	}
+	return res.TrackingStatus, err
 }
 
 func (db *DbSqlite) SeriesEpisodeExists(mId int, season int, episode int) (bool, error) {
@@ -104,4 +113,18 @@ func (db *DbSqlite) SeriesTrackedEpRemove(mId int, season int, episode int) (int
 	}
 
 	return int(tx.RowsAffected), nil
+}
+
+func (db *DbSqlite) SeriesStatusUpdate(mId int, newStatus TvStatus) (TvStatus, error) {
+	var res TvSeries
+	err := db.orm.Model(&TvSeries{}).Select("tracking_status").Where("m_id = ?", mId).Limit(1).First(&res).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return TvStatusNotWatching, nil
+		}
+	}
+
+	res.TrackingStatus = newStatus
+	err = db.orm.Save(&res).Error
+	return res.TrackingStatus, err
 }

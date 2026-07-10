@@ -9,7 +9,7 @@ const feedData = ref([])
 const fetchFeed = async () => {
     loading.value = true
     try {
-        const response = await fetch(ENDPOINT.FEED);
+        const response = await fetch(ENDPOINT.FEED());
         const result = await response.json();
         if (result) {
             console.log(result)
