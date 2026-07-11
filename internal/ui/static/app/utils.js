@@ -6,7 +6,7 @@ import { ref, watch } from "./vue.js";
 export const ENDPOINT = Object.freeze({
     FEED: ()=>{return '/api/series/feed'},
     SEARCH_SERIES: ()=>{return '/api/series/search'},
-    SERIES_STATUS: (mId)=>{return `/api/series/${mId}/status`},
+    SERIES_STATUS: (Id)=>{return `/api/series/${Id}/status`},
 })
 
 export const PAGE = Object.freeze({

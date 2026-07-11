@@ -83,7 +83,7 @@ type Db interface {
 
 	// 0 if series doesn't exist
 	SeriesStatusGet(mId int) (TvStatus, error)
-	SeriesStatusUpdate(mId int, newStatus TvStatus) (TvStatus, error)
+	SeriesStatusUpdate(mId int, newStatus TvStatus) error
 
 	SeriesTrackedEps(mId int) (*[]TvTrackedEps, error)
 	SeriesTrackedEpsAdd(ep *TvTrackedEps) (int, error)

@@ -41,7 +41,7 @@ const SeriesOptions = {
 
             el.addEventListener('hidden.bs.offcanvas', () => {
                 selected.value = {
-                    MId: null,
+                    Id: null,
                     Name: null,
                     Year: null,
                     Status: null,

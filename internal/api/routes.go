@@ -375,8 +375,6 @@ func (a *Api) SeriesUpdateStatus() http.HandlerFunc {
 			return c.Error(http.StatusBadRequest, "Tv show isn't added, cannot update status")
 		}
 
-		_, err = a.db.SeriesStatusUpdate(mId, db.TvStatus(payload.Status))
-
-		return err
+		return a.db.SeriesStatusUpdate(mId, db.TvStatus(payload.Status))
 	})
 }

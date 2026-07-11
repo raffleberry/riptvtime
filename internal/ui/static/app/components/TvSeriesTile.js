@@ -1,6 +1,6 @@
 import { useSeriesOpts } from "../stores/overlays.js";
 import { TvStatus } from "../utils.js";
-import { storeToRefs } from "../vue.js";
+import { computed, storeToRefs } from "../vue.js";
 
 const TvSeriesTile = {
     components: {},
@@ -8,18 +8,13 @@ const TvSeriesTile = {
         tv: Object
     },
     setup(props) {
-        let tv = props.tv
+        let tv = computed(() => props.tv)
         const store = useSeriesOpts()
         const { selected } = storeToRefs(store)
         console.log(tv)
 
         const openSeriesOptions = () => {
-            selected.value = {
-                MId: tv.Id,
-                Name: tv.Name,
-                Year: tv.Year,
-                Status: tv.Status
-            }
+            selected.value = tv.value
         }
 
         return {
@@ -50,7 +45,7 @@ const TvSeriesTile = {
                             <i v-else-if="tv.Status === TvStatus.NotWatching" class="bi bi-three-dots-vertical"></i>
                             <i v-else-if="tv.Status === TvStatus.Stopped" class="bi bi-bookmark-x text-danger"></i>
                             <i v-else-if="tv.Status === TvStatus.Completed" class="bi bi-bookmark-check-fill text-success"></i>
-                        </button>
+                    </button>
                 </div>
                 <p class="card-text">{{ tv.Overview }}</p>
                 </div>

@@ -115,16 +115,6 @@ func (db *DbSqlite) SeriesTrackedEpRemove(mId int, season int, episode int) (int
 	return int(tx.RowsAffected), nil
 }
 
-func (db *DbSqlite) SeriesStatusUpdate(mId int, newStatus TvStatus) (TvStatus, error) {
-	var res TvSeries
-	err := db.orm.Model(&TvSeries{}).Select("tracking_status").Where("m_id = ?", mId).Limit(1).First(&res).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return TvStatusNotWatching, nil
-		}
-	}
-
-	res.TrackingStatus = newStatus
-	err = db.orm.Save(&res).Error
-	return res.TrackingStatus, err
+func (db *DbSqlite) SeriesStatusUpdate(mId int, newStatus TvStatus) error {
+	return db.orm.Model(&TvSeries{}).Where("m_id = ?", mId).Update("tracking_status", newStatus).Error
 }

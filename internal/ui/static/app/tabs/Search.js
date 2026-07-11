@@ -21,16 +21,6 @@ const Search = {
         onMounted(() => {
             updatePage(PAGE.SEARCH);
 
-            (new bootstrap.Offcanvas(document.querySelector("#seriesOptions"))).show()
-            
-            selected.value = {
-                "Id": 125988,
-                "Name": "Silo",
-                "Overview": "In a ruined and toxic future, thousands live in a giant silo deep underground. After its sheriff breaks a cardinal rule and residents die mysteriously, engineer Juliette starts to uncover shocking secrets and the truth about the silo.",
-                "Status": 1,
-                "Year": 2023
-            }
-
         });
 
       

@@ -5,7 +5,7 @@ import { onMounted, ref } from "../vue.js";
 let calledOnce = false;
 const loading = ref(true)
 const feedData = ref([])
-
+// TODO: Refactor this logic into a store 
 const fetchFeed = async () => {
     loading.value = true
     try {
