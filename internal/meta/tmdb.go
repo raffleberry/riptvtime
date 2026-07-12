@@ -68,6 +68,7 @@ func (t *MetaTmdb) Search(query string, page string) (*TvSearchResults, error) {
 			Name:     v.Name,
 			Overview: v.Overview,
 			Year:     parseYear(v.FirstAirDate),
+			MName:    t.Name(),
 		})
 	}
 

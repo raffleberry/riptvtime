@@ -7,6 +7,8 @@ export const ENDPOINT = Object.freeze({
     FEED: ()=>{return '/api/series/feed'},
     SEARCH_SERIES: ()=>{return '/api/series/search'},
     SERIES_STATUS: (Id)=>{return `/api/series/${Id}/status`},
+    SERIES_ADD: ()=>{return `/api/series`},
+    SERIES_REM: (Id)=>{return `/api/series/${Id}`},
 })
 
 export const PAGE = Object.freeze({

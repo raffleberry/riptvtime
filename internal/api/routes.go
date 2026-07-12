@@ -378,3 +378,24 @@ func (a *Api) SeriesUpdateStatus() http.HandlerFunc {
 		return a.db.SeriesStatusUpdate(mId, db.TvStatus(payload.Status))
 	})
 }
+
+func (a *Api) SeriesRem() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		mIdStr := c.R.PathValue("mId")
+
+		mId, err := strconv.Atoi(mIdStr)
+
+		if err != nil {
+			return c.Error(http.StatusBadRequest, err.Error())
+		}
+
+		if err := a.db.SeriesRem(mId); err != nil {
+			if err == db.ErrNotFound {
+				return c.Error(http.StatusNotFound, err.Error())
+			}
+			return err
+		}
+
+		return nil
+	})
+}

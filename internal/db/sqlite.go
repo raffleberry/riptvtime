@@ -61,6 +61,18 @@ func (db *DbSqlite) SeriesAdd(t *TvSeries) (int, error) {
 	return int(t.ID), err
 }
 
+func (db *DbSqlite) SeriesRem(id int) error {
+	err := db.orm.Delete(&TvSeries{}, "m_id = ?", id).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrNotFound
+		}
+	}
+
+	return err
+}
+
 func (db *DbSqlite) SeriesSeasonAdd(t *TvSeason) (int, error) {
 	err := db.orm.Create(t).Error
 

@@ -39,7 +39,7 @@ export const useSeriesOpts = defineStore('SeriesOptsStore', () => {
         }
     }
 
-     const onStatus = async () => {
+     const changeStatus = async () => {
         console.log("Clicked", loading.value, selected.value.Id)
 
         if (!selected.value.Id || loading.value) return
@@ -53,7 +53,7 @@ export const useSeriesOpts = defineStore('SeriesOptsStore', () => {
                 for (let i = 0; i < results.value[pageCur.value].length; i++) {
                     if (results.value[pageCur.value].Id === id) {
                         console.log("updating")
-                        results.value[pageCur.value].Status = TvStatus.Stopped
+                        results.value[pageCur.value].Status = newStatus
                     }
                 }
             }
@@ -93,7 +93,98 @@ export const useSeriesOpts = defineStore('SeriesOptsStore', () => {
         } finally {
             loading.value = false
         }
-    
+
+ 
+    }
+
+    const addSeries = async () => {
+
+        if (!selected.value.Id || loading.value) return
+
+        try {
+            loading.value = true
+
+            const res = await fetch(ENDPOINT.SERIES_ADD(), {
+                method: 'POST',
+                headers: { 'Content-Type' : 'application/json' },
+                body: JSON.stringify({
+                    m_id: selected.value.Id,
+                    m_name: selected.value.MName
+                })
+            })
+
+            if (res.status !== 200) {
+                console.error(await res.text())
+                throw new Error(`Error, bad response from server: ${res.status} - ${res.statusText}`)
+            }
+
+
+            const { results, pageCur } =  storeToRefs(useSearchStore())
+
+            const findAndUpdate = (id, newStatus) => {
+                for (let i = 0; i < results.value[pageCur.value].length; i++) {
+                    if (results.value[pageCur.value].Id === id) {
+                        console.log("updating")
+                        results.value[pageCur.value].Status = newStatus
+                    }
+                }
+            }
+
+            findAndUpdate(selected.value.Id, TvStatus.Watching)
+            
+
+        } catch (error) {
+            console.error(error)
+            return error
+        } finally {
+            loading.value = false
+        }
+
+        return null
+
+    }
+
+    const remSeries = async () => {
+
+        if (!selected.value.Id || loading.value) return
+
+        try {
+            loading.value = true
+
+            // remove from feed and me data
+
+            const res = await fetch(ENDPOINT.SERIES_REM(selected.value.Id), {
+                method: 'DELETE',
+            })
+
+            if (res.status !== 200 && res.status !== 204 && res.status !== 404) {
+                console.error(await res.text())
+                throw new Error(`Error, bad response from server: ${res.status} - ${res.statusText}`)
+            }
+
+            const { results, pageCur } =  storeToRefs(useSearchStore())
+
+            const findAndUpdate = (id, newStatus) => {
+                for (let i = 0; i < results.value[pageCur.value].length; i++) {
+                    if (results.value[pageCur.value].Id === id) {
+                        console.log("updating")
+                        results.value[pageCur.value].Status = newStatus
+                    }
+                }
+            }
+
+            findAndUpdate(selected.value.Id, TvStatus.NotWatching)
+            
+
+        } catch (error) {
+            console.error(error)
+            return error
+        } finally {
+            loading.value = false
+        }
+
+        return null
+
     }
 
     return {
@@ -102,7 +193,9 @@ export const useSeriesOpts = defineStore('SeriesOptsStore', () => {
         loading,
 
         // actions
-        onStatus,
+        changeStatus,
+        remSeries,
+        addSeries
 
     }
 

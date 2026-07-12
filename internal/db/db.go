@@ -80,6 +80,7 @@ type TvSeason struct {
 type Db interface {
 	SeriesWatchingAll() (*[]TvSeries, error)
 	SeriesAdd(t *TvSeries) (int, error)
+	SeriesRem(mId int) error
 
 	// 0 if series doesn't exist
 	SeriesStatusGet(mId int) (TvStatus, error)

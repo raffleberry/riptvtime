@@ -14,20 +14,21 @@ import (
 
 func main() {
 	logLevel := slog.LevelInfo
-	if utils.IsGoRun() {
+	isDev := utils.IsGoRun()
+	if isDev {
 		logLevel = slog.LevelDebug
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level:     logLevel,
-		AddSource: true,
+		AddSource: isDev,
 	}))
 	slog.SetDefault(logger)
 
 	var c *config.Config
 	var err error
 
-	if utils.IsGoRun() {
+	if isDev {
 		c, err = config.LoadFromEnv()
 	} else {
 		c, err = config.LoadFromFile(os.Args[1])
@@ -42,7 +43,7 @@ func main() {
 	d := db.NewDbSqlite(c, logger)
 	m := meta.NewTmdbMeta(c)
 	a := api.NewApi(d, m)
-	s := NewServer(addr, a.Router)
+	s := api.NewServer(addr, a.Router)
 
 	fmt.Printf("Starting server...\n")
 

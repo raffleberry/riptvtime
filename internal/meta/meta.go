@@ -9,6 +9,8 @@ type TvSearchResult struct {
 	Name     string
 	Overview string
 	Year     int
+
+	MName string
 }
 
 type TvSearchResults struct {

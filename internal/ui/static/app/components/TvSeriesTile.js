@@ -1,6 +1,6 @@
 import { useSeriesOpts } from "../stores/overlays.js";
 import { TvStatus } from "../utils.js";
-import { computed, storeToRefs } from "../vue.js";
+import { computed, ref, storeToRefs, watch } from "../vue.js";
 
 const TvSeriesTile = {
     components: {},
@@ -11,7 +11,40 @@ const TvSeriesTile = {
         let tv = computed(() => props.tv)
         const store = useSeriesOpts()
         const { selected } = storeToRefs(store)
-        console.log(tv)
+
+        const cardBorder = ref('')
+        const btnIcon = ref('')
+
+        const statusCss = computed(() => {
+                let card = 'card'
+                let icon = 'bi'
+                switch (tv.value.Status) {
+                    case TvStatus.Watching:
+                        card += ' border border-warning'
+                        icon += ' bi-bookmark-check text-warning'
+                        break;
+                    case TvStatus.NotWatching:
+                        // cb += ' border border-primary'
+                        icon += ' bi-three-dots-vertical text-primary'
+                        break;
+                    case TvStatus.Stopped:
+                        card += ' border border-danger'
+                        icon += ' bi-bookmark-x text-danger'
+                        break;
+                    case TvStatus.Completed:
+                        card += ' border border-success'
+                        icon += ' bi-bookmark-check-fill text-success'
+                        break;
+                
+                    default:
+                        break;
+                }
+                return {
+                    card,
+                    icon
+                };
+        });
+
 
         const openSeriesOptions = () => {
             selected.value = tv.value
@@ -21,11 +54,12 @@ const TvSeriesTile = {
             tv,
             TvStatus,
             openSeriesOptions,
+            statusCss,
         }
     },
 
     template: `
-    <div class="card">
+    <div :class="statusCss.card">
         <div class="row">
             <!--
             <div class="col-md-4">
@@ -41,10 +75,7 @@ const TvSeriesTile = {
                     <button @click="openSeriesOptions" 
                         data-bs-toggle="offcanvas" data-bs-target="#seriesOptions"
                         type="button" class="btn p-2 d-inline-flex align-items-center justify-content-center">
-                            <i v-if="tv.Status === TvStatus.Watching" class="bi bi-bookmark-check text-primary"></i>
-                            <i v-else-if="tv.Status === TvStatus.NotWatching" class="bi bi-three-dots-vertical"></i>
-                            <i v-else-if="tv.Status === TvStatus.Stopped" class="bi bi-bookmark-x text-danger"></i>
-                            <i v-else-if="tv.Status === TvStatus.Completed" class="bi bi-bookmark-check-fill text-success"></i>
+                            <i :class="statusCss.icon"></i>
                     </button>
                 </div>
                 <p class="card-text">{{ tv.Overview }}</p>
