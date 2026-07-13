@@ -1,7 +1,7 @@
 import { TvSeriesTile } from "../components/TvSeriesTile.js";
 import { useSeriesOpts } from "../stores/overlays.js";
 import { useSearchStore } from "../stores/search.js";
-import { currentPage, ENDPOINT, PAGE, theme, updatePage } from "../utils.js";
+import { ENDPOINT, PAGE, theme } from "../utils.js";
 import { onMounted, ref, storeToRefs } from "../vue.js";
 
 const Search = {
@@ -19,7 +19,6 @@ const Search = {
         const { selected } = storeToRefs(useSeriesOpts())
 
         onMounted(() => {
-            updatePage(PAGE.SEARCH);
 
         });
 

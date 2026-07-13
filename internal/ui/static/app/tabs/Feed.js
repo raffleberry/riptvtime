@@ -1,5 +1,5 @@
 import { TvFeedTile } from "../components/TvFeedTile.js";
-import { currentPage, ENDPOINT, PAGE, theme, updatePage } from "../utils.js";
+import { ENDPOINT, PAGE, theme } from "../utils.js";
 import { onMounted, ref } from "../vue.js";
 
 let calledOnce = false;
@@ -34,7 +34,6 @@ const Feed = {
     setup: (props) => {
 
         onMounted(() => {
-            updatePage(PAGE.FEED);
             if (!calledOnce) {
                 calledOnce = true;
                 fetchFeed();

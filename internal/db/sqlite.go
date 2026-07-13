@@ -90,15 +90,12 @@ func (db *DbSqlite) SeriesStatusGet(mId int) (TvStatus, error) {
 	return res.TrackingStatus, err
 }
 
-func (db *DbSqlite) SeriesEpisodeExists(mId int, season int, episode int) (bool, error) {
-	var exists bool
-	err := db.orm.Model(&TvEpisode{}).Select("count(*) > 0").Where("series_m_id = ? AND season = ? AND episode = ?", mId, season, episode).Limit(1).Find(&exists).Error
-	return exists, err
-}
-
 func (db *DbSqlite) SeriesEpisodeGet(mId int, season int, episode int) (*TvEpisode, error) {
 	var ep TvEpisode
 	err := db.orm.Take(&ep, "series_m_id = ? AND season = ? AND episode = ?", mId, season, episode).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
+	}
 	return &ep, err
 }
 
@@ -110,23 +107,29 @@ func (db *DbSqlite) SeriesTrackedEpsAdd(ep *TvTrackedEps) (int, error) {
 
 // (rowsAffected, err)
 func (db *DbSqlite) SeriesTrackedEpRemove(mId int, season int, episode int) (int, error) {
-	ep := TvTrackedEps{}
-	err := db.orm.First(&ep, "series_m_id = ? AND season = ? AND episode = ?", mId, season, episode).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return 0, ErrNotFound
-		}
-		return 0, err
-	}
+	tx := db.orm.Where("series_m_id = ? AND season = ? AND episode = ?", mId, season, episode).
+		Limit(1).
+		Delete(&TvTrackedEps{})
 
-	tx := db.orm.Delete(&ep)
 	if tx.Error != nil {
 		return 0, tx.Error
+	}
+
+	if tx.RowsAffected == 0 {
+		return 0, ErrNotFound
 	}
 
 	return int(tx.RowsAffected), nil
 }
 
 func (db *DbSqlite) SeriesStatusUpdate(mId int, newStatus TvStatus) error {
-	return db.orm.Model(&TvSeries{}).Where("m_id = ?", mId).Update("tracking_status", newStatus).Error
+	err := db.orm.Model(&TvSeries{}).Where("m_id = ?", mId).Update("tracking_status", newStatus).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrNotFound
+		}
+	}
+
+	return err
 }

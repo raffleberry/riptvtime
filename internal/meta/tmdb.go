@@ -44,12 +44,12 @@ func parseAirDate(date string) time.Time {
 	return time.Time{}
 }
 
-func (t *MetaTmdb) Search(query string, page string) (*TvSearchResults, error) {
+func (t *MetaTmdb) Search(query string, page int) (*TvSearchResults, error) {
 	var tvSearchResults TvSearchResults
 
 	opts := map[string]string{}
-	if len(page) > 0 {
-		opts["page"] = page
+	if page > 0 {
+		opts["page"] = strconv.Itoa(page)
 	}
 
 	res, err := t.c.GetSearchTVShow(query, opts)

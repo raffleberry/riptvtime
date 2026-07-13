@@ -59,7 +59,7 @@ type TvDetails struct {
 
 type Meta interface {
 	Name() string
-	Search(query string, page string) (*TvSearchResults, error)
+	Search(query string, page int) (*TvSearchResults, error)
 	GetTvDetails(mId int) (*TvDetails, error)
 	GetTVSeasonDetails(mId int, season int) (*TvSeason, error)
 }

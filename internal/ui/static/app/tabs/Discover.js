@@ -2,7 +2,7 @@ import { PAGE, theme } from "../utils.js";
 import { onMounted, ref } from "../vue.js";
 
 
-const Upcoming = {
+const Discover = {
     props: {
 
     },
@@ -10,18 +10,19 @@ const Upcoming = {
 
     },
     setup: (props) => {
-        
+
         onMounted(() => {
         });
+
 
         return {
         }
     },
     template: `
     <div>
-        <h1>Upcoming</h1>
+        <h1>Discover</h1>
     </div>
     `
 }
-export { Upcoming };
+export { Discover };
 

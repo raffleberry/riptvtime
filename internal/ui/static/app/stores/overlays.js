@@ -19,7 +19,7 @@ export const useSeriesOpts = defineStore('SeriesOptsStore', () => {
             const response = await fetch(url, {
                 method: 'PUT',
                 headers: { 'Content-Type' : 'application/json' },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify({ Status: newStatus })
             });
 
             if (!response.ok) {
@@ -108,8 +108,7 @@ export const useSeriesOpts = defineStore('SeriesOptsStore', () => {
                 method: 'POST',
                 headers: { 'Content-Type' : 'application/json' },
                 body: JSON.stringify({
-                    m_id: selected.value.Id,
-                    m_name: selected.value.MName
+                    MId: selected.value.Id,
                 })
             })
 

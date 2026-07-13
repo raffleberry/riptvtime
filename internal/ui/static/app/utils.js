@@ -1,5 +1,9 @@
+import { Discover } from "./tabs/Discover.js";
 import { Feed } from "./tabs/Feed.js";
+import { My } from "./tabs/My.js";
 import { Search } from "./tabs/Search.js";
+import { Series } from "./tabs/Series.js";
+import { Stats } from "./tabs/Stats.js";
 import { Upcoming } from "./tabs/Upcoming.js";
 import { ref, watch } from "./vue.js";
 
@@ -12,12 +16,13 @@ export const ENDPOINT = Object.freeze({
 })
 
 export const PAGE = Object.freeze({
+    MY: { name: 'My', path: '/my' },
     FEED: { name: 'Feed', path: '/' },
     UPCOMING: { name: 'Upcoming', path: '/upcoming' },
-    STATS: { name: 'Stats', path: '/stats' },
-    MY_SHOWS: { name: 'My Shows', path: '/my' },
     DISCOVER: { name: 'Discover', path: '/discover' },
+    SERIES: { name: 'Series', path: '/series/:id' },
     SEARCH: { name: 'Search', path: '/search' },
+    STATS: { name: 'Stats', path: '/stats' },
 })
 
 export const TvStatus = Object.freeze({
@@ -27,19 +32,15 @@ export const TvStatus = Object.freeze({
 	Completed: 3,
 });
 
-// use updatePageTitle to update the page title
-export const currentPage = ref(PAGE.FEED)
-
 export const routes = Object.freeze([
-    { path: PAGE.FEED.path, component: Feed, name: PAGE.FEED.name },
-    { path: PAGE.UPCOMING.path, component: Upcoming, name: PAGE.UPCOMING.name },
-    { path: PAGE.SEARCH.path, component: Search, name: PAGE.SEARCH.name },
+    { path: PAGE.MY.path, name: PAGE.MY.name , component: My },
+    { path: PAGE.FEED.path, name: PAGE.FEED.name , component: Feed },
+    { path: PAGE.UPCOMING.path, name: PAGE.UPCOMING.name , component: Upcoming },
+    { path: PAGE.DISCOVER.path, name: PAGE.DISCOVER.name , component: Discover },
+    { path: PAGE.SERIES.path, name: PAGE.SERIES.name , component: Series },
+    { path: PAGE.SEARCH.path, name: PAGE.SEARCH.name , component: Search },
+    { path: PAGE.STATS.path, name: PAGE.STATS.name , component: Stats },
 ]);
-
-export const updatePage = (page) => {
-    currentPage.value = page;
-    document.title = page.name;
-}
 
 export const highlight = (text, highlight) => {
     if (!highlight) return text;

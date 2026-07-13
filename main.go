@@ -9,6 +9,7 @@ import (
 	"gitlab.com/raffleberry/riptvtime/internal/config"
 	"gitlab.com/raffleberry/riptvtime/internal/db"
 	"gitlab.com/raffleberry/riptvtime/internal/meta"
+	"gitlab.com/raffleberry/riptvtime/internal/services"
 	"gitlab.com/raffleberry/riptvtime/internal/utils"
 )
 
@@ -42,7 +43,10 @@ func main() {
 	addr := fmt.Sprintf("%v:%v", c.Ip, c.Port)
 	d := db.NewDbSqlite(c, logger)
 	m := meta.NewTmdbMeta(c)
-	a := api.NewApi(d, m)
+
+	tvSrv := services.NewTvService(d, m)
+
+	a := api.NewApi(d, m, tvSrv)
 	s := api.NewServer(addr, a.Router)
 
 	fmt.Printf("Starting server...\n")

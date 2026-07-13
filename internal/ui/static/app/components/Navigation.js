@@ -1,5 +1,5 @@
-import { currentPage, isMobile, PAGE, theme, updatePage, routes } from "../utils.js";
-import { ref } from "../vue.js";
+import { isMobile, PAGE, theme, routes } from "../utils.js";
+import { computed, ref, useRoute } from "../vue.js";
 
 
 const Navigation = {
@@ -11,24 +11,30 @@ const Navigation = {
     },
     setup: (props) => {
 
+        const r = useRoute()
+
+        const curPath = computed(() => r.path)
+
         const toggleTheme = () => {
             theme.value = theme.value === "light" ? "dark" : "light";
         };
 
+        const tabs = routes.filter(r => ![PAGE.SERIES.path].includes(r.path));
+
         return {
-            c: currentPage,
+            curPath,
             theme,
             toggleTheme,
             PAGE,
-            routes,
+            tabs,
             isMobile
         }
     },
     template: `
     <div class="nav nav-tabs d-flex justify-content-between bg-body" >
       <div class="d-flex flex-row flex-wrap">
-        <li v-for="route in routes" :key="route.path" class="nav-item">
-            <router-link :class="{'nav-link': true, active: route.path === c.path }" :to="route.path" >{{ route.name }}</router-link>
+        <li v-for="tab in tabs" :key="tab.path" class="nav-item">
+            <router-link :class="{'nav-link': true, active: tab.path === curPath }" :to="tab.path" >{{ tab.name }}</router-link>
         </li>
 
       </div>

@@ -29,6 +29,13 @@ func (s TvStatus) String() string {
 	return TvStatusVals[s]
 }
 
+func (s TvStatus) IsValid() bool {
+	if s < TvStatusNotWatching || int(s) >= len(TvStatusVals) {
+		return false
+	}
+	return true
+}
+
 type TvSeries struct {
 	gorm.Model
 	MName          string
@@ -93,5 +100,4 @@ type Db interface {
 	SeriesSeasonAdd(t *TvSeason) (int, error)
 
 	SeriesEpisodeGet(mId int, season int, episode int) (*TvEpisode, error)
-	SeriesEpisodeExists(mId int, season int, episode int) (bool, error)
 }
