@@ -13,7 +13,7 @@ const TvFeedTile = {
         console.log(props)
         let tv = props.tv
         let upNext = "S" + String(tv.UpNextS).padStart(2, "0") + "E" + String(tv.UpNextE).padStart(2, "0")
-        let toWatchCnt = tv.EpisodesAired - tv.EpisodesWatched
+        let toWatchCnt = tv.EpisodesAired - tv.EpisodesWatched - 1
         let watchProgress = (tv.EpisodesWatched / tv.EpisodesAired) * 100
         console.log(tv)
         return {
@@ -42,7 +42,7 @@ const TvFeedTile = {
                 <span> Up Next </span>
                 <button type="button" class="btn btn-primary position-relative">
                 {{ upNext }}
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                <span v-if="toWatchCnt > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                     +{{ toWatchCnt }}
                     <span class="visually-hidden">unwatched episodes</span>
                 </span>

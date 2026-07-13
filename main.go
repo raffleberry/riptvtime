@@ -26,13 +26,13 @@ func main() {
 	}))
 	slog.SetDefault(logger)
 
-	var c *config.Config
+	var cfg *config.Config
 	var err error
 
 	if isDev {
-		c, err = config.LoadFromEnv()
+		cfg, err = config.LoadFromEnv()
 	} else {
-		c, err = config.LoadFromFile(os.Args[1])
+		cfg, err = config.LoadFromFile(os.Args[1])
 	}
 
 	if err != nil {
@@ -40,11 +40,11 @@ func main() {
 		panic(err)
 	}
 
-	addr := fmt.Sprintf("%v:%v", c.Ip, c.Port)
-	d := db.NewDbSqlite(c, logger)
-	m := meta.NewTmdbMeta(c)
-
-	tvSrv := services.NewTvService(d, m)
+	addr := fmt.Sprintf("%v:%v", cfg.Ip, cfg.Port)
+	d := db.NewDbSqlite(cfg, logger)
+	m := meta.NewTmdbMeta(cfg)
+	c := db.NewCacheSqlite(cfg, logger)
+	tvSrv := services.NewTvService(c, d, m)
 
 	a := api.NewApi(d, m, tvSrv)
 	s := api.NewServer(addr, a.Router)

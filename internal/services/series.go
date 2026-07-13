@@ -3,6 +3,7 @@ package services
 import (
 	"cmp"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -23,12 +24,14 @@ var (
 type SeriesService struct {
 	db   db.Db
 	meta meta.Meta
+	c    db.Cache
 }
 
-func NewTvService(db db.Db, meta meta.Meta) *SeriesService {
+func NewTvService(c db.Cache, db db.Db, meta meta.Meta) *SeriesService {
 	return &SeriesService{
 		db:   db,
 		meta: meta,
+		c:    c,
 	}
 }
 
@@ -66,8 +69,57 @@ func (srv *SeriesService) Search(searchTerm string, page int) (*SeriesSearchResu
 
 // Get Tv Show Details
 func (srv *SeriesService) GetDetails(mId int) (*meta.TvDetails, error) {
-	// TODO: Add Caching - Eviction Policy - UpdatedAt (48 hours)
-	return srv.meta.GetTvDetails(mId)
+	key := fmt.Sprintf("TvDetails{MId:%d}", mId)
+	cd, err := srv.c.Get(key)
+
+	var refresh = func() (*db.Cached, error) {
+		m, err := srv.meta.GetTvDetails(mId)
+		if err != nil {
+			return nil, err
+		}
+		jsonStr, err := json.Marshal(m)
+		if err != nil {
+			return nil, err
+		}
+
+		rv := &db.Cached{
+			Key:      key,
+			JsonData: string(jsonStr),
+		}
+
+		err = srv.c.Set(rv)
+		if err != nil {
+			return nil, err
+		}
+		return rv, nil
+	}
+
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			cd, err = refresh()
+			if err != nil {
+				return nil, err
+			}
+		}
+		return nil, err
+	}
+
+	expiredAt := cd.UpdatedAt.Add(48 * time.Hour)
+
+	if time.Now().After(expiredAt) {
+		slog.Debug("Cache expired, refreshing", "expiredAt", expiredAt, "UpdatedAt", cd.UpdatedAt)
+		cd, err = refresh()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	res := meta.TvDetails{}
+	err = json.Unmarshal([]byte(cd.JsonData), &res)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
 
 func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
@@ -129,8 +181,17 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 			watched[key] = struct{}{}
 		}
 
+		var isWatched = func(s int, e int) bool {
+			key := fmt.Sprintf("%d-%d", s, e)
+			_, ok := watched[key]
+			return ok
+		}
+
+		slog.Debug("watched eps", "name", srs.Name, "watched map", watched)
+
 		// TODO: making this loop work while fetching fresh data
 		// Rethink after caching(maybe not required)
+
 		idx := slices.IndexFunc(freshSeriesData, func(fd *meta.TvDetails) bool {
 			return fd.Id == int(srs.MId)
 		})
@@ -157,7 +218,8 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 			if 1 > sn.SeasonNumber || sn.SeasonNumber > fd.NumberOfSeasons {
 				continue
 			}
-			eps := 0
+
+			var eps int
 			if sn.SeasonNumber < lastAiredS {
 				eps = sn.EpisodeCount
 			} else if sn.SeasonNumber == lastAiredS {
@@ -166,7 +228,7 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 			episodesAired += eps
 
 			for eNo := eps; eNo >= 1 && !lastWatchedFound; eNo -= 1 {
-				if _, ok := watched[fmt.Sprintf("%d-%d", sn.SeasonNumber, eNo)]; ok {
+				if isWatched(sn.SeasonNumber, eNo) {
 					lastWatchedFound = true
 					break
 				} else {
@@ -176,7 +238,7 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 			}
 		}
 
-		if len(watched) == episodesAired {
+		if len(watched) == episodesAired || isWatched(lastAiredS, lastAiredE) {
 			continue
 		}
 

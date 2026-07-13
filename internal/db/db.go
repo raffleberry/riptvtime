@@ -84,6 +84,15 @@ type TvSeason struct {
 	Episodes  []TvEpisode `gorm:"foreignkey:SeriesMId;references:SeriesMId"`
 }
 
+type TvSeriesDetails struct {
+	gorm.Model
+	MName    string
+	MId      int64
+	Name     string
+	Overview string
+	AirDate  time.Time
+}
+
 type Db interface {
 	SeriesWatchingAll() (*[]TvSeries, error)
 	SeriesAdd(t *TvSeries) (int, error)
@@ -100,4 +109,16 @@ type Db interface {
 	SeriesSeasonAdd(t *TvSeason) (int, error)
 
 	SeriesEpisodeGet(mId int, season int, episode int) (*TvEpisode, error)
+}
+
+type Cached struct {
+	Key       string `gorm:"primaryKey"`
+	JsonData  string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type Cache interface {
+	Get(key string) (*Cached, error)
+	Set(data *Cached) error
 }
