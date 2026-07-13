@@ -13,10 +13,10 @@ export const ENDPOINT = Object.freeze({
     SERIES_STATUS: (Id)=>{return `/api/series/${Id}/status`},
     SERIES_ADD: ()=>{return `/api/series`},
     SERIES_REM: (Id)=>{return `/api/series/${Id}`},
+    SERIES_GET: (Id)=>{return `/api/series/${Id}`},
 })
 
 export const PAGE = Object.freeze({
-    MY: { name: 'My', path: '/my' },
     FEED: { name: 'Feed', path: '/' },
     UPCOMING: { name: 'Upcoming', path: '/upcoming' },
     DISCOVER: { name: 'Discover', path: '/discover' },
@@ -33,7 +33,6 @@ export const TvStatus = Object.freeze({
 });
 
 export const routes = Object.freeze([
-    { path: PAGE.MY.path, name: PAGE.MY.name , component: My },
     { path: PAGE.FEED.path, name: PAGE.FEED.name , component: Feed },
     { path: PAGE.UPCOMING.path, name: PAGE.UPCOMING.name , component: Upcoming },
     { path: PAGE.DISCOVER.path, name: PAGE.DISCOVER.name , component: Discover },

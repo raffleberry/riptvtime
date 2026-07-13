@@ -21,19 +21,19 @@ const TvSeriesTile = {
                 switch (tv.value.Status) {
                     case TvStatus.Watching:
                         card += ' border border-warning'
-                        icon += ' bi-bookmark-check text-warning'
+                        icon += ' bi-bookmark-check'
                         break;
                     case TvStatus.NotWatching:
                         // cb += ' border border-primary'
-                        icon += ' bi-three-dots-vertical text-primary'
+                        icon += ' bi-three-dots-vertical'
                         break;
                     case TvStatus.Stopped:
                         card += ' border border-danger'
-                        icon += ' bi-bookmark-x text-danger'
+                        icon += ' bi-bookmark-x'
                         break;
                     case TvStatus.Completed:
                         card += ' border border-success'
-                        icon += ' bi-bookmark-check-fill text-success'
+                        icon += ' bi-bookmark-check-fill'
                         break;
                 
                     default:

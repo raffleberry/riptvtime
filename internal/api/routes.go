@@ -178,3 +178,22 @@ func (a *Api) SeriesRem() http.HandlerFunc {
 
 	})
 }
+
+func (a *Api) SeriesGet() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		mIdStr := c.R.PathValue("mId")
+
+		mId, err := strconv.Atoi(mIdStr)
+
+		if err != nil {
+			return c.Error(http.StatusBadRequest, err.Error())
+		}
+
+		rv, err := a.tv.GetFullDetails(mId)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, rv)
+	})
+}

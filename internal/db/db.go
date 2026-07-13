@@ -110,15 +110,3 @@ type Db interface {
 
 	SeriesEpisodeGet(mId int, season int, episode int) (*TvEpisode, error)
 }
-
-type Cached struct {
-	Key       string `gorm:"primaryKey"`
-	JsonData  string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}
-
-type Cache interface {
-	Get(key string) (*Cached, error)
-	Set(data *Cached) error
-}

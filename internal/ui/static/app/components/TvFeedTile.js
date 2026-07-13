@@ -42,7 +42,7 @@ const TvFeedTile = {
                 <span> Up Next </span>
                 <button type="button" class="btn btn-primary position-relative">
                 {{ upNext }}
-                <span v-if="toWatchCnt > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                <span v-if="toWatchCnt > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
                     +{{ toWatchCnt }}
                     <span class="visually-hidden">unwatched episodes</span>
                 </span>

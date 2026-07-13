@@ -67,7 +67,7 @@ func (srv *SeriesService) Search(searchTerm string, page int) (*SeriesSearchResu
 	return &rv, nil
 }
 
-// Get Tv Show Details
+// Get Tv Show Details (Freshiestest Data possible)
 func (srv *SeriesService) GetDetails(mId int) (*meta.TvDetails, error) {
 	key := fmt.Sprintf("TvDetails{MId:%d}", mId)
 	cd, err := srv.c.Get(key)
@@ -189,9 +189,6 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 
 		slog.Debug("watched eps", "name", srs.Name, "watched map", watched)
 
-		// TODO: making this loop work while fetching fresh data
-		// Rethink after caching(maybe not required)
-
 		idx := slices.IndexFunc(freshSeriesData, func(fd *meta.TvDetails) bool {
 			return fd.Id == int(srs.MId)
 		})
@@ -251,17 +248,22 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 		}
 
 		rv = append(rv, SeriesFeedItem{
-			TvSeries:        srs,
-			EpisodesTotal:   fd.NumberOfEpisodes,
-			EpisodesAired:   episodesAired,
-			EpisodesWatched: len(watched),
-			UpNextS:         upNextS,
-			UpNextE:         upNextE,
-			RecentlyAired:   recentlyAired,
+			TvSeries:           srs,
+			EpisodesTotal:      fd.NumberOfEpisodes,
+			EpisodesAired:      episodesAired,
+			EpisodesWatched:    len(watched),
+			UpNextS:            upNextS,
+			UpNextE:            upNextE,
+			RecentlyAired:      recentlyAired,
+			LastEpisodeAirDate: fd.LastEpisodeToAir.AirDate,
 		})
 
 		slog.Debug("::::End Calculating Resp data", "Series Name", srs.Name)
 	}
+
+	slices.SortFunc(rv, func(a SeriesFeedItem, b SeriesFeedItem) int {
+		return b.LastEpisodeAirDate.Compare(a.LastEpisodeAirDate)
+	})
 
 	return &rv, nil
 
@@ -421,4 +423,54 @@ func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int) (*d
 	}
 
 	return ep, err
+}
+
+// Returns Full TV Show Details with all seasons aired with watched/unwatched episodes
+func (srv *SeriesService) GetFullDetails(mId int) (*SeriesFullItem, error) {
+	srs, err := srv.GetDetails(mId)
+	if err != nil {
+		return nil, err
+	}
+
+	slog.Debug("Show", srs)
+	for i, s := range srs.Seasons {
+		if 1 <= s.SeasonNumber && s.SeasonNumber <= srs.NumberOfSeasons {
+			for epNo := 1; epNo <= s.EpisodeCount; epNo++ {
+				ep, err := srv.getEpisodeDetails(mId, s.SeasonNumber, epNo)
+				if err != nil {
+					return nil, err
+				}
+				srs.Seasons[i].Episodes = append(srs.Seasons[i].Episodes, meta.TvEpisode{
+					Id:            int(ep.MId),
+					Name:          ep.Name,
+					Overview:      ep.Overview,
+					Year:          ep.AirDate.Year(),
+					SeasonNumber:  ep.Season,
+					EpisodeNumber: ep.Episode,
+					AirDate:       ep.AirDate,
+					Runtime:       ep.Runtime,
+					MName:         ep.MName,
+				})
+			}
+		}
+	}
+
+	watchedEps := []SeriesEpisode{}
+
+	tEps, err := srv.db.SeriesTrackedEps(mId)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, tep := range *tEps {
+		watchedEps = append(watchedEps, SeriesEpisode{
+			S: tep.Season,
+			E: tep.Episode,
+		})
+	}
+
+	return &SeriesFullItem{
+		srs,
+		watchedEps,
+	}, nil
 }

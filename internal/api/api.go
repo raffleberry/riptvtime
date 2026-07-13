@@ -32,6 +32,7 @@ func NewApi(db db.Db, meta meta.Meta, tv *services.SeriesService) *Api {
 	mux.HandleFunc("GET /api/series/search", a.SeriesSearch())
 	mux.HandleFunc("GET /api/series/feed", a.SeriesFeed())
 
+	mux.HandleFunc("GET /api/series/{mId}", a.SeriesGet())
 	mux.HandleFunc("POST /api/series", a.SeriesAdd())
 	mux.HandleFunc("DELETE /api/series/{mId}", a.SeriesRem())
 

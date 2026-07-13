@@ -1,18 +1,21 @@
 package services
 
 import (
+	"time"
+
 	"gitlab.com/raffleberry/riptvtime/internal/db"
 	"gitlab.com/raffleberry/riptvtime/internal/meta"
 )
 
 type SeriesFeedItem struct {
 	db.TvSeries
-	EpisodesTotal   int
-	EpisodesAired   int
-	EpisodesWatched int
-	UpNextS         int
-	UpNextE         int
-	RecentlyAired   bool
+	EpisodesTotal      int
+	EpisodesAired      int
+	EpisodesWatched    int
+	UpNextS            int
+	UpNextE            int
+	RecentlyAired      bool
+	LastEpisodeAirDate time.Time
 }
 
 type SeriesSearchItem struct {
@@ -24,4 +27,14 @@ type SeriesSearchResult struct {
 	Results      []SeriesSearchItem
 	TotalPages   int
 	TotalResults int
+}
+
+type SeriesEpisode struct {
+	S int
+	E int
+}
+
+type SeriesFullItem struct {
+	*meta.TvDetails
+	EpsWatched []SeriesEpisode
 }

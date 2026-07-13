@@ -1,28 +1,7 @@
 import { TvFeedTile } from "../components/TvFeedTile.js";
+import { useFeedStore } from "../stores/feed.js";
 import { ENDPOINT, PAGE, theme } from "../utils.js";
-import { onMounted, ref } from "../vue.js";
-
-let calledOnce = false;
-const loading = ref(true)
-const feedData = ref([])
-// TODO: Refactor this logic into a store 
-const fetchFeed = async () => {
-    loading.value = true
-    try {
-        const response = await fetch(ENDPOINT.FEED());
-        const result = await response.json();
-        if (result) {
-            console.log(result)
-            feedData.value = result
-        } else {
-            console.error('Error server sent bad result:', result);
-        }
-    } catch (error) {
-        console.error('Error fetching feed data:', error);
-    } finally {
-        loading.value = false
-    }
-}
+import { onMounted, ref, storeToRefs } from "../vue.js";
 
 const Feed = {
     props: {
@@ -33,15 +12,13 @@ const Feed = {
     },
     setup: (props) => {
 
-        onMounted(() => {
-            if (!calledOnce) {
-                calledOnce = true;
-                fetchFeed();
-            }
-        });
+        onMounted(() => {});
+
+        const store = useFeedStore()
+        const { feed, loading } = storeToRefs(store)
 
         return {
-            feedData,
+            feed,
             loading
         }
     },
@@ -53,7 +30,7 @@ const Feed = {
             </div>
         </div>
         <div v-else>
-            <div v-for="tv in feedData" :key="tv.ID" class="mb-3">
+            <div v-for="tv in feed" :key="tv.ID" class="mb-3">
                 <TvFeedTile :tv="tv"></TvFeedTile>
             </div>
         </div>
