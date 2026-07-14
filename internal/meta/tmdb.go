@@ -154,6 +154,27 @@ func (t *MetaTmdb) GetTVSeasonDetails(tmdbId int, season int) (*TvSeason, error)
 	return &tvSeason, err
 }
 
+func (t *MetaTmdb) GetTVEpisodeDetails(tmdbId int, season int, episode int) (*TvEpisode, error) {
+
+	res, err := t.c.GetTVEpisodeDetails(tmdbId, season, episode, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &TvEpisode{
+		Id:            int(res.ID),
+		Name:          res.Name,
+		Overview:      res.Overview,
+		SeasonNumber:  res.SeasonNumber,
+		EpisodeNumber: res.EpisodeNumber,
+		Runtime:       res.Runtime,
+		AirDate:       parseAirDate(res.AirDate),
+
+		MName: t.Name(),
+	}, err
+}
+
 func NewTmdbMeta(c *config.Config) *MetaTmdb {
 	m := &MetaTmdb{}
 	var err error

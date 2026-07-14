@@ -20,6 +20,7 @@ const (
 
 var (
 	ErrNotFound = errors.New("Record Not Found")
+	ErrBadData  = errors.New("Bad Data")
 )
 
 func (s TvStatus) String() string {
@@ -61,8 +62,8 @@ type TvTrackedEps struct {
 
 type TvEpisode struct {
 	gorm.Model
-	MName     string
-	MId       int64
+	MName     string `gorm:"uniqueIndex:idx_episode_mname_mid"`
+	MId       int64  `gorm:"uniqueIndex:idx_episode_mname_mid"`
 	SeriesMId int64
 	Name      string
 	Overview  string
@@ -74,8 +75,8 @@ type TvEpisode struct {
 
 type TvSeason struct {
 	gorm.Model
-	MName     string
-	MId       int64
+	MName     string `gorm:"uniqueIndex:idx_season_mname_mid"`
+	MId       int64  `gorm:"uniqueIndex:idx_season_mname_mid"`
 	SeriesMId int64
 	AirDate   time.Time
 	Season    int
@@ -106,7 +107,8 @@ type Db interface {
 	SeriesTrackedEpsAdd(ep *TvTrackedEps) (int, error)
 	SeriesTrackedEpRemove(mId int, season int, episode int) (int, error)
 
-	SeriesSeasonAdd(t *TvSeason) (int, error)
+	SeriesSeasonGet(mId int, season int) (*TvSeason, error)
+	SeriesSeasonAdd(t *TvSeason) error
 
 	SeriesEpisodeGet(mId int, season int, episode int) (*TvEpisode, error)
 }

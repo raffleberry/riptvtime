@@ -59,7 +59,6 @@ func (c *CacheSqlite) Set(data *Cached) error {
 		Columns:   []clause.Column{{Name: "key"}},
 		DoUpdates: clause.AssignmentColumns([]string{"json_data"}),
 	}).Create(data).Error
-
 }
 
 func (c *CacheSqlite) Get(key string) (*Cached, error) {

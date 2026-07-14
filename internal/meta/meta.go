@@ -62,6 +62,7 @@ type Meta interface {
 	Search(query string, page int) (*TvSearchResults, error)
 	GetTvDetails(mId int) (*TvDetails, error)
 	GetTVSeasonDetails(mId int, season int) (*TvSeason, error)
+	GetTVEpisodeDetails(mId int, season int, episode int) (*TvEpisode, error)
 }
 
 // func GetEpisodeDetails(seriesTmdbId int64, sNo int, epNo int) (*TvEpisode, error) {

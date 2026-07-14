@@ -25,13 +25,15 @@ type SeriesService struct {
 	db   db.Db
 	meta meta.Meta
 	c    db.Cache
+	lru  *db.CacheLRU
 }
 
-func NewTvService(c db.Cache, db db.Db, meta meta.Meta) *SeriesService {
+func NewTvService(c db.Cache, lru *db.CacheLRU, db db.Db, meta meta.Meta) *SeriesService {
 	return &SeriesService{
 		db:   db,
 		meta: meta,
 		c:    c,
+		lru:  lru,
 	}
 }
 
@@ -68,7 +70,7 @@ func (srv *SeriesService) Search(searchTerm string, page int) (*SeriesSearchResu
 }
 
 // Get Tv Show Details (Freshiestest Data possible)
-func (srv *SeriesService) GetDetails(mId int) (*meta.TvDetails, error) {
+func (srv *SeriesService) GetDetails(mId int, wsd bool) (*meta.TvDetails, error) {
 	key := fmt.Sprintf("TvDetails{MId:%d}", mId)
 	cd, err := srv.c.Get(key)
 
@@ -94,13 +96,12 @@ func (srv *SeriesService) GetDetails(mId int) (*meta.TvDetails, error) {
 		return rv, nil
 	}
 
-	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			cd, err = refresh()
-			if err != nil {
-				return nil, err
-			}
+	if errors.Is(err, db.ErrNotFound) {
+		cd, err = refresh()
+		if err != nil {
+			return nil, err
 		}
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -119,8 +120,47 @@ func (srv *SeriesService) GetDetails(mId int) (*meta.TvDetails, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if wsd {
+
+		status, err := srv.db.SeriesStatusGet(mId)
+
+		if err != nil {
+			return nil, err
+		}
+
+		for i, s := range res.Seasons {
+			if 1 <= s.SeasonNumber && s.SeasonNumber <= res.NumberOfSeasons {
+				for epNo := 1; epNo <= s.EpisodeCount; epNo++ {
+					ep, err := srv.getEpisodeDetails(mId, s.SeasonNumber, epNo, status)
+					if err != nil {
+						return nil, err
+					}
+					res.Seasons[i].Episodes = append(res.Seasons[i].Episodes, meta.TvEpisode{
+						Id:            int(ep.MId),
+						Name:          ep.Name,
+						Overview:      ep.Overview,
+						Year:          ep.AirDate.Year(),
+						SeasonNumber:  ep.Season,
+						EpisodeNumber: ep.Episode,
+						AirDate:       ep.AirDate,
+						Runtime:       ep.Runtime,
+						MName:         ep.MName,
+					})
+				}
+
+			}
+		}
+	}
+
 	return &res, nil
 }
+
+// func (srv *SeriesService) addSeasonDetails(mId int, res *meta.TvDetails) {
+// for _, s := range res.Seasons {
+// 	srv.meta.GetTvSeasonDetails(mId, s.SeasonNumber)
+// }
+// }
 
 func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 
@@ -146,7 +186,7 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 				return ctx.Err()
 			}
 
-			res, err := srv.GetDetails(int(mId))
+			res, err := srv.GetDetails(int(mId), false)
 			if err != nil {
 				slog.Error("Error while fetching data", "error", err, "mId", mId)
 				return err
@@ -345,15 +385,15 @@ func (srv *SeriesService) SetEpisodeWatched(mId int, sNo int, eNo int) (int, err
 		}
 	}
 
-	ep, err := srv.getEpisodeDetails(mId, sNo, eNo)
+	ep, err := srv.getEpisodeDetails(mId, sNo, eNo, status)
 	if err != nil {
 		return -1, err
 	}
 
 	trackItem := db.TvTrackedEps{
 		MName:      ep.MName,
-		EpisodeMId: ep.MId,
-		SeriesMId:  ep.SeriesMId,
+		EpisodeMId: int64(ep.MId),
+		SeriesMId:  int64(mId),
 		Name:       ep.Name,
 		Overview:   ep.Overview,
 		Season:     ep.Season,
@@ -365,78 +405,109 @@ func (srv *SeriesService) SetEpisodeWatched(mId int, sNo int, eNo int) (int, err
 
 }
 
-func (srv *SeriesService) cacheSeason(mId int64, season int) error {
-	mSd, err := srv.meta.GetTVSeasonDetails(int(mId), season)
-	slog.Debug("Caching Tv Season", "name", mSd.Name, "MSource", srv.meta.Name(), "MId", mId, "Season", season, "Episodes", len(mSd.Episodes))
+// returns with all episode details in that season
+func (srv *SeriesService) cacheSeasonInDb(mId int, season int) (*db.TvSeason, error) {
 
-	if err != nil {
-		return err
+	sn, err := srv.db.SeriesSeasonGet(mId, season)
+
+	if err == ErrNotFound {
+		mSd, err := srv.meta.GetTVSeasonDetails(mId, season)
+		slog.Debug("Caching Tv Season in Db", "name", mSd.Name, "MSource", srv.meta.Name(), "MId", mId, "Season", mSd.SeasonNumber, "Episodes", len(mSd.Episodes))
+		if err != nil {
+			return nil, err
+		}
+
+		sn = MetaToDbSeason(mId, mSd)
+		err = srv.db.SeriesSeasonAdd(sn)
+	} else if err != nil {
+		return nil, err
 	}
 
-	dbEps := []db.TvEpisode{}
-	for _, e := range mSd.Episodes {
-		dbEps = append(dbEps, db.TvEpisode{
-			MId:       int64(e.Id),
-			MName:     e.MName,
-			Name:      e.Name,
-			SeriesMId: mId,
-			Overview:  e.Overview,
-			Season:    e.SeasonNumber,
-			Episode:   e.EpisodeNumber,
-			Runtime:   e.Runtime,
-			AirDate:   e.AirDate,
-		})
-	}
-
-	dbSd := db.TvSeason{
-		MId:       int64(mSd.Id),
-		MName:     mSd.MName,
-		AirDate:   mSd.AirDate,
-		SeriesMId: mId,
-		Season:    season,
-		Name:      mSd.Name,
-		Overview:  mSd.Overview,
-		Episodes:  dbEps,
-	}
-
-	_, err = srv.db.SeriesSeasonAdd(&dbSd)
-
-	return err
+	return sn, err
 }
 
-func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int) (*db.TvEpisode, error) {
+// returns with all episode details in that season
 
-	ep, err := srv.db.SeriesEpisodeGet(id, season, episode)
+func (srv *SeriesService) cacheSeasonInLRU(mId int, season int) (*db.TvSeason, error) {
+	key := fmt.Sprintf("TvSeasonDetails{MId:%d,Season:%d}", mId, season)
 
-	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
+	var mSd *meta.TvSeason
+	var err error
 
-			err = srv.cacheSeason(int64(id), season)
-			if err != nil {
-				return nil, err
-			}
+	val, exists := srv.lru.Get(key)
+	if !exists {
 
-			return srv.db.SeriesEpisodeGet(id, season, episode)
-		} else {
+		mSd, err = srv.meta.GetTVSeasonDetails(mId, season)
+		slog.Debug("Caching Tv Season in LRU", "name", mSd.Name, "MSource", srv.meta.Name(), "MId", mId, "Season", mSd.SeasonNumber, "Episodes", len(mSd.Episodes))
+		if err != nil {
+			return nil, err
+		}
+
+		valByte, err := json.Marshal(mSd)
+		if err != nil {
+			return nil, err
+		}
+		val = string(valByte)
+		srv.lru.Set(key, val)
+	}
+
+	if mSd == nil {
+		err = json.Unmarshal([]byte(val), &mSd)
+	}
+
+	return MetaToDbSeason(mId, mSd), nil
+}
+
+func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int, status db.TvStatus) (*db.TvEpisode, error) {
+	var sn *db.TvSeason
+	var err error
+
+	if status == db.TvStatusNotWatching {
+		sn, err = srv.cacheSeasonInLRU(id, season)
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		sn, err = srv.cacheSeasonInDb(id, season)
+
+		if err != nil {
 			return nil, err
 		}
 	}
 
-	return ep, err
+	idx := slices.IndexFunc(sn.Episodes, func(x db.TvEpisode) bool {
+		return x.Episode == episode
+	})
+
+	if idx == -1 {
+		return nil, fmt.Errorf("%w: Episode %d Not Found", ErrNotFound, episode) //ErrNotFound
+	}
+
+	return &sn.Episodes[idx], err
 }
 
-// Returns Full TV Show Details with all seasons aired with watched/unwatched episodes
+// status, err := srv.db.SeriesStatusGet(id)
+// if err != nil {
+// 	return nil, err
+// }
+
+// TODO: REMOVE Returns Full TV Show Details with all seasons aired with watched/unwatched episodes
 func (srv *SeriesService) GetFullDetails(mId int) (*SeriesFullItem, error) {
-	srs, err := srv.GetDetails(mId)
+	srs, err := srv.GetDetails(mId, true)
 	if err != nil {
 		return nil, err
 	}
 
-	slog.Debug("Show", srs)
+	status, err := srv.db.SeriesStatusGet(mId)
+	if err != nil {
+		return nil, err
+	}
+
 	for i, s := range srs.Seasons {
 		if 1 <= s.SeasonNumber && s.SeasonNumber <= srs.NumberOfSeasons {
 			for epNo := 1; epNo <= s.EpisodeCount; epNo++ {
-				ep, err := srv.getEpisodeDetails(mId, s.SeasonNumber, epNo)
+				ep, err := srv.getEpisodeDetails(mId, s.SeasonNumber, epNo, status)
 				if err != nil {
 					return nil, err
 				}

@@ -182,14 +182,15 @@ func (a *Api) SeriesRem() http.HandlerFunc {
 func (a *Api) SeriesGet() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
 		mIdStr := c.R.PathValue("mId")
+		full := c.R.URL.Query().Get("full")
+		var sd bool = len(full) > 0
 
 		mId, err := strconv.Atoi(mIdStr)
 
 		if err != nil {
 			return c.Error(http.StatusBadRequest, err.Error())
 		}
-
-		rv, err := a.tv.GetFullDetails(mId)
+		rv, err := a.tv.GetDetails(mId, sd)
 		if err != nil {
 			return err
 		}
@@ -197,3 +198,22 @@ func (a *Api) SeriesGet() http.HandlerFunc {
 		return c.JSON(http.StatusOK, rv)
 	})
 }
+
+// func (a *Api) SeriesEpisodeGet() http.HandlerFunc {
+// 	return WithCtx(func(c *Context) error {
+// 		mIdStr := c.R.PathValue("tmdbId")
+// 		episodeStr := c.R.PathValue("episode")
+
+// 		mId, err := strconv.Atoi(mIdStr)
+// 		episode, err1 := strconv.Atoi(episodeStr)
+
+// 		if err != nil || err1 != nil {
+// 			return c.Error(http.StatusBadRequest, err.Error()+", "+err1.Error())
+// 		}
+
+// 		rv, err := a.tv.GetDetails(mId, )
+// 		if err != nil {
+// 			return err
+// 		}
+// 	})
+// }

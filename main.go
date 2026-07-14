@@ -44,7 +44,8 @@ func main() {
 	d := db.NewDbSqlite(cfg, logger)
 	m := meta.NewTmdbMeta(cfg)
 	c := db.NewCacheSqlite(cfg, logger)
-	tvSrv := services.NewTvService(c, d, m)
+	lru := db.NewCacheLRU(999)
+	tvSrv := services.NewTvService(c, lru, d, m)
 
 	a := api.NewApi(d, m, tvSrv)
 	s := api.NewServer(addr, a.Router)

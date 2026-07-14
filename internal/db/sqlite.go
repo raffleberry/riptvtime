@@ -9,6 +9,7 @@ import (
 	"gitlab.com/raffleberry/riptvtime/internal/config"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	glog "gorm.io/gorm/logger"
 )
 
@@ -73,10 +74,47 @@ func (db *DbSqlite) SeriesRem(id int) error {
 	return err
 }
 
-func (db *DbSqlite) SeriesSeasonAdd(t *TvSeason) (int, error) {
-	err := db.orm.Create(t).Error
+// upserts
+func (db *DbSqlite) SeriesSeasonAdd(t *TvSeason) error {
+	return db.orm.Transaction(func(tx *gorm.DB) error {
+		err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "m_name"},
+				{Name: "m_id"},
+			},
+			UpdateAll: true,
+		}).Create(t).Error
+		if err != nil {
+			return err
+		}
 
-	return int(t.ID), err
+		for _, episode := range t.Episodes {
+			// episode.SeriesMId = t.SeriesMId
+
+			err := tx.Clauses(clause.OnConflict{
+				Columns: []clause.Column{
+					{Name: "m_name"},
+					{Name: "m_id"},
+				},
+				UpdateAll: true,
+			}).Create(&episode).Error
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+}
+
+func (db *DbSqlite) SeriesSeasonGet(mId, season int) (*TvSeason, error) {
+	sn := &TvSeason{}
+	err := db.orm.Preload("Episodes").Take(&sn, "series_m_id = ? AND season = ?", mId, season).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
+	}
+	return sn, err
 }
 
 func (db *DbSqlite) SeriesStatusGet(mId int) (TvStatus, error) {

@@ -41,8 +41,7 @@ func NewApi(db db.Db, meta meta.Meta, tv *services.SeriesService) *Api {
 	mux.HandleFunc("POST /api/series/episode", a.SeriesEpisodeWatch())
 	mux.HandleFunc("PUT /api/series/episode", a.SeriesEpisodeUnWatch())
 
-	// mux.HandleFunc("GET /api/series/{tmdbId}", apiSeriesGet())
-	// mux.HandleFunc("GET /api/series/{tmdbId}/{episode}", apiSeriesEpisode())
+	// mux.HandleFunc("GET /api/series/{tmdbId}/{episode}", a.SeriesEpisodeGet())
 
 	mux.Handle("GET /", ui.NewSpaHandler("internal/ui/static"))
 	return a
