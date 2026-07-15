@@ -10,7 +10,6 @@ const TvFeedTile = {
         tv: Object
     },
     setup(props) {
-        console.log(props)
         let tv = props.tv
         let upNext = "S" + String(tv.UpNextS).padStart(2, "0") + "E" + String(tv.UpNextE).padStart(2, "0")
         let toWatchCnt = tv.EpisodesAired - tv.EpisodesWatched - 1
@@ -36,7 +35,11 @@ const TvFeedTile = {
         -->
         <div class="col">
             <div class="card-body">
-            <h5 class="card-title">{{ tv.Name }} <span class="text-muted">({{ tv.Year }})</span> <span class="badge bg-secondary" v-if="tv.RecentlyAired">New</span> </h5>
+            <h5 class="card-title">
+                <router-link :to="'/series/' + tv.MId">
+                    {{ tv.Name }} <span class="text-muted">({{ tv.Year }})</span> <span class="badge bg-secondary" v-if="tv.RecentlyAired">New</span>
+                 </router-link>
+            </h5>
             <p class="card-text">{{ tv.Overview }}</p>
             <p class="card-text">
                 <span> Up Next </span>

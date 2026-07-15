@@ -1,6 +1,6 @@
 import { useSeriesStore } from "../stores/series.js";
-import { PAGE, theme } from "../utils.js";
-import { onMounted, ref, storeToRefs, useRoute, watch } from "../vue.js";
+import { Ky, PAGE, theme } from "../utils.js";
+import { computed, onMounted, ref, storeToRefs, useRoute, watch } from "../vue.js";
 
 
 const Series = {
@@ -16,7 +16,7 @@ const Series = {
 
         const r = useRoute()
         const seriesStore = useSeriesStore()
-        const { loading, seriesDetails, watchedEps } = storeToRefs(seriesStore)
+        const { loading, seriesDetails, SnWatchedEps, EpWatchCnt } = storeToRefs(seriesStore)
 
         const { fetchSeries } = seriesStore
 
@@ -25,13 +25,16 @@ const Series = {
         watch(() => r.params.id, (id) => {
             if (id) {
                 fetchSeries(id)
+                console.log(seriesDetails.value)
             }
         }, { immediate: true })
 
         return {
+            Ky,
             loading,
             sd: seriesDetails,
-            watchedEps,
+            SnWatchedEps,
+            EpWatchCnt,
         }
     },
     template: `
@@ -54,15 +57,15 @@ const Series = {
                 <div v-for="sn in sd.Seasons" class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button" type="button" data-bs-toggle="collapse" :data-bs-target="'#season' + sn.SeasonNumber">
-                            {{ sn.Name }}
+                            <div class="d-flex w-100 justify-content-between pe-5"><span>{{ sn.Name }}</span> <span>{{SnWatchedEps[sn.SeasonNumber].length}}/{{sn.EpisodeCount}}</span></div>
                         </button>
                     </h2>
-                    <div :id="'season' + sn.SeasonNumber" class="accordion-collapse collapse show" data-bs-parent="#seasons">
+                    <div :id="'season' + sn.SeasonNumber" class="accordion-collapse collapse" data-bs-parent="#seasons">
                         <div class="accordion-body">
                             <div class="d-flex flex-row justify-content-between" v-for="ep in sn.Episodes">
                                 <div>{{ ep.SeasonNumber }}x{{ ep.EpisodeNumber }} - {{ ep.Name }}</div>
                                 <button class="btn">
-                                    <i :class="(ep.SeasonNumber + 'x' + ep.EpisodeNumber) in watchedEps ? 'bi bi-check-circle-fill text-success' : 'bi bi-check-circle'"></i>
+                                    <i :class="Ky(ep.SeasonNumber, ep.EpisodeNumber) in EpWatchCnt ? 'bi bi-check-circle-fill text-success' : 'bi bi-check-circle'"></i>
                                 </button>
                             </div>
                         </div>

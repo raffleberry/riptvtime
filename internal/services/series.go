@@ -70,7 +70,7 @@ func (srv *SeriesService) Search(searchTerm string, page int) (*SeriesSearchResu
 }
 
 // Get Tv Show Details (Freshiestest Data possible)
-func (srv *SeriesService) GetDetails(mId int, wsd bool) (*meta.TvDetails, error) {
+func (srv *SeriesService) GetDetails(mId int, wsd bool) (*SeriesFullItem, error) {
 	key := fmt.Sprintf("TvDetails{MId:%d}", mId)
 	cd, err := srv.c.Get(key)
 
@@ -153,14 +153,25 @@ func (srv *SeriesService) GetDetails(mId int, wsd bool) (*meta.TvDetails, error)
 		}
 	}
 
-	return &res, nil
-}
+	epsWatched := []SeriesEpisode{}
 
-// func (srv *SeriesService) addSeasonDetails(mId int, res *meta.TvDetails) {
-// for _, s := range res.Seasons {
-// 	srv.meta.GetTvSeasonDetails(mId, s.SeasonNumber)
-// }
-// }
+	tEps, err := srv.db.SeriesTrackedEps(mId)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, tep := range *tEps {
+		epsWatched = append(epsWatched, SeriesEpisode{
+			S: tep.Season,
+			E: tep.Episode,
+		})
+	}
+
+	return &SeriesFullItem{
+		&res,
+		epsWatched,
+	}, nil
+}
 
 func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 
@@ -193,7 +204,7 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 			}
 
 			mu.Lock()
-			freshSeriesData = append(freshSeriesData, res)
+			freshSeriesData = append(freshSeriesData, res.TvDetails)
 			mu.Unlock()
 
 			return nil
@@ -485,63 +496,4 @@ func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int, sta
 	}
 
 	return &sn.Episodes[idx], err
-}
-
-// status, err := srv.db.SeriesStatusGet(id)
-// if err != nil {
-// 	return nil, err
-// }
-
-// TODO: REMOVE Returns Full TV Show Details with all seasons aired with watched/unwatched episodes
-func (srv *SeriesService) GetFullDetails(mId int) (*SeriesFullItem, error) {
-	srs, err := srv.GetDetails(mId, true)
-	if err != nil {
-		return nil, err
-	}
-
-	status, err := srv.db.SeriesStatusGet(mId)
-	if err != nil {
-		return nil, err
-	}
-
-	for i, s := range srs.Seasons {
-		if 1 <= s.SeasonNumber && s.SeasonNumber <= srs.NumberOfSeasons {
-			for epNo := 1; epNo <= s.EpisodeCount; epNo++ {
-				ep, err := srv.getEpisodeDetails(mId, s.SeasonNumber, epNo, status)
-				if err != nil {
-					return nil, err
-				}
-				srs.Seasons[i].Episodes = append(srs.Seasons[i].Episodes, meta.TvEpisode{
-					Id:            int(ep.MId),
-					Name:          ep.Name,
-					Overview:      ep.Overview,
-					Year:          ep.AirDate.Year(),
-					SeasonNumber:  ep.Season,
-					EpisodeNumber: ep.Episode,
-					AirDate:       ep.AirDate,
-					Runtime:       ep.Runtime,
-					MName:         ep.MName,
-				})
-			}
-		}
-	}
-
-	watchedEps := []SeriesEpisode{}
-
-	tEps, err := srv.db.SeriesTrackedEps(mId)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, tep := range *tEps {
-		watchedEps = append(watchedEps, SeriesEpisode{
-			S: tep.Season,
-			E: tep.Episode,
-		})
-	}
-
-	return &SeriesFullItem{
-		srs,
-		watchedEps,
-	}, nil
 }

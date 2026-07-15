@@ -7,13 +7,15 @@ import { Stats } from "./tabs/Stats.js";
 import { Upcoming } from "./tabs/Upcoming.js";
 import { ref, watch } from "./vue.js";
 
+export const Ky = (s, e) => `${s}x${e}`
+
 export const ENDPOINT = Object.freeze({
     FEED: ()=>{return '/api/series/feed'},
     SEARCH_SERIES: ()=>{return '/api/series/search'},
     SERIES_STATUS: (Id)=>{return `/api/series/${Id}/status`},
     SERIES_ADD: ()=>{return `/api/series`},
     SERIES_REM: (Id)=>{return `/api/series/${Id}`},
-    SERIES_GET: (Id)=>{return `/api/series/${Id}`},
+    SERIES_GET: (Id)=>{return `/api/series/${Id}?full=1`},
 })
 
 export const PAGE = Object.freeze({
