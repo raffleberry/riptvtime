@@ -1,3 +1,4 @@
+import { useConfirm } from "../stores/confirm.js";
 import { useSeriesStore } from "../stores/series.js";
 import { Ky, PAGE, theme } from "../utils.js";
 import { computed, onMounted, ref, storeToRefs, useRoute, watch } from "../vue.js";
@@ -18,6 +19,9 @@ const Series = {
         const seriesStore = useSeriesStore()
         const { loading, seriesDetails, SnWatchedEps, EpWatchCnt } = storeToRefs(seriesStore)
 
+        const confirmStore = useConfirm()
+        const { openDialog } = confirmStore
+
         const { fetchSeries } = seriesStore
 
         const seriesId = ref(0)
@@ -25,7 +29,6 @@ const Series = {
         watch(() => r.params.id, (id) => {
             if (id) {
                 fetchSeries(id)
-                console.log(seriesDetails.value)
             }
         }, { immediate: true })
 
@@ -35,6 +38,7 @@ const Series = {
             sd: seriesDetails,
             SnWatchedEps,
             EpWatchCnt,
+            openDialog,
         }
     },
     template: `
@@ -64,7 +68,9 @@ const Series = {
                         <div class="accordion-body">
                             <div class="d-flex flex-row justify-content-between" v-for="ep in sn.Episodes">
                                 <div>{{ ep.SeasonNumber }}x{{ ep.EpisodeNumber }} - {{ ep.Name }}</div>
-                                <button class="btn">
+                                <button class="btn"
+                                    @click="() => { openDialog(Ky(ep.SeasonNumber, ep.EpisodeNumber)) }"
+                                >
                                     <i :class="Ky(ep.SeasonNumber, ep.EpisodeNumber) in EpWatchCnt ? 'bi bi-check-circle-fill text-success' : 'bi bi-check-circle'"></i>
                                 </button>
                             </div>

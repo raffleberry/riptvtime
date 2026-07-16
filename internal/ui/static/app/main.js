@@ -1,4 +1,5 @@
 import { PageRouter } from "./components/PageRouter.js";
+import { Confirm } from "./overlays/Confirm.js";
 import { SeriesOptions } from "./overlays/SeriesOptions.js";
 import { Feed } from "./tabs/Feed.js";
 import { Upcoming } from "./tabs/Upcoming.js";
@@ -20,6 +21,7 @@ const app = createApp({
     components: {
         PageRouter,
         SeriesOptions,
+        Confirm,
     },
 
     setup() {

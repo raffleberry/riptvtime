@@ -110,9 +110,9 @@
     animation: shimmer 10s linear infinite;
 }
 
-
 /* Base state during fade-out animation */
-.offcanvas-backdrop.fade {
+.offcanvas-backdrop.fade,
+.modal-backdrop.fade {
   transition: backdrop-filter 0.3s ease-in-out, background-color 0.3s ease-in-out, opacity 0.3s ease-in-out;
   backdrop-filter: blur(0px) saturate(100%);
   -webkit-backdrop-filter: blur(0px) saturate(100%);
@@ -121,7 +121,8 @@
 }
 
 /* Active state when fully open */
-.offcanvas-backdrop.show {
+.offcanvas-backdrop.show,
+.modal-backdrop.show {
   backdrop-filter: blur(6px) saturate(105%);
   -webkit-backdrop-filter: blur(6px) saturate(105%);
   background-color: rgba(255, 255, 255, 0.25) !important;
@@ -129,10 +130,12 @@
 }
 
 /* Dark mode overrides (if applicable) */
-[data-bs-theme="dark"] .offcanvas-backdrop.fade {
+[data-bs-theme="dark"] .offcanvas-backdrop.fade,
+[data-bs-theme="dark"] .modal-backdrop.fade {
   background-color: rgba(0, 0, 0, 0) !important;
 }
-[data-bs-theme="dark"] .offcanvas-backdrop.show {
+[data-bs-theme="dark"] .offcanvas-backdrop.show,
+[data-bs-theme="dark"] .modal-backdrop.show {
   backdrop-filter: blur(6px) saturate(100%);
   -webkit-backdrop-filter: blur(6px) saturate(100%);
   background-color: rgba(0, 0, 0, 0.2) !important;
