@@ -130,27 +130,27 @@ func (srv *SeriesService) GetDetails(mId int, wsd bool) (*SeriesFullItem, error)
 		}
 
 		for i, s := range res.Seasons {
-			if 1 <= s.SeasonNumber && s.SeasonNumber <= res.NumberOfSeasons {
-				for epNo := 1; epNo <= s.EpisodeCount; epNo++ {
-					ep, err := srv.getEpisodeDetails(mId, s.SeasonNumber, epNo, status)
-					if err != nil {
-						return nil, err
-					}
-					res.Seasons[i].Episodes = append(res.Seasons[i].Episodes, meta.TvEpisode{
-						Id:            int(ep.MId),
-						Name:          ep.Name,
-						Overview:      ep.Overview,
-						Year:          ep.AirDate.Year(),
-						SeasonNumber:  ep.Season,
-						EpisodeNumber: ep.Episode,
-						AirDate:       ep.AirDate,
-						Runtime:       ep.Runtime,
-						MName:         ep.MName,
-					})
+			for epNo := 1; epNo <= s.EpisodeCount; epNo++ {
+				ep, err := srv.getEpisodeDetails(mId, s.SeasonNumber, epNo, status)
+				if err != nil {
+					return nil, err
 				}
-
+				res.Seasons[i].Episodes = append(res.Seasons[i].Episodes, meta.TvEpisode{
+					Id:            int(ep.MId),
+					Name:          ep.Name,
+					Overview:      ep.Overview,
+					Year:          ep.AirDate.Year(),
+					SeasonNumber:  ep.Season,
+					EpisodeNumber: ep.Episode,
+					AirDate:       ep.AirDate,
+					Runtime:       ep.Runtime,
+					MName:         ep.MName,
+				})
 			}
 		}
+	}
+	if len(res.Seasons) > 1 && res.Seasons[0].SeasonNumber == 0 {
+		res.Seasons = append(res.Seasons[1:], res.Seasons[0])
 	}
 
 	epsWatched := []SeriesEpisode{}

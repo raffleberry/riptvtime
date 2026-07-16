@@ -57,7 +57,7 @@ const Series = {
                 <div v-for="sn in sd.Seasons" class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button" type="button" data-bs-toggle="collapse" :data-bs-target="'#season' + sn.SeasonNumber">
-                            <div class="d-flex w-100 justify-content-between pe-5"><span>{{ sn.Name }}</span> <span>{{SnWatchedEps[sn.SeasonNumber].length}}/{{sn.EpisodeCount}}</span></div>
+                            <div class="d-flex w-100 justify-content-between pe-5"><span>{{ sn.Name }}</span> <span>{{SnWatchedEps[sn.SeasonNumber]?.length}}/{{sn.EpisodeCount}}</span></div>
                         </button>
                     </h2>
                     <div :id="'season' + sn.SeasonNumber" class="accordion-collapse collapse" data-bs-parent="#seasons">

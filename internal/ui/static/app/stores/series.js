@@ -7,7 +7,7 @@ export const useSeriesStore = defineStore('series', () => {
     const watchedEps = ref([])
     const SnWatchedEps = computed(() => {
         let rv = {}
-        for (let i = 1; i <= seriesDetails.value.NumberOfSeasons; i++) {
+        for (let i = 0; i <= seriesDetails.value.NumberOfSeasons; i++) {
             rv[i] = []
         }
         for (const ep of watchedEps.value) {
@@ -45,8 +45,6 @@ export const useSeriesStore = defineStore('series', () => {
                 //     weArrStr[we[i].S + 'x' + we[i].E] = true
                 // }
                 watchedEps.value = we || []
-
-                console.log(seriesDetails.value, watchedEps.value, watchedEps.value, SnWatchedEps.value)
 
             } else {
                 const msg =`${response.status} - ${await response.text()}`
