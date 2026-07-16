@@ -346,8 +346,8 @@ func (srv *SeriesService) GetStatus(mId int) (db.TvStatus, error) {
 func (srv *SeriesService) UpdateStatus(mId int, newStatus db.TvStatus) error {
 
 	if err := srv.db.SeriesStatusUpdate(mId, newStatus); err != nil {
-		if err == db.ErrNotFound {
-			return fmt.Errorf("Series with MId %d Not Found, %w", mId, errors.Join(ErrNotFound, db.ErrNotFound))
+		if errors.Is(err, db.ErrNotFound) {
+			return errors.Join(ErrNotFound, db.ErrNotFound)
 		}
 		return err
 	}
@@ -356,8 +356,8 @@ func (srv *SeriesService) UpdateStatus(mId int, newStatus db.TvStatus) error {
 
 func (srv *SeriesService) Remove(mId int) error {
 	if err := srv.db.SeriesRem(mId); err != nil {
-		if err == db.ErrNotFound {
-			return fmt.Errorf("Series with MId %d Not Found, %w", mId, errors.Join(ErrNotFound, db.ErrNotFound))
+		if errors.Is(err, db.ErrNotFound) {
+			return errors.Join(err, ErrNotFound)
 		}
 		return err
 	}
@@ -371,7 +371,7 @@ func (srv *SeriesService) SetEpisodeUnwatch(mId int, sNo int, eNo int) (int, err
 
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			return 0, ErrNotFound
+			return 0, errors.Join(err, ErrNotFound)
 		}
 		return 0, err
 	}
@@ -421,7 +421,7 @@ func (srv *SeriesService) cacheSeasonInDb(mId int, season int) (*db.TvSeason, er
 
 	sn, err := srv.db.SeriesSeasonGet(mId, season)
 
-	if err == ErrNotFound {
+	if errors.Is(err, db.ErrNotFound) {
 		mSd, err := srv.meta.GetTVSeasonDetails(mId, season)
 		slog.Debug("Caching Tv Season in Db", "name", mSd.Name, "MSource", srv.meta.Name(), "MId", mId, "Season", mSd.SeasonNumber, "Episodes", len(mSd.Episodes))
 		if err != nil {
@@ -434,7 +434,7 @@ func (srv *SeriesService) cacheSeasonInDb(mId int, season int) (*db.TvSeason, er
 		return nil, err
 	}
 
-	return sn, err
+	return sn, nil
 }
 
 // returns with all episode details in that season
@@ -492,7 +492,7 @@ func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int, sta
 	})
 
 	if idx == -1 {
-		return nil, fmt.Errorf("%w: Episode %d Not Found", ErrNotFound, episode) //ErrNotFound
+		return nil, fmt.Errorf("%w: Episode %d Not Found in slice returned by db", ErrNotFound, episode) //ErrNotFound
 	}
 
 	return &sn.Episodes[idx], err

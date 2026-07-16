@@ -18,3 +18,38 @@
 | Stats Dashboard(Time-range watched hours, genre of TV Shows Pie chart, etc) | ❌ |
 | Comments/Bookmarking episodes | ❌ |
 | loads posters/images and looks good | ❌ |
+
+
+## Style guides
+1. Error Handling
+When returning errors, wrap the parent error in this order if you need to add some details/variables from the current function like for example :
+```go
+package foo
+
+import (
+    // ...
+    "db"
+    // ...
+)
+
+var (
+    ErrNotFound = errors.New("Not Found -_-")
+)
+// ...
+// ...
+_, parentErr := db.someDbQuery()
+fmt.Errorf("%w: %w: Some Details or Variables x=%v", parentErr, ErrNotFound, x) 
+
+```
+
+OR
+just use
+
+```go
+errors.Join(parentErr, ErrNotFound)
+```
+
+AND dont forget to always compare with
+```go
+errors.Is(err, foo.ErrNotFound)
+```

@@ -66,7 +66,7 @@ func (c *CacheSqlite) Get(key string) (*Cached, error) {
 	err := c.orm.Where("key = ?", key).First(&cached).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			return nil, fmt.Errorf("%w: %w: key=%v", err, ErrNotFound, key)
 		}
 		return nil, err
 	}

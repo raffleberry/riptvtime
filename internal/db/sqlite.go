@@ -31,7 +31,7 @@ func NewDbSqlite(c *config.Config, logger *slog.Logger) *DbSqlite {
 		}),
 	})
 	if db.err != nil {
-		panic("failed to connect database")
+		panic(db.err)
 	}
 
 	err := db.orm.AutoMigrate(&TvSeries{}, &TvTrackedEps{}, &TvSeason{}, &TvEpisode{})
@@ -67,7 +67,7 @@ func (db *DbSqlite) SeriesRem(id int) error {
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrNotFound
+			return fmt.Errorf("%w: Series with MId %d Not Found", ErrNotFound, id)
 		}
 	}
 
@@ -112,7 +112,7 @@ func (db *DbSqlite) SeriesSeasonGet(mId, season int) (*TvSeason, error) {
 	sn := &TvSeason{}
 	err := db.orm.Preload("Episodes").Take(&sn, "series_m_id = ? AND season = ?", mId, season).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, ErrNotFound
+		return nil, fmt.Errorf("%w: %w: Series with mId=`%v`, season=`%v` not found", err, ErrNotFound, mId, season)
 	}
 	return sn, err
 }
@@ -132,7 +132,7 @@ func (db *DbSqlite) SeriesEpisodeGet(mId int, season int, episode int) (*TvEpiso
 	var ep TvEpisode
 	err := db.orm.Take(&ep, "series_m_id = ? AND season = ? AND episode = ?", mId, season, episode).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, ErrNotFound
+		return nil, fmt.Errorf("%w: %w: Series with mId=`%v`, season=`%v`, episode=`%v` not found", err, ErrNotFound, mId, season, episode)
 	}
 	return &ep, err
 }
@@ -154,7 +154,7 @@ func (db *DbSqlite) SeriesTrackedEpRemove(mId int, season int, episode int) (int
 	}
 
 	if tx.RowsAffected == 0 {
-		return 0, ErrNotFound
+		return 0, fmt.Errorf("%w: Series with mId=`%v`, season=`%v`, episode=`%v` not found", ErrNotFound, mId, season, episode)
 	}
 
 	return int(tx.RowsAffected), nil
@@ -165,7 +165,7 @@ func (db *DbSqlite) SeriesStatusUpdate(mId int, newStatus TvStatus) error {
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrNotFound
+			return fmt.Errorf("%w: Series with MId %d Not Found", ErrNotFound, mId)
 		}
 	}
 

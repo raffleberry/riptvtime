@@ -2,13 +2,14 @@ package ui
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"gitlab.com/raffleberry/riptvtime/internal/utils"
@@ -22,12 +23,29 @@ type spaHandler struct {
 }
 
 func (h *spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	p := filepath.Join(filepath.Clean(r.URL.Path))
+	serveIndex := func() { http.ServeFileFS(w, r, h.fsys, "index.html") }
+
+	p := path.Join(path.Clean(r.URL.Path))
 
 	p = strings.TrimPrefix(p, "/")
 
-	if info, err := fs.Stat(h.fsys, p); err != nil || info.IsDir() {
-		http.ServeFileFS(w, r, h.fsys, filepath.Join("index.html"))
+	if p == "" {
+		serveIndex()
+		return
+	}
+
+	info, err := fs.Stat(h.fsys, p)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			serveIndex()
+			return
+		}
+		http.Error(w, fmt.Errorf("%v, path: %v", err, p).Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if info.IsDir() {
+		serveIndex()
 		return
 	}
 
