@@ -2,12 +2,12 @@ import { Discover } from "./tabs/Discover.js";
 import { Feed } from "./tabs/Feed.js";
 import { My } from "./tabs/My.js";
 import { Search } from "./tabs/Search.js";
-import { Series } from "./tabs/Series.js";
+import { Series } from "./tabs/Series/Series.js";
 import { Stats } from "./tabs/Stats.js";
 import { Upcoming } from "./tabs/Upcoming.js";
 import { ref, watch } from "./vue.js";
 
-export const Ky = (s, e) => `${s}x${e}`
+export const Ky = (s, e) => "S" + String(s).padStart(2, "0") + "E" + String(e).padStart(2, "0")
 
 export const ENDPOINT = Object.freeze({
     FEED: ()=>{return '/api/series/feed'},

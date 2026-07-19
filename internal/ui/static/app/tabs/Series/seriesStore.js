@@ -57,12 +57,15 @@ export const useSeriesStore = defineStore('series', () => {
         }
     }
 
+    const selectedEp = ref({})
+
     return {
         // data
         loading,
         seriesDetails,
         SnWatchedEps,
         EpWatchCnt,
+        selectedEp,
 
         // actions
         fetchSeries,

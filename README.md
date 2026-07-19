@@ -20,7 +20,7 @@
 | loads posters/images and looks good | ❌ |
 
 
-## Style guides
+## Style guides (So i don't forget)
 1. Error Handling
 When returning errors, wrap the parent error in this order if you need to add some details/variables from the current function like for example :
 ```go
@@ -53,3 +53,9 @@ AND dont forget to always compare with
 ```go
 errors.Is(err, foo.ErrNotFound)
 ```
+
+2. Js File names
+
+- Components - `MyComponent.js`
+    - Camel Case with first letter capitalized
+- Other Files such as logic, stores, etc - `myComponentStore.js` Camel Case but First letter is lowercase 

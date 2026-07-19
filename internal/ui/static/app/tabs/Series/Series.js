@@ -1,7 +1,7 @@
-import { useConfirm } from "../stores/confirm.js";
-import { useSeriesStore } from "../stores/series.js";
-import { Ky, PAGE, theme } from "../utils.js";
-import { computed, onMounted, ref, storeToRefs, useRoute, watch } from "../vue.js";
+import { useConfirm } from "../../stores/confirm.js";
+import { useSeriesStore } from "../../stores/seriesStore.js";
+import { Ky, PAGE, theme } from "../../utils.js";
+import { computed, onMounted, ref, storeToRefs, useRoute, watch } from "../../vue.js";
 
 
 const Series = {
