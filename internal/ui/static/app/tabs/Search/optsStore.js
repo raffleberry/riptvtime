@@ -1,6 +1,6 @@
-import { ENDPOINT, TvStatus } from "../utils.js";
-import { defineStore, ref, storeToRefs } from "../vue.js";
-import { useSearchStore } from "./search.js";
+import { ENDPOINT, TvStatus } from "../../utils.js";
+import { defineStore, ref, storeToRefs } from "../../vue.js";
+import { useSearchStore } from "./searchStore.js";
 
 export const useSeriesOpts = defineStore('SeriesOptsStore', () => {
     const loading = ref(false)

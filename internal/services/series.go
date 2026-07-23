@@ -486,7 +486,7 @@ func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int, sta
 			return nil, err
 		}
 	}
-
+	slog.Debug("Buggy Bug Bug", sn.Episodes)
 	idx := slices.IndexFunc(sn.Episodes, func(x db.TvEpisode) bool {
 		return x.Episode == episode
 	})

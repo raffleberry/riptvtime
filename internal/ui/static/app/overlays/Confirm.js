@@ -1,5 +1,4 @@
 import { useConfirm } from "../stores/confirm.js"
-import { useSeriesOpts } from "../stores/overlays.js"
 import { TvStatus } from "../utils.js"
 import { computed, onMounted, ref, storeToRefs, watch } from "../vue.js"
 

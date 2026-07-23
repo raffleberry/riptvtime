@@ -1,9 +1,12 @@
-import { useSeriesOpts } from "../stores/overlays.js";
-import { TvStatus } from "../utils.js";
-import { computed, ref, storeToRefs, watch } from "../vue.js";
+import { SeriesOptions } from "../../overlays/SeriesOptions.js";
+import { TvStatus } from "../../utils.js";
+import { computed, ref, storeToRefs, watch } from "../../vue.js";
+import { useSeriesOpts } from "./optsStore.js";
 
-const TvSeriesTile = {
-    components: {},
+const SearchTile = {
+    components: {
+        SeriesOptions
+    },
     props: {
         tv: Object
     },
@@ -71,7 +74,11 @@ const TvSeriesTile = {
             <div class="col">
                 <div class="card-body">
                 <div class="d-flex justify-content-between">
-                    <h5 class="card-title">{{ tv.Name }} <span class="text-muted">({{ tv.Year }})</span> <span class="badge bg-secondary" </span></h5>
+                    <h5 class="card-title">
+                        <router-link :to="'/series/' + tv.Id">
+                        {{ tv.Name }} <span class="text-muted">({{ tv.Year }})</span> <span class="badge bg-secondary" </span>
+                        </router-link>
+                    </h5>
                     <button @click="openSeriesOptions" 
                         data-bs-toggle="offcanvas" data-bs-target="#seriesOptions"
                         type="button" class="btn p-2 d-inline-flex align-items-center justify-content-center">
@@ -86,4 +93,4 @@ const TvSeriesTile = {
 `
 }
 
-export { TvSeriesTile };
+export { SearchTile };

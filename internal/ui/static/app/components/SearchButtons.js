@@ -1,4 +1,4 @@
-import { useSearchStore } from "../stores/search.js";
+import { useSearchStore } from "../tabs/Search/searchStore.js";
 import { ref, storeToRefs } from "../vue.js";
 
 

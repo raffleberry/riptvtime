@@ -1,3 +1,4 @@
+import { SeriesOptions } from "../../overlays/SeriesOptions.js";
 import { useConfirm } from "../../stores/confirm.js";
 import { Ky, PAGE, theme } from "../../utils.js";
 import { computed, onMounted, ref, storeToRefs, useRoute, watch } from "../../vue.js";
@@ -9,7 +10,7 @@ const Series = {
 
     },
     components: {
-
+        SeriesOptions
     },
     setup: (props) => {
         onMounted(() => {
@@ -42,6 +43,7 @@ const Series = {
         }
     },
     template: `
+    <SeriesOptions></SeriesOptions>
     <div class="container-fluid">
         <div v-if="loading" class="d-flex justify-content-center align-items-center"
             style="min-height: 50vh;">
@@ -52,7 +54,14 @@ const Series = {
         <div v-else>
             <div class="card">
                 <div class="card-body">
-                    <h3 class="card-title">{{ sd.Name }} <span class="text-muted">({{ sd.Year }}) </span></h3>
+                    <div class="d-flex justify-content-between">
+                        <h3 class="card-title">{{ sd.Name }} <span class="text-muted">({{ sd.Year }}) </span></h3>
+                        <button @click="openSeriesOptions" 
+                            data-bs-toggle="offcanvas" data-bs-target="#seriesOptions"
+                            type="button" class="btn p-2 d-inline-flex align-items-center justify-content-center">
+                                <i :class="statusCss.icon"></i>
+                        </button>
+                    </div>
                     <p class="card-text">{{ sd.Overview }}</p>
                 </div>
             </div>

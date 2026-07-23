@@ -1,6 +1,5 @@
 import { PageRouter } from "./components/PageRouter.js";
 import { Confirm } from "./overlays/Confirm.js";
-import { SeriesOptions } from "./overlays/SeriesOptions.js";
 import { Feed } from "./tabs/Feed.js";
 import { Upcoming } from "./tabs/Upcoming.js";
 import { PAGE, routes } from "./utils.js";
@@ -20,7 +19,6 @@ router.beforeEach((to, from, next) => {
 const app = createApp({
     components: {
         PageRouter,
-        SeriesOptions,
         Confirm,
     },
 

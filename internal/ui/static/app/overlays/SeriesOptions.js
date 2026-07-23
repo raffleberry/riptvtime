@@ -1,4 +1,4 @@
-import { useSeriesOpts } from "../stores/overlays.js"
+import { useSeriesOpts } from "../tabs/Search/optsStore.js"
 import { TvStatus } from "../utils.js"
 import { computed, onMounted, ref, storeToRefs } from "../vue.js"
 

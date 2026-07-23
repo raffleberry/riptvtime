@@ -1,14 +1,14 @@
-import { TvSeriesTile } from "../components/TvSeriesTile.js";
-import { useSeriesOpts } from "../stores/overlays.js";
-import { useSearchStore } from "../stores/search.js";
-import { ENDPOINT, PAGE, theme } from "../utils.js";
-import { onMounted, ref, storeToRefs } from "../vue.js";
+import { ENDPOINT, PAGE, theme } from "../../utils.js";
+import { onMounted, ref, storeToRefs } from "../../vue.js";
+import { SearchTile } from "./SearchTile.js";
+import { useSeriesOpts } from "./optsStore.js";
+import { useSearchStore } from "./searchStore.js";
 
 const Search = {
     props: {
     },
     components: {
-        TvSeriesTile
+        SearchTile
     },
     setup: (props) => {
         
@@ -43,7 +43,7 @@ const Search = {
             <h2>Nothing</h2>
         </div>
         <div v-else class="col">
-            <TvSeriesTile class="mb-3" v-for="tv in results[pageCur]" :key="tv.Id" :tv="tv"></TvSeriesTile>
+            <SearchTile class="mb-3" v-for="tv in results[pageCur]" :key="tv.Id" :tv="tv"></SearchTile>
         </div>
     </div>
     `

@@ -1,5 +1,5 @@
-import { ENDPOINT } from "../utils.js";
-import { defineStore, ref } from "../vue.js";
+import { ENDPOINT } from "../../utils.js";
+import { defineStore, ref } from "../../vue.js";
 
 const searchTv = async (search, page) => {
     let url = `${ENDPOINT.SEARCH_SERIES()}?q=${search}&p=${page}`
@@ -126,10 +126,6 @@ export const useSearchStore = defineStore('search', () => {
             loading.value = false
         }
     
-    }
-
-    const fetchResults = async () => {
-        // some logic
     }
 
     return {

@@ -1,5 +1,4 @@
 import { Ky } from "../../utils.js"
-import { useSeriesOpts } from "../stores/overlays.js"
 import { TvStatus } from "../utils.js"
 import { computed, onMounted, ref, storeToRefs } from "../vue.js"
 import { useSeriesStore } from "./seriesStore.js"
