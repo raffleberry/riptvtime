@@ -1,3 +1,4 @@
+import { apiAddSeries, apiSetStatus } from "../../api.js";
 import { ENDPOINT, TvStatus } from "../../utils.js";
 import { defineStore, ref, storeToRefs } from "../../vue.js";
 import { useSearchStore } from "./searchStore.js";
@@ -12,32 +13,6 @@ export const useSeriesOpts = defineStore('SeriesOptsStore', () => {
         Status: 0,
     })
 
-
-    const apiSetStatus = async (Id, newStatus) => {
-        let url = `${ENDPOINT.SERIES_STATUS(Id)}`
-        try {
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Content-Type' : 'application/json' },
-                body: JSON.stringify({ Status: newStatus })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Error, bad response from server: ${response.status} - ${response.statusText}`)
-            }
-            
-            return {
-                data: "OK",
-                err: null
-            }
-        } catch (error) {
-            console.error('error updating status:', error);
-            return {
-                data: null,
-                err: error
-            }
-        }
-    }
 
      const changeStatus = async () => {
         console.log("Clicked", loading.value, selected.value.Id)
@@ -104,19 +79,10 @@ export const useSeriesOpts = defineStore('SeriesOptsStore', () => {
         try {
             loading.value = true
 
-            const res = await fetch(ENDPOINT.SERIES_ADD(), {
-                method: 'POST',
-                headers: { 'Content-Type' : 'application/json' },
-                body: JSON.stringify({
-                    MId: selected.value.Id,
-                })
-            })
-
-            if (res.status !== 200) {
-                console.error(await res.text())
-                throw new Error(`Error, bad response from server: ${res.status} - ${res.statusText}`)
+            const {data, err} = await apiAddSeries(selected.value.Id)
+            if (err) {
+                throw err
             }
-
 
             const { results, pageCur } =  storeToRefs(useSearchStore())
 

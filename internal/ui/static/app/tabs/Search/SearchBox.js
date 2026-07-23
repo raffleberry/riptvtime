@@ -27,7 +27,6 @@ const SearchBox = {
       (val) => {
         if (val.q) {
           searchTerm.value = val.q
-          console.log("Watch - ", val)
           onSearch(val.q)
         }
       }, { immediate: true })

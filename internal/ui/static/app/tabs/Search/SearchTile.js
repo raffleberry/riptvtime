@@ -1,11 +1,9 @@
-import { SeriesOptions } from "../../overlays/SeriesOptions.js";
 import { TvStatus } from "../../utils.js";
 import { computed, ref, storeToRefs, watch } from "../../vue.js";
 import { useSeriesOpts } from "./optsStore.js";
 
 const SearchTile = {
     components: {
-        SeriesOptions
     },
     props: {
         tv: Object
@@ -80,7 +78,7 @@ const SearchTile = {
                         </router-link>
                     </h5>
                     <button @click="openSeriesOptions" 
-                        data-bs-toggle="offcanvas" data-bs-target="#seriesOptions"
+                        data-bs-toggle="offcanvas" data-bs-target="#searchTileOpts"
                         type="button" class="btn p-2 d-inline-flex align-items-center justify-content-center">
                             <i :class="statusCss.icon"></i>
                     </button>

@@ -1,13 +1,16 @@
 import { ENDPOINT, PAGE, theme } from "../../utils.js";
 import { onMounted, ref, storeToRefs } from "../../vue.js";
 import { SearchTile } from "./SearchTile.js";
+import { SearchTileOpts } from "./SearchTileOpts.js";
 import { useSeriesOpts } from "./optsStore.js";
 import { useSearchStore } from "./searchStore.js";
 
 const Search = {
     props: {
+        
     },
     components: {
+        SearchTileOpts,
         SearchTile
     },
     setup: (props) => {
@@ -32,6 +35,7 @@ const Search = {
         }
     },
     template: `
+    <SearchTileOpts></SearchTileOpts>
     <div class="d-flex flex-grow-1 flex-column">
         <div v-if="loading" class="d-flex justify-content-center align-items-center"
             style="min-height: 50vh;">

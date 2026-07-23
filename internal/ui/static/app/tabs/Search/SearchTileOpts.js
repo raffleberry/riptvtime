@@ -1,8 +1,8 @@
-import { useSeriesOpts } from "../tabs/Search/optsStore.js"
-import { TvStatus } from "../utils.js"
-import { computed, onMounted, ref, storeToRefs } from "../vue.js"
+import { useSeriesOpts } from "./optsStore.js"
+import { TvStatus } from "../../utils.js"
+import { computed, onMounted, ref, storeToRefs } from "../../vue.js"
 
-const SeriesOptions = {
+export const SearchTileOpts = {
 
     setup() {
 
@@ -37,7 +37,7 @@ const SeriesOptions = {
 
        
         onMounted(() => {
-            const el = document.getElementById('seriesOptions')
+            const el = document.getElementById('searchTileOpts')
             bSelf = new bootstrap.Offcanvas(el)
 
 
@@ -94,7 +94,7 @@ const SeriesOptions = {
     },
 
     template: `
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="seriesOptions">
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="searchTileOpts">
         <div class="offcanvas-header border-bottom">
             <h5 class="offcanvas-title">{{selected.Name}} <span class="text-muted">({{selected.Year}})</span></h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -124,5 +124,3 @@ const SeriesOptions = {
     </div>
 `
 }
-
-export { SeriesOptions }

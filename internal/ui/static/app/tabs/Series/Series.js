@@ -1,4 +1,3 @@
-import { SeriesOptions } from "../../overlays/SeriesOptions.js";
 import { useConfirm } from "../../stores/confirm.js";
 import { Ky, PAGE, theme } from "../../utils.js";
 import { computed, onMounted, ref, storeToRefs, useRoute, watch } from "../../vue.js";
@@ -10,7 +9,6 @@ const Series = {
 
     },
     components: {
-        SeriesOptions
     },
     setup: (props) => {
         onMounted(() => {
