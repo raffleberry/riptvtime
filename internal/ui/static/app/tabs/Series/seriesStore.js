@@ -1,5 +1,5 @@
-import { ENDPOINT, Ky } from "../utils.js";
-import { computed, defineStore, ref, watch } from "../vue.js";
+import { ENDPOINT, Ky } from "../../utils.js";
+import { computed, defineStore, ref, watch } from "../../vue.js";
 
 export const useSeriesStore = defineStore('series', () => {
     const loading = ref(false)
