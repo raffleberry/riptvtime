@@ -82,7 +82,7 @@ type TvSeason struct {
 	Season    int
 	Name      string
 	Overview  string
-	Episodes  []TvEpisode `gorm:"foreignkey:SeriesMId;references:SeriesMId"`
+	Episodes  []TvEpisode `gorm:"foreignKey:SeriesMId,Season;references:SeriesMId,Season"`
 }
 
 type TvSeriesDetails struct {

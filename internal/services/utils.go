@@ -1,6 +1,8 @@
 package services
 
 import (
+	"strings"
+
 	"gitlab.com/raffleberry/riptvtime/internal/db"
 	"gitlab.com/raffleberry/riptvtime/internal/meta"
 )
@@ -61,4 +63,14 @@ func DbToMetaSeason(dbSd *db.TvSeason) *meta.TvSeason {
 	mSd.EpisodeCount = len(mSd.Episodes)
 
 	return &mSd
+}
+
+func isLegitSeason(sName string, sNo int, sCnt int) bool {
+	if sNo < 1 || sNo > sCnt {
+		return false
+	}
+	if sName == "" || !strings.Contains(strings.ToLower(sName), "special") {
+		return false
+	}
+	return true
 }

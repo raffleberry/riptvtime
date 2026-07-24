@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -36,4 +37,19 @@ func GetIps() []string {
 		}
 	}
 	return ips
+}
+
+func Jn(args ...any) string {
+	if len(args) == 0 {
+		return ""
+	}
+
+	var sb strings.Builder
+	for i, arg := range args {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		fmt.Fprint(&sb, arg)
+	}
+	return sb.String()
 }

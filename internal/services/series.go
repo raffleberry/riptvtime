@@ -13,6 +13,7 @@ import (
 
 	"gitlab.com/raffleberry/riptvtime/internal/db"
 	"gitlab.com/raffleberry/riptvtime/internal/meta"
+	"gitlab.com/raffleberry/riptvtime/internal/utils"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -25,15 +26,13 @@ type SeriesService struct {
 	db   db.Db
 	meta meta.Meta
 	c    db.Cache
-	lru  *db.CacheLRU
 }
 
-func NewTvService(c db.Cache, lru *db.CacheLRU, db db.Db, meta meta.Meta) *SeriesService {
+func NewTvService(c db.Cache, db db.Db, meta meta.Meta) *SeriesService {
 	return &SeriesService{
 		db:   db,
 		meta: meta,
 		c:    c,
-		lru:  lru,
 	}
 }
 
@@ -123,16 +122,13 @@ func (srv *SeriesService) GetDetails(mId int, wsd bool) (*SeriesFullItem, error)
 
 	if wsd {
 
-		status, err := srv.db.SeriesStatusGet(mId)
-
-		if err != nil {
-			return nil, err
-		}
-
 		for i, s := range res.Seasons {
 			for epNo := 1; epNo <= s.EpisodeCount; epNo++ {
-				ep, err := srv.getEpisodeDetails(mId, s.SeasonNumber, epNo, status)
+				ep, err := srv.getEpisodeDetails(mId, s.SeasonNumber, epNo)
 				if err != nil {
+					if !isLegitSeason(s.Name, s.SeasonNumber, res.NumberOfSeasons) {
+						continue
+					}
 					return nil, err
 				}
 				res.Seasons[i].Episodes = append(res.Seasons[i].Episodes, meta.TvEpisode{
@@ -148,9 +144,6 @@ func (srv *SeriesService) GetDetails(mId int, wsd bool) (*SeriesFullItem, error)
 				})
 			}
 		}
-	}
-	if len(res.Seasons) > 1 && res.Seasons[0].SeasonNumber == 0 {
-		res.Seasons = append(res.Seasons[1:], res.Seasons[0])
 	}
 
 	epsWatched := []SeriesEpisode{}
@@ -402,7 +395,7 @@ func (srv *SeriesService) SetEpisodeWatched(mId int, sNo int, eNo int) (int, err
 		}
 	}
 
-	ep, err := srv.getEpisodeDetails(mId, sNo, eNo, status)
+	ep, err := srv.getEpisodeDetails(mId, sNo, eNo)
 	if err != nil {
 		return -1, err
 	}
@@ -443,62 +436,29 @@ func (srv *SeriesService) cacheSeasonInDb(mId int, season int) (*db.TvSeason, er
 	return sn, nil
 }
 
-// returns with all episode details in that season
+func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int) (*db.TvEpisode, error) {
 
-func (srv *SeriesService) cacheSeasonInLRU(mId int, season int) (*db.TvSeason, error) {
-	key := fmt.Sprintf("TvSeasonDetails{MId:%d,Season:%d}", mId, season)
+	ep, err := srv.db.SeriesEpisodeGet(id, season, episode)
 
-	var mSd *meta.TvSeason
-	var err error
-
-	val, exists := srv.lru.Get(key)
-	if !exists {
-
-		mSd, err = srv.meta.GetTVSeasonDetails(mId, season)
-		slog.Debug("Caching Tv Season in LRU", "name", mSd.Name, "MSource", srv.meta.Name(), "MId", mId, "Season", mSd.SeasonNumber, "Episodes", len(mSd.Episodes))
-		if err != nil {
-			return nil, err
-		}
-
-		valByte, err := json.Marshal(mSd)
-		if err != nil {
-			return nil, err
-		}
-		val = string(valByte)
-		srv.lru.Set(key, val)
+	if err == nil {
+		return ep, nil
 	}
 
-	if mSd == nil {
-		err = json.Unmarshal([]byte(val), &mSd)
+	if !errors.Is(err, db.ErrNotFound) {
+		return nil, errors.Join(err, errors.New(utils.Jn("err while getting ep details", id, season, episode)))
 	}
 
-	return MetaToDbSeason(mId, mSd), nil
-}
+	sn, err := srv.cacheSeasonInDb(id, season)
 
-func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int, status db.TvStatus) (*db.TvEpisode, error) {
-	var sn *db.TvSeason
-	var err error
-
-	if status == db.TvStatusNotWatching {
-		sn, err = srv.cacheSeasonInLRU(id, season)
-		if err != nil {
-			return nil, err
-		}
-
-	} else {
-		sn, err = srv.cacheSeasonInDb(id, season)
-
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, errors.Join(err, errors.New(utils.Jn("Coudn't cache season", "season", season, "error", err)))
 	}
-	slog.Debug("Buggy Bug Bug", sn.Episodes)
 	idx := slices.IndexFunc(sn.Episodes, func(x db.TvEpisode) bool {
-		return x.Episode == episode
+		return (x.Episode == episode)
 	})
 
 	if idx == -1 {
-		return nil, fmt.Errorf("%w: Episode %d Not Found in slice returned by db", ErrNotFound, episode) //ErrNotFound
+		return nil, fmt.Errorf("%w: Episode %d Not Found in slice returned by db", ErrNotFound, episode)
 	}
 
 	return &sn.Episodes[idx], err

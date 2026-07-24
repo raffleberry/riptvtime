@@ -47,6 +47,7 @@ just use
 
 ```go
 errors.Join(parentErr, ErrNotFound)
+errors.Join(err, errors.New(utils.Jn("ep", ep, "sn", sn)))
 ```
 
 AND dont forget to always compare with
