@@ -54,3 +54,27 @@ export const apiAddSeries = async (Id) => {
 
     return {}
 }
+
+export const apiRemSeries = async (Id) => {
+        try {
+
+            const res = await fetch(ENDPOINT.SERIES_REM(Id), {
+                method: 'DELETE',
+            })
+
+            if (res.status !== 200 && res.status !== 204 && res.status !== 404) {
+                const errTxt = await res.text()
+                return {
+                    err: new Error(`Error, response from server: ${res.status} - ${errTxt}`)
+                }
+            }
+        } catch (error) {
+            console.error(error)
+            return {
+                err: error
+            }
+        }
+
+        return {}
+
+    }

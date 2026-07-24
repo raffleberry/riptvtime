@@ -1,4 +1,4 @@
-import { apiAddSeries, apiSetStatus } from "../../api.js";
+import { apiAddSeries, apiRemSeries, apiSetStatus } from "../../api.js";
 import { ENDPOINT, TvStatus } from "../../utils.js";
 import { defineStore, ref, storeToRefs } from "../../vue.js";
 import { useSearchStore } from "./searchStore.js";
@@ -118,13 +118,9 @@ export const useSeriesOpts = defineStore('SeriesOptsStore', () => {
 
             // remove from feed and me data
 
-            const res = await fetch(ENDPOINT.SERIES_REM(selected.value.Id), {
-                method: 'DELETE',
-            })
-
-            if (res.status !== 200 && res.status !== 204 && res.status !== 404) {
-                console.error(await res.text())
-                throw new Error(`Error, bad response from server: ${res.status} - ${res.statusText}`)
+            const {data, err} = await apiRemSeries(selected.value.Id)
+            if (err) {
+                throw err
             }
 
             const { results, pageCur } =  storeToRefs(useSearchStore())
