@@ -11,6 +11,7 @@ export const Ky = (s, e) => "S" + String(s).padStart(2, "0") + "E" + String(e).p
 
 export const ENDPOINT = Object.freeze({
     FEED: ()=>{return '/api/series/feed'},
+    SERIES_ALL: ()=>{return `/api/series`},
     SEARCH_SERIES: ()=>{return '/api/series/search'},
     SERIES_STATUS: (Id)=>{return `/api/series/${Id}/status`},
     SERIES_ADD: ()=>{return `/api/series`},

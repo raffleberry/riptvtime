@@ -1,41 +1,56 @@
-import { useSeriesOpts } from "./optsStore.js"
 import { TvStatus } from "../../utils.js"
-import { computed, onMounted, ref, storeToRefs } from "../../vue.js"
+import { computed, onMounted, ref, storeToRefs, watch } from "../../vue.js"
+import { notifyError } from "../../components/Error.js"
+import { useTracked } from "../../stores/tracked.js"
+
+export const selected = ref({
+    Id: null,
+    Name: null,
+    Year: null,
+    Status: 0,
+})
+
 
 export const SearchTileOpts = {
 
     setup() {
 
-        const store = useSeriesOpts()
+        const loading = ref(false)
 
-        const { selected, loading } = storeToRefs(store)
+        const trackedStore = useTracked()
 
-        const { changeStatus, addSeries, remSeries  } = store
+        const { series } = storeToRefs(trackedStore)
+        const { changeStatus, remSeries, addSeries } = trackedStore
 
         const onDetails = () => {
             console.log("Details")
         }
 
 
+        const status = computed(() => {
+            let ob = series.value?.[selected.value.Id]
+            if (ob) {
+                return ob.TrackingStatus
+            }
+            return TvStatus.NotWatching
+        })
+
         const statusActionTxt = computed(() => {
-            if (selected.value.Status === TvStatus.Watching) {
+            if (status.value === TvStatus.Watching) {
                 return 'Stop watching'
-            } else if (selected.value.Status === TvStatus.Stopped) {
+            } else if (status.value === TvStatus.Stopped) {
                 return 'Resume watching'
             }
         })
 
         const addRemActionTxt = computed(() => {
-            if (selected.value.Status === TvStatus.NotWatching) {
-                return 'Add to list'
-            } else {
-                return 'Remove from list'
-            }
+            return (status.value === TvStatus.NotWatching) ?
+                'Add Series' : 'Remove Series'
         })
 
         var bSelf = null
 
-       
+
         onMounted(() => {
             const el = document.getElementById('searchTileOpts')
             bSelf = new bootstrap.Offcanvas(el)
@@ -46,40 +61,58 @@ export const SearchTileOpts = {
             // })
 
             el.addEventListener('hidden.bs.offcanvas', () => {
+                console.log("selected.value = {}", selected.value)
                 selected.value = {}
             })
         })
 
         const handleStatusChange = async () => {
-            await changeStatus()
-            bSelf.hide()
+            try {
+                loading.value = true
+
+                if (status.value === TvStatus.Watching) {
+                    await changeStatus(selected.value.Id, TvStatus.Stopped)
+                } else if (status.value === TvStatus.Stopped) {
+                    await changeStatus(selected.value.Id, TvStatus.Watching)
+                }
+                bSelf.hide()
+            } catch (error) {
+                notifyError(error)
+            } finally {
+                loading.value = false
+            }
         }
 
         const handleAddRemSeries = async () => {
-            if (selected.value.Status === TvStatus.NotWatching) {
-                const err = await addSeries()
-                if (err) {
-                    //TODO: notify error 
+            try {
+                loading.value = true
+                if (status.value === TvStatus.NotWatching) {
+                    const err = await addSeries(selected.value.Id)
+                    if (err) {
+                        throw (err)
+                    }
                 } else {
-                    selected.value.Status = TvStatus.Watching
+                    const err = await remSeries(selected.value.Id)
+                    if (err) {
+                        throw (err)
+                    }
                 }
-            } else {
-                const err = await remSeries()
-                if (err) {
-                    //TODO: notify error
-                } else {
-                    selected.value.Status = TvStatus.NotWatching
-                }
+
+                bSelf.hide()
+            } catch (error) {
+                console.error(error)
+                notifyError(error)
+            } finally {
+                loading.value = false
             }
 
-            bSelf.hide()
         }
-        // TvStatus.
 
         return {
             selected,
             loading,
             TvStatus,
+            status,
 
             statusActionTxt,
             addRemActionTxt,
@@ -112,7 +145,7 @@ export const SearchTileOpts = {
                     Show details
                 </button>
                 <button class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-primary"
-                    v-if="[TvStatus.Watching, TvStatus.Stopped].includes(selected.Status)" class="btn btn-primary" @click="handleStatusChange">
+                    v-if="[TvStatus.Watching, TvStatus.Stopped].includes(status)" class="btn btn-primary" @click="handleStatusChange">
                     {{ statusActionTxt }}
                 </button>
                 <button class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-danger"

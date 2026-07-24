@@ -173,6 +173,10 @@ func (srv *SeriesService) GetDetails(mId int, wsd bool) (*SeriesFullItem, error)
 	}, nil
 }
 
+func (srv *SeriesService) All() (*[]db.TvSeries, error) {
+	return srv.db.SeriesTrackedAll()
+}
+
 func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 
 	series, err := srv.db.SeriesWatchingAll()
@@ -321,10 +325,10 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 }
 
 // Returns insertId from db
-func (srv *SeriesService) Add(mId int) (int, error) {
+func (srv *SeriesService) Add(mId int) (*db.TvSeries, error) {
 	tvM, err := srv.meta.GetTvDetails(mId)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	tvDb := &db.TvSeries{
@@ -336,7 +340,9 @@ func (srv *SeriesService) Add(mId int) (int, error) {
 		TrackingStatus: db.TvStatusWatching,
 	}
 
-	return srv.db.SeriesAdd(tvDb)
+	_, err = srv.db.SeriesAdd(tvDb)
+
+	return tvDb, err
 }
 
 func (srv *SeriesService) GetStatus(mId int) (db.TvStatus, error) {

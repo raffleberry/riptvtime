@@ -54,15 +54,13 @@ func (a *Api) SeriesAdd() http.HandlerFunc {
 
 		slog.Debug("tv add", "payload", payload)
 
-		insertId, err := a.tv.Add(payload.MId)
+		s, err := a.tv.Add(payload.MId)
 
 		if err != nil {
 			return err
 		}
 
-		return c.JSON(http.StatusOK, struct{ InsertId int }{
-			InsertId: insertId,
-		})
+		return c.JSON(http.StatusOK, s)
 	})
 }
 
@@ -199,21 +197,12 @@ func (a *Api) SeriesGet() http.HandlerFunc {
 	})
 }
 
-// func (a *Api) SeriesEpisodeGet() http.HandlerFunc {
-// 	return WithCtx(func(c *Context) error {
-// 		mIdStr := c.R.PathValue("tmdbId")
-// 		episodeStr := c.R.PathValue("episode")
-
-// 		mId, err := strconv.Atoi(mIdStr)
-// 		episode, err1 := strconv.Atoi(episodeStr)
-
-// 		if err != nil || err1 != nil {
-// 			return c.Error(http.StatusBadRequest, err.Error()+", "+err1.Error())
-// 		}
-
-// 		rv, err := a.tv.GetDetails(mId, )
-// 		if err != nil {
-// 			return err
-// 		}
-// 	})
-// }
+func (a *Api) SeriesAll() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		respItem, err := a.tv.All()
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, respItem)
+	})
+}

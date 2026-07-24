@@ -44,6 +44,12 @@ func NewDbSqlite(c *config.Config, logger *slog.Logger) *DbSqlite {
 	return db
 }
 
+func (db *DbSqlite) SeriesTrackedAll() (*[]TvSeries, error) {
+	var series []TvSeries
+	err := db.orm.Find(&series).Error
+	return &series, err
+}
+
 func (db *DbSqlite) SeriesWatchingAll() (*[]TvSeries, error) {
 	var series []TvSeries
 	err := db.orm.Where("tracking_status = ?", TvStatusWatching).Find(&series).Error
