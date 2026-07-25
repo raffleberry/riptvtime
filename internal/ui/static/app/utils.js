@@ -7,7 +7,7 @@ import { Stats } from "./tabs/Stats.js";
 import { Upcoming } from "./tabs/Upcoming.js";
 import { ref, watch } from "./vue.js";
 
-export const Ky = (s, e) => "S" + String(s).padStart(2, "0") + "E" + String(e).padStart(2, "0")
+export const ky = (s, e) => "S" + String(s).padStart(2, "0") + "E" + String(e).padStart(2, "0")
 
 export const ENDPOINT = Object.freeze({
     FEED: ()=>{return '/api/series/feed'},

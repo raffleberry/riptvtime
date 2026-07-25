@@ -1,5 +1,5 @@
 import { useTracked } from "../../stores/tracked.js";
-import { Ky, TvStatus } from "../../utils.js";
+import { ky, TvStatus } from "../../utils.js";
 import { computed, onMounted, ref, storeToRefs, useRoute, watch } from "../../vue.js";
 import { EpisodeOpts } from "./EpisodeOpts.js";
 import { SeriesOpts } from "./SeriesOpts.js";
@@ -138,7 +138,7 @@ const Series = {
 
 
         const cnt = (s, e) => {
-            return epWatchCnt.value[Ky(s, e)] ?? 0
+            return epWatchCnt.value[ky(s, e)] ?? 0
         }
 
         const openEpOpts = async (ep) => {
@@ -156,7 +156,7 @@ const Series = {
 
 
         return {
-            Ky,
+            ky,
             loading,
             sd: seriesDetails,
             SnWatchedEps,

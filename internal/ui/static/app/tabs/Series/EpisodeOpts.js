@@ -1,4 +1,4 @@
-import { Ky, TvStatus } from "../../utils.js"
+import { ky, TvStatus } from "../../utils.js"
 import { computed, onMounted, ref, storeToRefs, watch } from "../../vue.js"
 import { notifyError } from "../../components/Error.js"
 import { useTracked } from "../../stores/tracked.js"
@@ -52,7 +52,7 @@ export const EpisodeOpts = {
             }
         }
 
-        const cnt = computed(() => epWatchCnt.value[Ky(props.ep.SeasonNumber, props.ep.EpisodeNumber)] ?? 0 )
+        const cnt = computed(() => epWatchCnt.value[ky(props.ep.SeasonNumber, props.ep.EpisodeNumber)] ?? 0 )
 
         const getIncrTxt = (c) => {
             if (c == 0) {

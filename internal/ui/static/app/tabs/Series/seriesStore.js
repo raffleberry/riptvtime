@@ -1,5 +1,5 @@
 import { apiEpUnWatch, apiEpWatch } from "../../api.js";
-import { ENDPOINT, Ky } from "../../utils.js";
+import { ENDPOINT, ky } from "../../utils.js";
 import { computed, defineStore, ref, watch } from "../../vue.js";
 
 export const useSeriesStore = defineStore('series', () => {
@@ -23,10 +23,10 @@ export const useSeriesStore = defineStore('series', () => {
     const epWatchCnt = computed(() => {
         let rv = {}
         for (const ep of watchedEps.value) {
-            if (!rv[Ky(ep.S, ep.E)]) {
-                rv[Ky(ep.S, ep.E)] = 0
+            if (!rv[ky(ep.S, ep.E)]) {
+                rv[ky(ep.S, ep.E)] = 0
             }
-            rv[Ky(ep.S, ep.E)] += 1
+            rv[ky(ep.S, ep.E)] += 1
         }
         return rv
     })
