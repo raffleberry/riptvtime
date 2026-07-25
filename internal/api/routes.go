@@ -97,17 +97,14 @@ func (a *Api) SeriesEpisodeUnWatch() http.HandlerFunc {
 			return err
 		}
 
-		deletedCnt, err := a.tv.SetEpisodeUnwatch(payload.SeriesMId, payload.SeasonNo, payload.EpisodeNo)
+		err := a.tv.SetEpisodeUnwatch(payload.SeriesMId, payload.SeasonNo, payload.EpisodeNo)
 		if err != nil {
 			if errors.Is(err, services.ErrNotFound) {
 				return ctx.Error(http.StatusNotFound, err.Error())
 			}
 			return err
 		}
-
-		return ctx.JSON(http.StatusOK, struct{ DeletedCnt int }{
-			DeletedCnt: deletedCnt,
-		})
+		return ctx.JSON(http.StatusOK, nil)
 	})
 }
 

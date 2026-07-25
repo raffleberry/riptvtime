@@ -106,7 +106,7 @@ type Db interface {
 
 	SeriesTrackedEps(mId int) (*[]TvTrackedEps, error)
 	SeriesTrackedEpsAdd(ep *TvTrackedEps) (int, error)
-	SeriesTrackedEpRemove(mId int, season int, episode int) (int, error)
+	SeriesTrackedEpRemove(mId int, season int, episode int) error
 
 	SeriesSeasonGet(mId int, season int) (*TvSeason, error)
 	SeriesSeasonAdd(t *TvSeason) error

@@ -364,18 +364,19 @@ func (srv *SeriesService) Remove(mId int) error {
 }
 
 // Deleted Row Count
-func (srv *SeriesService) SetEpisodeUnwatch(mId int, sNo int, eNo int) (int, error) {
+func (srv *SeriesService) SetEpisodeUnwatch(mId int, sNo int, eNo int) error {
 
-	deletedCnt, err := srv.db.SeriesTrackedEpRemove(mId, sNo, eNo)
+	err := srv.db.SeriesTrackedEpRemove(mId, sNo, eNo)
 
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			return 0, errors.Join(err, ErrNotFound)
+			slog.Warn("Record Not found, but a delete request was issued", "mid", mId, "sno", sNo, "eno", eNo)
+			return nil
 		}
-		return 0, err
+		return err
 	}
 
-	return deletedCnt, nil
+	return nil
 
 }
 

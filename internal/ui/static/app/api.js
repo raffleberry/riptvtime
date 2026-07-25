@@ -8,6 +8,7 @@ const ENDPOINT = Object.freeze({
     SERIES_ADD: () => { return `/api/series` },
     SERIES_REM: (Id) => { return `/api/series/${Id}` },
     SERIES_GET: (Id) => { return `/api/series/${Id}?full=1` },
+    SERIES_EP_MARK: (Id) => { return `/api/series/episode` },
 })
 
 export const apiSetStatus = async (Id, newStatus) => {
@@ -119,5 +120,53 @@ export const apiSeriesTracked = async (Id) => {
 
     return {}
 
+}
+
+export const apiEpWatch = async (mId, sNo, epNo) => {
+    try {
+        const res = await fetch(ENDPOINT.SERIES_EP_MARK(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                SeriesMId : mId,
+                SeasonNo  : sNo,
+                EpisodeNo : epNo,
+            })
+        })
+
+        if (res.status !== 200) {
+            const errTxt = await res.text()
+            return new Error(`Error, response from server: ${res.status} - ${errTxt}`)
+        }
+    } catch (error) {
+        console.error(error)
+        return error
+    }
+    return null
+}
+
+export const apiEpUnWatch = async (mId, sNo, epNo) => {
+    try {
+        const res = await fetch(ENDPOINT.SERIES_EP_MARK(), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                SeriesMId : mId,
+                SeasonNo  : sNo,
+                EpisodeNo : epNo,
+            })
+        })
+
+        if (res.status !== 200) {
+            const errTxt = await res.text()
+            return  new Error(`Error, response from server: ${res.status} - ${errTxt}`)
+
+        }
+    } catch (error) {
+        console.error(error)
+        return error
+
+    }
+    return null
 }
 

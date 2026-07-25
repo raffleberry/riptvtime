@@ -150,20 +150,18 @@ func (db *DbSqlite) SeriesTrackedEpsAdd(ep *TvTrackedEps) (int, error) {
 }
 
 // (rowsAffected, err)
-func (db *DbSqlite) SeriesTrackedEpRemove(mId int, season int, episode int) (int, error) {
-	tx := db.orm.Where("series_m_id = ? AND season = ? AND episode = ?", mId, season, episode).
-		Limit(1).
-		Delete(&TvTrackedEps{})
+func (db *DbSqlite) SeriesTrackedEpRemove(mId int, season int, episode int) error {
+	var ep TvTrackedEps
 
-	if tx.Error != nil {
-		return 0, tx.Error
+	err := db.orm.First(&ep, "series_m_id = ? AND season = ? AND episode = ?", mId, season, episode).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return ErrNotFound
+	} else if err != nil {
+		return err
 	}
 
-	if tx.RowsAffected == 0 {
-		return 0, fmt.Errorf("%w: Series with mId=`%v`, season=`%v`, episode=`%v` not found", ErrNotFound, mId, season, episode)
-	}
-
-	return int(tx.RowsAffected), nil
+	return db.orm.Delete(&ep).Error
 }
 
 func (db *DbSqlite) SeriesStatusUpdate(mId int, newStatus TvStatus) error {

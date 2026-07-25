@@ -36,7 +36,6 @@ export const useTracked = defineStore('trackedSeries', () => {
             if (err) {
                 throw err
             }
-            console.log("added", data)
             series.value[Id] = data
 
         } catch (error) {
@@ -95,7 +94,6 @@ export const useTracked = defineStore('trackedSeries', () => {
         series,
 
         // actions
-        refresh,
         changeStatus,
         addSeries,
         remSeries,

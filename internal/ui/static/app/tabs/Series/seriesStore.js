@@ -1,3 +1,4 @@
+import { apiEpUnWatch, apiEpWatch } from "../../api.js";
 import { ENDPOINT, Ky } from "../../utils.js";
 import { computed, defineStore, ref, watch } from "../../vue.js";
 
@@ -19,7 +20,7 @@ export const useSeriesStore = defineStore('series', () => {
         return rv
     })
 
-    const EpWatchCnt = computed(() => {
+    const epWatchCnt = computed(() => {
         let rv = {}
         for (const ep of watchedEps.value) {
             if (!rv[Ky(ep.S, ep.E)]) {
@@ -40,10 +41,6 @@ export const useSeriesStore = defineStore('series', () => {
                 delete result.EpsWatched
                 seriesDetails.value = result
 
-                // let weArrStr = {}
-                // for (let i = 0; i < we.length; i++) {
-                //     weArrStr[we[i].S + 'x' + we[i].E] = true
-                // }
                 watchedEps.value = we || []
 
             } else {
@@ -57,6 +54,42 @@ export const useSeriesStore = defineStore('series', () => {
         }
     }
 
+    const epMarkWatched = async (mId, sNo, epNo) => {
+        try {
+            const err = await apiEpWatch(mId, sNo, epNo);
+            if (err) {
+                throw err
+            }
+
+            watchedEps.value.push({ S: sNo, E: epNo })
+
+        } catch (error) {
+            console.error('Error fetching series data:', error);
+        } finally {
+        }
+    }
+
+    const epUnMarkWatched = async (mId, sNo, epNo) => {
+        try {
+            const err = await apiEpUnWatch(mId, sNo, epNo);
+            if (err) {
+                throw err
+            }
+
+            const idx = watchedEps.value.findIndex(ep => ep.S === sNo && ep.E === epNo)
+            if (idx !== -1) {
+                watchedEps.value.splice(idx, 1)
+            } else {
+                console.error(EpsWatched)
+                throw new Error('Episode not found in watched list')
+            }
+
+        } catch (error) {
+            console.error('Error fetching series data:', error);
+        } finally {
+        }
+    }
+
     const selectedEp = ref({})
 
     return {
@@ -64,11 +97,13 @@ export const useSeriesStore = defineStore('series', () => {
         loading,
         seriesDetails,
         SnWatchedEps,
-        EpWatchCnt,
+        epWatchCnt,
         selectedEp,
 
         // actions
         fetchSeries,
+        epMarkWatched,
+        epUnMarkWatched,
     }
 
 })
