@@ -3,10 +3,11 @@
 ## Essential Features list
 | Features | Done |
 | :--- | :---: |
-| Watch Next Feed | 80% |
+| Watch Next Feed | 95% |
 | Upcoming(To Be Aired) Episodes Feed | ❌ |
-| Search & Add TV show, Stop TV show, Remove TV show | 60% |
-| Episode Mark as watched/Pop up to mark all previous as watched | 0% |
+| Search & Add TV show, Stop TV show, Remove TV show | ✅ |
+| Episode Mark as watched, Re-watched/UnMark Watched | ✅ |
+| Pop up to mark all previous as watched| 0% |
 | Import TVTime gdpr data | 0% |
 | Total Time Watched | 0% |
 | Episodes Watched/Rewatched that count towards total time | 0% |
@@ -59,4 +60,4 @@ errors.Is(err, foo.ErrNotFound)
 
 - Components - `MyComponent.js`
     - Camel Case with first letter capitalized
-- Other Files such as logic, stores, etc - `myComponentStore.js` Camel Case but First letter is lowercase 
+- Other Files such as logic, stores, etc - `myComponentStore.js` Camel Case with First letter in lowercase 
