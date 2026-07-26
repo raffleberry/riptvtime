@@ -9,6 +9,7 @@ const ENDPOINT = Object.freeze({
     SERIES_REM: (Id) => { return `/api/series/${Id}` },
     SERIES_GET: (Id) => { return `/api/series/${Id}?full=1` },
     SERIES_EP_MARK: (Id) => { return `/api/series/episode` },
+    SERIES_EP_UPNEXT: (Id) => { return `/api/series/${Id}/upnext` },
 })
 
 export const apiSetStatus = async (Id, newStatus) => {
@@ -24,18 +25,12 @@ export const apiSetStatus = async (Id, newStatus) => {
             throw new Error(`Error, bad response from server: ${response.status} - ${response.statusText}`)
         }
 
-        return {
-            data: "OK",
-            err: null
-        }
     } catch (error) {
-        notifyError(`Error updating status for series ID ${Id}: ${error.message}`);
-        console.error('error updating status:', error);
         return {
-            data: null,
             err: error
         }
     }
+    return {}
 }
 
 export const apiAddSeries = async (Id) => {
@@ -48,7 +43,7 @@ export const apiAddSeries = async (Id) => {
             })
         })
 
-        if (res.status !== 200) {
+        if (!res.ok) {
             const errTxt = await res.text()
             return {
                 err: new Error(`Error, response from server: ${res.status} - ${errTxt}`)
@@ -76,7 +71,7 @@ export const apiRemSeries = async (Id) => {
             method: 'DELETE',
         })
 
-        if (res.status !== 200 && res.status !== 204 && res.status !== 404) {
+        if (!res.ok && res.status !== 404) {
             const errTxt = await res.text()
             return {
                 err: new Error(`Error, response from server: ${res.status} - ${errTxt}`)
@@ -93,12 +88,12 @@ export const apiRemSeries = async (Id) => {
 
 }
 
-export const apiSeriesTracked = async (Id) => { 
+export const apiSeriesTracked = async (Id) => {
     try {
 
         const res = await fetch(ENDPOINT.SERIES_ALL())
 
-        if (res.status !== 200) {
+        if (!res.ok) {
             const errTxt = await res.text()
             return {
                 err: new Error(`Error, response from server: ${res.status} - ${errTxt}`)
@@ -128,13 +123,13 @@ export const apiEpWatch = async (mId, sNo, epNo) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                SeriesMId : mId,
-                SeasonNo  : sNo,
-                EpisodeNo : epNo,
+                SeriesMId: mId,
+                SeasonNo: sNo,
+                EpisodeNo: epNo,
             })
         })
 
-        if (res.status !== 200) {
+        if (!res.ok) {
             const errTxt = await res.text()
             return new Error(`Error, response from server: ${res.status} - ${errTxt}`)
         }
@@ -151,15 +146,15 @@ export const apiEpUnWatch = async (mId, sNo, epNo) => {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                SeriesMId : mId,
-                SeasonNo  : sNo,
-                EpisodeNo : epNo,
+                SeriesMId: mId,
+                SeasonNo: sNo,
+                EpisodeNo: epNo,
             })
         })
 
-        if (res.status !== 200) {
+        if (!res.ok) {
             const errTxt = await res.text()
-            return  new Error(`Error, response from server: ${res.status} - ${errTxt}`)
+            return new Error(`Error, response from server: ${res.status} - ${errTxt}`)
 
         }
     } catch (error) {
@@ -170,3 +165,59 @@ export const apiEpUnWatch = async (mId, sNo, epNo) => {
     return null
 }
 
+export const apiEpUpNext = async (mId) => {
+    try {
+        const res = await fetch(ENDPOINT.SERIES_EP_UPNEXT(mId), {
+            method: 'GET',
+        })
+
+        if (res.status !== 200) {
+
+            if (res.status === 204) {
+                return {
+                    data: {
+                        S: -1,
+                        E: -1,
+                    }
+                }
+            }
+
+            const errTxt = await res.text()
+            return { err: new Error(`Error, response from server: ${res.status} - ${errTxt}`) }
+        }
+
+        const data = await res.json()
+
+        return {
+            data: data
+        }
+
+    } catch (error) {
+        console.error(error)
+        return { err: error }
+
+    }
+    return {}
+}
+
+
+export const apiGetSeriesDetails = async (id) => {
+    try {
+        const res = await fetch(ENDPOINT.SERIES_GET(id));
+        if (!res.ok) {
+            return {
+                err: new Error(`${res.status} - ${await res.text()}`)
+            }
+        }
+        const data = await res.json();
+
+        return {
+            data: data
+        }
+    } catch (error) {
+        console.error(error);
+        return {
+            err: new Error(`Error fetching series data:, ${error}`),
+        }
+    }
+}

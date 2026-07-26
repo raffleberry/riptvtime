@@ -1,6 +1,6 @@
-import { useConfirm } from "../stores/confirm.js"
-import { TvStatus } from "../utils.js"
-import { computed, onMounted, ref, storeToRefs, watch } from "../vue.js"
+import { useConfirm } from "./confirmStore.js"
+import { TvStatus } from "../../utils.js"
+import { computed, onMounted, ref, storeToRefs, watch } from "../../vue.js"
 
 const Confirm = {
 

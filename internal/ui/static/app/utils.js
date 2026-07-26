@@ -1,5 +1,5 @@
 import { Discover } from "./tabs/Discover.js";
-import { Feed } from "./tabs/Feed.js";
+import { Feed } from "./tabs/Feed/Feed.js";
 import { My } from "./tabs/My.js";
 import { Search } from "./tabs/Search/Search.js";
 import { Series } from "./tabs/Series/Series.js";

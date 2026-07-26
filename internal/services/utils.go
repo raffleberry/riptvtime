@@ -69,7 +69,7 @@ func isLegitSeason(sName string, sNo int, sCnt int) bool {
 	if sNo < 1 || sNo > sCnt {
 		return false
 	}
-	if sName == "" || !strings.Contains(strings.ToLower(sName), "special") {
+	if sName == "" || strings.Contains(strings.ToLower(sName), "special") {
 		return false
 	}
 	return true

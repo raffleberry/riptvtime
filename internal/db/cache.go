@@ -57,7 +57,7 @@ func NewCacheSqlite(cfg *config.Config, logger *slog.Logger) *CacheSqlite {
 func (c *CacheSqlite) Set(data *Cached) error {
 	return c.orm.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "key"}},
-		DoUpdates: clause.AssignmentColumns([]string{"json_data"}),
+		DoUpdates: clause.AssignmentColumns([]string{"json_data", "updated_at"}),
 	}).Create(data).Error
 }
 

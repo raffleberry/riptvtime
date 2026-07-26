@@ -1,4 +1,4 @@
-import { defineStore, ref } from "../vue.js";
+import { defineStore, ref } from "../../vue.js";
 
 export const useConfirm = defineStore('ConfirmStore', () => {
     const loading = ref(false)

@@ -194,6 +194,26 @@ func (a *Api) SeriesGet() http.HandlerFunc {
 	})
 }
 
+func (a *Api) SeriesUpNext() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		mIdStr := c.R.PathValue("mId")
+		mId, err := strconv.Atoi(mIdStr)
+
+		if err != nil {
+			return c.Error(http.StatusBadRequest, err.Error())
+		}
+		rv, err := a.tv.UpNext(mId)
+
+		if errors.Is(err, services.ErrNotFound) {
+			return c.Text(http.StatusNoContent, "")
+		} else if err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, rv)
+	})
+}
+
 func (a *Api) SeriesAll() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
 		respItem, err := a.tv.All()

@@ -39,6 +39,16 @@ func (c *Context) JSON(status int, data any) error {
 	return json.NewEncoder(c.W).Encode(data)
 }
 
+func (c *Context) Text(status int, data string) error {
+	c.W.Header().Set("Content-Type", "text/plain")
+	c.W.WriteHeader(status)
+	if data != "" {
+		_, err := c.W.Write([]byte(data))
+		return err
+	}
+	return nil
+}
+
 func (c *Context) File(p string) error {
 	http.ServeFile(c.W, c.R, p)
 	return nil

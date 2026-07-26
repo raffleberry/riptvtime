@@ -317,6 +317,76 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 
 }
 
+func (srv *SeriesService) UpNext(mId int) (*SeriesEpisode, error) {
+
+	fd, err := srv.GetDetails(mId, false)
+	if err != nil {
+		slog.Error("Error while fetching data", "error", err, "mId", mId)
+		return nil, err
+	}
+
+	var rv SeriesEpisode
+
+	watched := make(map[string]struct{})
+	for _, t := range fd.EpsWatched {
+		key := fmt.Sprintf("%d-%d", t.S, t.E)
+		watched[key] = struct{}{}
+	}
+
+	var isWatched = func(s int, e int) bool {
+		key := fmt.Sprintf("%d-%d", s, e)
+		_, ok := watched[key]
+		return ok
+	}
+
+	upNextS := 1
+	upNextE := 1
+
+	lastWatchedFound := false
+
+	episodesAired := 0
+	lastAiredS := fd.LastEpisodeToAir.SeasonNumber
+	lastAiredE := fd.LastEpisodeToAir.EpisodeNumber
+	slog.Debug("dbg", "fd", fd)
+	slices.SortFunc(fd.Seasons, func(a, b meta.TvSeason) int { return cmp.Compare(b.SeasonNumber, a.SeasonNumber) })
+
+	for _, sn := range fd.Seasons {
+		if !isLegitSeason(sn.Name, sn.SeasonNumber, fd.NumberOfSeasons) {
+			continue
+		}
+		slog.Debug("processing", "name", sn.Name, "sno", sn.SeasonNumber, "cnt", fd.NumberOfSeasons)
+
+		var eps int
+		if sn.SeasonNumber < lastAiredS {
+			eps = sn.EpisodeCount
+		} else if sn.SeasonNumber == lastAiredS {
+			eps = lastAiredE
+		}
+		episodesAired += eps
+
+		for eNo := eps; eNo >= 1 && !lastWatchedFound; eNo -= 1 {
+			if isWatched(sn.SeasonNumber, eNo) {
+				slog.Debug("found", "sno", sn.SeasonNumber, "eno", eNo)
+				lastWatchedFound = true
+				break
+			} else {
+				upNextS = sn.SeasonNumber
+				upNextE = eNo
+			}
+		}
+	}
+
+	if len(watched) == episodesAired || isWatched(lastAiredS, lastAiredE) {
+		return nil, ErrNotFound
+	}
+
+	rv.S = upNextS
+	rv.E = upNextE
+
+	return &rv, nil
+
+}
+
 // Returns insertId from db
 func (srv *SeriesService) Add(mId int) (*db.TvSeries, error) {
 	tvM, err := srv.meta.GetTvDetails(mId)

@@ -1,4 +1,5 @@
-import { apiEpUnWatch, apiEpWatch } from "../../api.js";
+import { apiEpUnWatch, apiEpWatch, apiGetSeriesDetails } from "../../api.js";
+import { notifyError } from "../../components/Error.js";
 import { ENDPOINT, ky } from "../../utils.js";
 import { computed, defineStore, ref, watch } from "../../vue.js";
 
@@ -34,21 +35,21 @@ export const useSeriesStore = defineStore('series', () => {
     const fetchSeries = async (id) => {
         loading.value = true
         try {
-            const response = await fetch(ENDPOINT.SERIES_GET(id));
-            if (response.status === 200) {
-                const result = await response.json();
-                let we = result.EpsWatched
-                delete result.EpsWatched
-                seriesDetails.value = result
-
-                watchedEps.value = we || []
-
-            } else {
-                const msg =`${response.status} - ${await response.text()}`
-                throw new Error(msg)
+            const { data, err } = await apiGetSeriesDetails(id)
+            if (err) {
+                throw err
             }
+
+            let we = data.EpsWatched
+            delete data.EpsWatched
+            
+            seriesDetails.value = data
+
+            watchedEps.value = we || []
+
         } catch (error) {
-            console.error('Error fetching series data:', error);
+            console.error('Error getting series data:', error);
+            notifyError(error)
         } finally {
             loading.value = false
         }
@@ -65,6 +66,7 @@ export const useSeriesStore = defineStore('series', () => {
 
         } catch (error) {
             console.error('Error fetching series data:', error);
+            notifyError(error)
         } finally {
         }
     }
@@ -86,6 +88,7 @@ export const useSeriesStore = defineStore('series', () => {
 
         } catch (error) {
             console.error('Error fetching series data:', error);
+            notifyError(error)
         } finally {
         }
     }
