@@ -9,13 +9,19 @@ import (
 
 type TvStatus int
 
-var TvStatusVals = []string{"not watching", "watching", "stopped", "completed"}
+var TvStatusVals = []string{"not watching", "watching", "stopped", "completed", "up to date"}
 
 const (
+	// when not found in db
 	TvStatusNotWatching TvStatus = iota
+
 	TvStatusWatching
 	TvStatusStopped
+
+	// Derived Status {if in_production = false}
 	TvStatusCompleted
+	// Derived Status {if in_production = true}
+	TvStatusUpToDate
 )
 
 var (

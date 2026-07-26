@@ -33,6 +33,7 @@ export const TvStatus = Object.freeze({
 	Watching: 1,
 	Stopped: 2,
 	Completed: 3,
+    UpToDate: 4
 });
 
 export const routes = Object.freeze([

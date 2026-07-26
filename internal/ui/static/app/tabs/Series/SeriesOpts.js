@@ -2,6 +2,7 @@ import { TvStatus } from "../../utils.js"
 import { computed, onMounted, ref, storeToRefs, watch } from "../../vue.js"
 import { notifyError } from "../../components/Error.js"
 import { useTracked } from "../../stores/tracked.js"
+import { useSeriesStore } from "./seriesStore.js"
 
 export const SeriesOpts = {
     props: {
@@ -15,7 +16,9 @@ export const SeriesOpts = {
         const trackedStore = useTracked()
 
         const { series } = storeToRefs(trackedStore)
-        const { changeStatus, remSeries, addSeries } = trackedStore
+        const { changeStatus } = trackedStore
+
+        const { remSeries, addSeries } = useSeriesStore()
 
         const status = computed(() => {
             let ob = series.value?.[props.mid]

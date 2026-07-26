@@ -32,6 +32,27 @@ export const apiSetStatus = async (Id, newStatus) => {
     }
     return {}
 }
+export const apiGetStatus = async (mId) => {
+    let url = `${ENDPOINT.SERIES_STATUS(mId)}`
+    try {
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ Status: newStatus })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error, bad response from server: ${response.status} - ${response.statusText}`)
+        }
+
+    } catch (error) {
+        return {
+            err: error
+        }
+    }
+    return {}
+}
+
 
 export const apiAddSeries = async (Id) => {
     try {

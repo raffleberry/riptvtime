@@ -165,6 +165,11 @@ func (db *DbSqlite) SeriesTrackedEpRemove(mId int, season int, episode int) erro
 }
 
 func (db *DbSqlite) SeriesStatusUpdate(mId int, newStatus TvStatus) error {
+
+	if newStatus != TvStatusStopped && newStatus != TvStatusWatching {
+		return nil
+	}
+
 	err := db.orm.Model(&TvSeries{}).Where("m_id = ?", mId).Update("tracking_status", newStatus).Error
 
 	if err != nil {

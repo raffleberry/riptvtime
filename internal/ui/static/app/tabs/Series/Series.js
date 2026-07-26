@@ -20,19 +20,18 @@ const Series = {
         const r = useRoute()
 
         const seriesStore = useSeriesStore()
-        const { loading, seriesDetails, SnWatchedEps, epWatchCnt } = storeToRefs(seriesStore)
+        const { loading, sd, SnWatchedEps, epWatchCnt } = storeToRefs(seriesStore)
         const Id = computed(() => r.params.id)
 
-        const { fetchSeries } = seriesStore
+        const { epMarkWatched, fetchSeries, getWatchedEpsCnt } = seriesStore
 
         const { series } = storeToRefs(useTracked())
-
-        const { epMarkWatched } = useSeriesStore()
 
         const seriesId = ref(0)
 
         const status = computed(() => {
             let ob = series.value?.[Id.value]
+            console.log("status ", series.value[Id.value])
             if (ob) {
                 return ob.TrackingStatus
             }
@@ -57,6 +56,8 @@ const Series = {
                     return "Completed"
                 case TvStatus.Stopped:
                     return "Stopped"
+                case TvStatus.UpToDate:
+                    return "Up To Date"
                 default:
                     return "Add";
             }
@@ -92,6 +93,12 @@ const Series = {
                     btn += ' btn-outline-success'
                     pgbar += 'bg-success'
                     break;
+                case TvStatus.UpToDate:
+                    card += ' border border-info'
+                    icon += ' bi-bookmark-check-fill'
+                    btn += ' btn-outline-info'
+                    pgbar += 'bg-info'
+                    break;
 
                 default:
                     break;
@@ -105,12 +112,12 @@ const Series = {
         });
 
         const progress = computed(() => {
-            if (seriesDetails.value?.NumberOfEpisodes) {
-                const deno = seriesDetails.value.NumberOfEpisodes
+            if (sd.value?.EpisodesAired) {
+                const deno = sd.value.EpisodesAired ?? 0
                 if (deno === 0) {
                     return 0
                 }
-                const num = Object.keys(epWatchCnt.value).length
+                const num = getWatchedEpsCnt()
                 return (num / deno) * 100
             }
 
@@ -158,7 +165,7 @@ const Series = {
         return {
             ky,
             loading,
-            sd: seriesDetails,
+            sd,
             SnWatchedEps,
             epWatchCnt,
             statusCss,

@@ -216,7 +216,7 @@ func (a *Api) SeriesUpNext() http.HandlerFunc {
 
 func (a *Api) SeriesAll() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
-		respItem, err := a.tv.All()
+		respItem, err := a.tv.TrackedAll()
 		if err != nil {
 			return err
 		}

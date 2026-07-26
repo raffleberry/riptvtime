@@ -53,6 +53,7 @@ type TvDetails struct {
 	NumberOfSeasons  int
 	NumberOfEpisodes int
 	Seasons          []TvSeason
+	InProduction     bool
 
 	MName string
 }

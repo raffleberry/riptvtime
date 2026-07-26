@@ -36,5 +36,11 @@ type SeriesEpisode struct {
 
 type SeriesFullItem struct {
 	*meta.TvDetails
-	EpsWatched []SeriesEpisode
+	EpisodesAired int
+	EpsWatched    []SeriesEpisode
+}
+
+type SeriesTracked struct {
+	db.TvSeries
+	InProduction bool
 }

@@ -69,7 +69,7 @@ func (srv *SeriesService) Search(searchTerm string, page int) (*SeriesSearchResu
 }
 
 // Get Tv Show Details (Freshiestest Data possible)
-func (srv *SeriesService) GetDetails(mId int, wsd bool) (*SeriesFullItem, error) {
+func (srv *SeriesService) GetDetails(mId int, withEps bool) (*SeriesFullItem, error) {
 	key := fmt.Sprintf("TvDetails{MId:%d}", mId)
 	cd, err := srv.c.Get(key)
 
@@ -120,9 +120,20 @@ func (srv *SeriesService) GetDetails(mId int, wsd bool) (*SeriesFullItem, error)
 		return nil, err
 	}
 
-	if wsd {
+	epsAired := 0
 
-		for i, s := range res.Seasons {
+	for i, s := range res.Seasons {
+
+		if isLegitSeason(s.Name, s.SeasonNumber, res.NumberOfSeasons) {
+			if s.SeasonNumber < res.LastEpisodeToAir.SeasonNumber {
+				epsAired += s.EpisodeCount
+			} else if s.SeasonNumber == res.LastEpisodeToAir.SeasonNumber {
+				epsAired += res.LastEpisodeToAir.EpisodeNumber
+			}
+		}
+
+		if withEps {
+
 			for epNo := 1; epNo <= s.EpisodeCount; epNo++ {
 				ep, err := srv.getEpisodeDetails(mId, s.SeasonNumber, epNo)
 				if err != nil {
@@ -131,6 +142,7 @@ func (srv *SeriesService) GetDetails(mId int, wsd bool) (*SeriesFullItem, error)
 					}
 					return nil, err
 				}
+
 				res.Seasons[i].Episodes = append(res.Seasons[i].Episodes, meta.TvEpisode{
 					Id:            int(ep.MId),
 					Name:          ep.Name,
@@ -162,12 +174,23 @@ func (srv *SeriesService) GetDetails(mId int, wsd bool) (*SeriesFullItem, error)
 
 	return &SeriesFullItem{
 		&res,
+		epsAired,
 		epsWatched,
 	}, nil
 }
 
-func (srv *SeriesService) All() (*[]db.TvSeries, error) {
-	return srv.db.SeriesTrackedAll()
+func (srv *SeriesService) TrackedAll() (*[]db.TvSeries, error) {
+	rv, err := srv.db.SeriesTrackedAll()
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range *rv {
+		srs := &(*rv)[i]
+		srs.TrackingStatus, err = srv.deriveStatus(int(srs.MId), srs.TrackingStatus)
+	}
+
+	return rv, nil
 }
 
 func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
@@ -389,7 +412,7 @@ func (srv *SeriesService) UpNext(mId int) (*SeriesEpisode, error) {
 
 // Returns insertId from db
 func (srv *SeriesService) Add(mId int) (*db.TvSeries, error) {
-	tvM, err := srv.meta.GetTvDetails(mId)
+	tvM, err := srv.GetDetails(mId, false)
 	if err != nil {
 		return nil, err
 	}
@@ -406,10 +429,6 @@ func (srv *SeriesService) Add(mId int) (*db.TvSeries, error) {
 	_, err = srv.db.SeriesAdd(tvDb)
 
 	return tvDb, err
-}
-
-func (srv *SeriesService) GetStatus(mId int) (db.TvStatus, error) {
-	return srv.db.SeriesStatusGet(mId)
 }
 
 func (srv *SeriesService) UpdateStatus(mId int, newStatus db.TvStatus) error {
@@ -533,4 +552,23 @@ func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int) (*d
 	}
 
 	return &sn.Episodes[idx], err
+}
+
+func (srv *SeriesService) deriveStatus(mId int, cur db.TvStatus) (db.TvStatus, error) {
+	if cur == db.TvStatusStopped {
+		return cur, nil
+	}
+	rv := cur
+	fd, err := srv.GetDetails(mId, false)
+	if err != nil {
+		return -1, err
+	}
+	if fd.EpisodesAired == len(fd.EpsWatched) {
+		if fd.InProduction {
+			rv = db.TvStatusUpToDate
+		} else {
+			rv = db.TvStatusCompleted
+		}
+	}
+	return rv, nil
 }

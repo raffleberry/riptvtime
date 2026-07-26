@@ -111,6 +111,7 @@ func (t *MetaTmdb) GetTvDetails(tmdbId int) (*TvDetails, error) {
 		NumberOfSeasons:  res.NumberOfSeasons,
 		NumberOfEpisodes: res.NumberOfEpisodes,
 		Seasons:          seasons,
+		InProduction:     res.InProduction,
 		MName:            t.Name(),
 	}
 

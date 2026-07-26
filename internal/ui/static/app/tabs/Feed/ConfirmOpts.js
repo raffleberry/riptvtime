@@ -4,7 +4,7 @@ import { notifyError } from "../../components/Error.js"
 import { useTracked } from "../../stores/tracked.js"
 import { useFeedStore } from "./feedStore.js"
 
-var bSelf = null
+const show = ref(false)
 var resolver = null
 
 const state = ref({
@@ -13,9 +13,9 @@ const state = ref({
 })
 
 export const openConfirm = (title, message) => {
-    bSelf.show()
     state.value.title = title
     state.value.message = message
+    show.value = true
     return new Promise((resolve) => {
         resolver = resolve
     })
@@ -29,7 +29,7 @@ export const ConfirmOpts = {
         const confirm = () => {
             if (resolver) {
                 resolver(true)
-                bSelf.hide()
+                show.value = false
                 resolver = null
             }
         }
@@ -37,11 +37,12 @@ export const ConfirmOpts = {
         const cancel = () => {
             if (resolver) {
                 resolver(false)
-                bSelf.hide()
+                show.value = false
                 resolver = null
             }
         }
 
+        var bSelf = null
 
         onMounted(() => {
             if (!bSelf) {
@@ -57,6 +58,16 @@ export const ConfirmOpts = {
 
         })
 
+        watch(show, () => {
+            if (bSelf) {
+                if (show.value) {
+                    bSelf.show()
+                } else {
+                    bSelf.hide()
+                }
+            }
+        })
+
 
 
 
@@ -64,6 +75,7 @@ export const ConfirmOpts = {
             confirm,
             cancel,
             state,
+            show,
         }
 
     },
