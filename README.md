@@ -1,6 +1,8 @@
 # riptvtime
 
 ## MVP list
+| Features | Done |
+| :--- | :---: |
 | UI as ugly as usable | ✅ |
 | Watch Next Feed | ✅ |
 | Search & Add TV show, Stop TV show, Remove TV show | ✅ |
