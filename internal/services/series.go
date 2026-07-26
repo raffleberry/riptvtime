@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/raffleberry/riptvtime/internal/db"
-	"gitlab.com/raffleberry/riptvtime/internal/meta"
-	"gitlab.com/raffleberry/riptvtime/internal/utils"
+	"github.com/raffleberry/riptvtime/internal/db"
+	"github.com/raffleberry/riptvtime/internal/meta"
+	"github.com/raffleberry/riptvtime/internal/utils"
 	"golang.org/x/sync/errgroup"
 )
 

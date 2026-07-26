@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"gitlab.com/raffleberry/riptvtime/internal/db"
-	"gitlab.com/raffleberry/riptvtime/internal/services"
+	"github.com/raffleberry/riptvtime/internal/db"
+	"github.com/raffleberry/riptvtime/internal/services"
 )
 
 var (

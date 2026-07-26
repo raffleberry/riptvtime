@@ -5,12 +5,12 @@ import (
 	"log/slog"
 	"os"
 
-	"gitlab.com/raffleberry/riptvtime/internal/api"
-	"gitlab.com/raffleberry/riptvtime/internal/config"
-	"gitlab.com/raffleberry/riptvtime/internal/db"
-	"gitlab.com/raffleberry/riptvtime/internal/meta"
-	"gitlab.com/raffleberry/riptvtime/internal/services"
-	"gitlab.com/raffleberry/riptvtime/internal/utils"
+	"github.com/raffleberry/riptvtime/internal/api"
+	"github.com/raffleberry/riptvtime/internal/config"
+	"github.com/raffleberry/riptvtime/internal/db"
+	"github.com/raffleberry/riptvtime/internal/meta"
+	"github.com/raffleberry/riptvtime/internal/services"
+	"github.com/raffleberry/riptvtime/internal/utils"
 )
 
 func main() {

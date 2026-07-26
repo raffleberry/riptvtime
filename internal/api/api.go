@@ -3,10 +3,10 @@ package api
 import (
 	"net/http"
 
-	"gitlab.com/raffleberry/riptvtime/internal/db"
-	"gitlab.com/raffleberry/riptvtime/internal/meta"
-	"gitlab.com/raffleberry/riptvtime/internal/services"
-	"gitlab.com/raffleberry/riptvtime/internal/ui"
+	"github.com/raffleberry/riptvtime/internal/db"
+	"github.com/raffleberry/riptvtime/internal/meta"
+	"github.com/raffleberry/riptvtime/internal/services"
+	"github.com/raffleberry/riptvtime/internal/ui"
 )
 
 // if response is not 200, error should be sent in plain text as response

@@ -3,8 +3,8 @@ package services
 import (
 	"time"
 
-	"gitlab.com/raffleberry/riptvtime/internal/db"
-	"gitlab.com/raffleberry/riptvtime/internal/meta"
+	"github.com/raffleberry/riptvtime/internal/db"
+	"github.com/raffleberry/riptvtime/internal/meta"
 )
 
 type SeriesFeedItem struct {

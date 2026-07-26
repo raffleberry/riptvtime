@@ -7,7 +7,7 @@ import (
 
 	tmdb "github.com/cyruzin/golang-tmdb"
 	"github.com/hashicorp/go-retryablehttp"
-	"gitlab.com/raffleberry/riptvtime/internal/config"
+	"github.com/raffleberry/riptvtime/internal/config"
 )
 
 type MetaTmdb struct {

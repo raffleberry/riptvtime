@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"path/filepath"
 
-	"gitlab.com/raffleberry/riptvtime/internal/config"
+	"github.com/raffleberry/riptvtime/internal/config"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

@@ -12,7 +12,7 @@ import (
 	"path"
 	"strings"
 
-	"gitlab.com/raffleberry/riptvtime/internal/utils"
+	"github.com/raffleberry/riptvtime/internal/utils"
 )
 
 //go:embed static
