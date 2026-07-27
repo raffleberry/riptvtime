@@ -12,6 +12,27 @@ const ENDPOINT = Object.freeze({
     SERIES_EP_UPNEXT: (Id) => { return `/api/series/${Id}/upnext` },
 })
 
+export const apiSearchTv = async (search, page) => {
+    let url = `${ENDPOINT.SEARCH_SERIES()}?q=${search}&p=${page}`
+    try {
+        const res = await fetch(url);
+
+        if (!res.ok) {
+            throw new Error(`Error, response from server: ${res.status} - ${res.statusText}`)
+        }
+
+        const result = await res.json();
+        return {
+            data: result,
+        }
+    } catch (error) {
+        console.error('Error fetching music data:', error);
+        return {
+            err: error
+        }
+    }
+}
+
 export const apiSetStatus = async (Id, newStatus) => {
     let url = `${ENDPOINT.SERIES_STATUS(Id)}`
     try {

@@ -1,23 +1,6 @@
+import { apiSearchTv } from "../../api.js";
 import { ENDPOINT } from "../../utils.js";
 import { defineStore, ref } from "../../vue.js";
-
-const searchTv = async (search, page) => {
-    let url = `${ENDPOINT.SEARCH_SERIES()}?q=${search}&p=${page}`
-    try {
-        const response = await fetch(url);
-        const result = await response.json();
-        return {
-            data: result,
-            err: null
-        }
-    } catch (error) {
-        console.error('Error fetching music data:', error);
-        return {
-            data: result,
-            err: error
-        }
-    }
-}
 
 export const useSearchStore = defineStore('search', () => {
     const loading = ref(false)
@@ -35,7 +18,7 @@ export const useSearchStore = defineStore('search', () => {
     
         try {
             loading.value = true
-            const { data, err } = await searchTv(searchText, 1)
+            const { data, err } = await apiSearchTv(searchText, 1)
             if (err) {
                 throw err
             }

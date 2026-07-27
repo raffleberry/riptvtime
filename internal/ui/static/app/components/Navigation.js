@@ -31,10 +31,10 @@ const Navigation = {
         }
     },
     template: `
-    <div class="nav nav-tabs d-flex justify-content-between bg-body" >
+    <div class="nav nav-pills py-2 nav-fill d-flex justify-content-between bg-body" >
       <div class="d-flex flex-row flex-wrap">
         <li v-for="tab in tabs" :key="tab.path" class="nav-item">
-            <router-link :class="{'nav-link': true, active: tab.path === curPath }" :to="tab.path" >{{ tab.name }}</router-link>
+            <router-link class="nav-link" :class="{ active: tab.path === curPath }" :to="tab.path" >{{ tab.name }}</router-link>
         </li>
 
       </div>
