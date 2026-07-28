@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -64,7 +65,7 @@ func NewImportService(_s *SeriesService) *Imported {
 	}
 }
 
-func (ipt *Imported) ImportTvTimeSeries(zipPath string) error {
+func (ipt *Imported) ImportTvTimeSeries(zipPath string) ([]*ImportedSeries, []*ImportedTrackedEps, error) {
 
 	var allowedFiles = struct {
 		SeriesTrackingDataFile string
@@ -76,14 +77,14 @@ func (ipt *Imported) ImportTvTimeSeries(zipPath string) error {
 
 	stat, err := os.Stat(zipPath)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	zf, err := os.OpenFile(zipPath, os.O_RDONLY, stat.Mode())
 
 	zr, err := zip.NewReader(zf, stat.Size())
 	if err != nil {
-		return ErrBadZip
+		return nil, nil, ErrBadZip
 	}
 
 	defer zf.Close()
@@ -103,8 +104,8 @@ func (ipt *Imported) ImportTvTimeSeries(zipPath string) error {
 		return recs, nil
 	}
 
-	var tsrs []*ImportedSeries
-	var teps []*ImportedTrackedEps
+	var isrs []*ImportedSeries
+	var iteps []*ImportedTrackedEps
 	var favs []int
 
 	csvErr := func(fn string, err error) error {
@@ -117,38 +118,38 @@ func (ipt *Imported) ImportTvTimeSeries(zipPath string) error {
 		case allowedFiles.SeriesTrackingDataFile:
 			recs, err := getRecsFromZf(f)
 			if err != nil {
-				return csvErr(fname, err)
+				return nil, nil, csvErr(fname, err)
 			}
-			tsrs, teps, err = ipt.ProcessRecsV2(recs)
+			isrs, iteps, err = ipt.ProcessRecsV2(recs)
 			if err != nil {
-				return csvErr(fname, err)
+				return nil, nil, csvErr(fname, err)
 			}
 			processedCnt++
 		case allowedFiles.FavouriteSeriesFile:
 			recs, err := getRecsFromZf(f)
 			if err != nil {
-				return csvErr(fname, err)
+				return nil, nil, csvErr(fname, err)
 			}
 
 			favs, err = ipt.ProcessFavs(recs)
 			if err != nil {
-				return csvErr(fname, err)
+				return nil, nil, csvErr(fname, err)
 			}
 			processedCnt++
 		}
 	}
-	ipt.Stub(tsrs, teps, favs)
+
 	allowedFilesCnt := reflect.ValueOf(allowedFiles).NumField()
 	if processedCnt != allowedFilesCnt {
 		err := errors.Join(ErrBadZip, fmt.Errorf("(Expected %d files but processed %d files) in zip archive", allowedFilesCnt, processedCnt))
-		return err
+		return nil, nil, err
 	}
 
-	return nil
-}
+	for _, s := range isrs {
+		s.IsFavourite = slices.Contains(favs, s.TvTimeSId)
+	}
 
-func (ipt *Imported) Stub(tsrs []*ImportedSeries, teps []*ImportedTrackedEps, favs []int) {
-	panic("unimplemented")
+	return isrs, iteps, nil
 }
 
 // lists-prod-lists.csv
@@ -320,37 +321,29 @@ func (ipt *Imported) ProcessRecsV2(recsV2 [][]string) ([]*ImportedSeries, []*Imp
 			ttsidStr := get(i, hdr.SId)
 			ttSid, err := strconv.Atoi(ttsidStr)
 			if err != nil {
-				slog.Warn("Err parsing csv", "TvTimeSId", ttsidStr, "err", err, "index", i)
+				slog.Warn("parsing csv", "TvTimeSId", ttsidStr, "err", err, "index", i)
 			}
 
 			seasonNumberStr := get(i, hdr.SeasonNumber)
-			seasonNumber, err := strconv.Atoi(seasonNumberStr)
-			if err != nil {
-				slog.Warn("Err parsing csv", "Season", seasonNumberStr, "err", err, "index", i)
-			}
-
+			seasonNumber, errS1 := strconv.Atoi(seasonNumberStr)
 			sNoStr := get(i, hdr.SNo)
-			sNo, err := strconv.Atoi(sNoStr)
-			if err != nil {
-				slog.Warn("Err parsing csv", "Season", sNoStr, "err", err, "index", i)
+			sNo, errS2 := strconv.Atoi(sNoStr)
+			if errS1 != nil && errS2 != nil {
+				slog.Warn("parsing csv", "seasonNumber", seasonNumberStr, "errS1", errS1, "sNo", sNoStr, "errS2", errS2, "index", i)
 			}
 
 			episodeNumberStr := get(i, hdr.EpisodeNumber)
-			episodeNumber, err := strconv.Atoi(episodeNumberStr)
-			if err != nil {
-				slog.Warn("Err parsing csv", "episodeNumber", episodeNumberStr, "err", err, "index", i)
-			}
-
+			episodeNumber, errE1 := strconv.Atoi(episodeNumberStr)
 			epNoStr := get(i, hdr.EpNo)
-			epNo, err := strconv.Atoi(epNoStr)
-			if err != nil {
-				slog.Warn("Err parsing csv", "epNo", epNoStr, "err", err, "index", i)
+			epNo, errE2 := strconv.Atoi(epNoStr)
+			if errE1 != nil && errE2 != nil {
+				slog.Warn("parsing csv", "episodeNumber", episodeNumberStr, "errE1", errE1, "epNo", epNoStr, "errE2", errE2, "index", i)
 			}
 
 			cAtStr := get(i, hdr.CreatedAt)
 			cAt, err := time.Parse(time.DateTime, cAtStr)
 			if err != nil {
-				slog.Warn("Err parsing csv", "CreatedAt", cAtStr, "err", err, "index", i)
+				slog.Warn("parsing csv", "CreatedAt", cAtStr, "err", err, "index", i)
 			}
 
 			rvEps = append(rvEps, &ImportedTrackedEps{

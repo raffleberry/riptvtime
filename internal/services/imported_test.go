@@ -10,65 +10,6 @@ import (
 	"github.com/raffleberry/riptvtime/internal/utils"
 )
 
-func TestProcessRecsV2(t *testing.T) {
-	const filePath = "testdata/tracking-prod-records-v2.csv"
-	csvFp, err := os.Open(filePath)
-	if err != nil {
-		t.Error(err)
-	}
-	csvRdr := csv.NewReader(csvFp)
-
-	recsV2, err := csvRdr.ReadAll()
-	if err != nil {
-		t.Error(err)
-	}
-
-	ipt := services.NewImportService(nil)
-	gotSrs, gotEps, err := ipt.ProcessRecsV2(recsV2)
-
-	if err != nil {
-		t.Error(err)
-	}
-
-	type x struct{}
-
-	wantSrs := map[string]struct{}{
-		utils.Jn("The Blacklist", 266189):             x{},
-		utils.Jn("Barry", 333072):                     x{},
-		utils.Jn("Wrecked (2016)", 310555):            x{},
-		utils.Jn("Luther", 159591):                    x{},
-		utils.Jn("You", 336924):                       x{},
-		utils.Jn("Avatar: The Last Airbender", 74852): x{},
-	}
-
-	for _, sr := range gotSrs {
-		if _, ok := wantSrs[utils.Jn(sr.Name, sr.TvTimeSId)]; !ok {
-			t.Errorf("Unexpected series: %v", sr.Name)
-		}
-	}
-
-	wantEpsCnt := map[string]int{
-		"You":                        30,
-		"The Blacklist":              10,
-		"Barry":                      17,
-		"Wrecked (2016)":             15,
-		"Luther":                     7,
-		"Avatar: The Last Airbender": 41,
-	}
-
-	gotEpsCnt := map[string]int{}
-
-	for _, ie := range gotEps {
-		gotEpsCnt[ie.SeriesName]++
-	}
-
-	for k, v := range wantEpsCnt {
-		if v != gotEpsCnt[k] {
-			t.Errorf("Unexpected ep count for %s: %d != %d", k, v, gotEpsCnt[k])
-		}
-	}
-}
-
 func TestProcessFavsLists(t *testing.T) {
 	const filePath = "testdata/lists-prod-lists.csv"
 	csvFp, err := os.Open(filePath)
@@ -104,4 +45,54 @@ func TestProcessFavsLists(t *testing.T) {
 			t.Errorf("Unexpected series: %v", id)
 		}
 	}
+}
+
+func TestImportTvTimeSeries(t *testing.T) {
+	const zfp = "testdata/tvtime-gdpr-data.zip"
+	ipt := services.NewImportService(nil)
+	gotSrs, gotEps, err := ipt.ImportTvTimeSeries(zfp)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	wantSrs := map[string]struct{}{
+		utils.Jn("The Blacklist", 266189):             {},
+		utils.Jn("Barry", 333072):                     {},
+		utils.Jn("Wrecked (2016)", 310555):            {},
+		utils.Jn("Luther", 159591):                    {},
+		utils.Jn("You", 336924):                       {},
+		utils.Jn("Avatar: The Last Airbender", 74852): {},
+	}
+
+	for _, sr := range gotSrs {
+		if _, ok := wantSrs[utils.Jn(sr.Name, sr.TvTimeSId)]; !ok {
+			t.Errorf("Unexpected series: %v", sr.Name)
+		}
+		if sr.TvTimeSId == 74852 && !sr.IsFavourite || sr.TvTimeSId != 74852 && sr.IsFavourite {
+			t.Errorf("Unexpected favourite series, only 74852 should be favourite: %v", sr.Name)
+		}
+	}
+
+	wantEpsCnt := map[string]int{
+		"You":                        30,
+		"The Blacklist":              10,
+		"Barry":                      17,
+		"Wrecked (2016)":             15,
+		"Luther":                     7,
+		"Avatar: The Last Airbender": 41,
+	}
+
+	gotEpsCnt := map[string]int{}
+
+	for _, ie := range gotEps {
+		gotEpsCnt[ie.SeriesName]++
+	}
+
+	for k, v := range wantEpsCnt {
+		if v != gotEpsCnt[k] {
+			t.Errorf("Unexpected ep count for %s: %d != %d", k, v, gotEpsCnt[k])
+		}
+	}
+
 }
