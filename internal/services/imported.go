@@ -2,12 +2,14 @@ package services
 
 import (
 	"archive/zip"
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -86,6 +88,21 @@ func (ipt *Imported) ImportTvTimeSeries(zipPath string) error {
 
 	defer zf.Close()
 
+	getRecsFromZf := func(f *zip.File) ([][]string, error) {
+		fp, err := f.Open()
+		if err != nil {
+			return nil, err
+		}
+
+		csvRdr := csv.NewReader(fp)
+
+		recs, err := csvRdr.ReadAll()
+		if err != nil {
+			return nil, err
+		}
+		return recs, nil
+	}
+
 	var tsrs []*ImportedSeries
 	var teps []*ImportedTrackedEps
 	var favs []int
@@ -93,13 +110,12 @@ func (ipt *Imported) ImportTvTimeSeries(zipPath string) error {
 	csvErr := func(fn string, err error) error {
 		return errors.Join(ErrBadZip, fmt.Errorf("Error processing CSV target file %s: %v", fn, err))
 	}
-
 	processedCnt := 0
 	for _, f := range zr.File {
 		fname := filepath.Base(f.Name)
 		switch fname {
 		case allowedFiles.SeriesTrackingDataFile:
-			recs, err := ipt.getRecs(f)
+			recs, err := getRecsFromZf(f)
 			if err != nil {
 				return csvErr(fname, err)
 			}
@@ -109,7 +125,7 @@ func (ipt *Imported) ImportTvTimeSeries(zipPath string) error {
 			}
 			processedCnt++
 		case allowedFiles.FavouriteSeriesFile:
-			recs, err := ipt.getRecs(f)
+			recs, err := getRecsFromZf(f)
 			if err != nil {
 				return csvErr(fname, err)
 			}
@@ -122,8 +138,9 @@ func (ipt *Imported) ImportTvTimeSeries(zipPath string) error {
 		}
 	}
 	ipt.Stub(tsrs, teps, favs)
-	if processedCnt != reflect.ValueOf(allowedFiles).NumField() {
-		err := errors.Join(ErrNotFound, fmt.Errorf("required files not found in zip archive"))
+	allowedFilesCnt := reflect.ValueOf(allowedFiles).NumField()
+	if processedCnt != allowedFilesCnt {
+		err := errors.Join(ErrBadZip, fmt.Errorf("(Expected %d files but processed %d files) in zip archive", allowedFilesCnt, processedCnt))
 		return err
 	}
 
@@ -134,8 +151,80 @@ func (ipt *Imported) Stub(tsrs []*ImportedSeries, teps []*ImportedTrackedEps, fa
 	panic("unimplemented")
 }
 
-func (ipt *Imported) ProcessFavs(recs [][]string) ([]int, error) {
-	panic("unimplemented")
+// lists-prod-lists.csv
+func (ipt *Imported) ProcessFavs(lists [][]string) ([]int, error) {
+
+	hdr := struct {
+		SKey      string
+		IsPublic  string
+		Type      string
+		Objects   string
+		CreatedAt string
+	}{
+		"s_key",
+		"is_public",
+		"type",
+		"objects",
+		"created_at",
+	}
+
+	if len(lists) < 1 {
+		return nil, errors.Join(ErrBadCsv, fmt.Errorf("Empty lists-prod-lists.csv file length(%v)", len(lists)))
+	}
+
+	h := lists[0]
+
+	hi := map[string]int{}
+	for i, v := range h {
+		switch v {
+		case hdr.SKey:
+			hi[hdr.SKey] = i
+		case hdr.IsPublic:
+			hi[hdr.IsPublic] = i
+		case hdr.Type:
+			hi[hdr.Type] = i
+		case hdr.Objects:
+			hi[hdr.Objects] = i
+		case hdr.CreatedAt:
+			hi[hdr.CreatedAt] = i
+		}
+	}
+
+	wantHi := reflect.ValueOf(hdr).NumField()
+	if len(hi) != wantHi {
+		slog.Error("lists-prod-lists.csv headers", "headers", hi)
+		return nil, errors.Join(ErrBadCsv, fmt.Errorf("lists-prod-lists.csv found %v fields but needed %v fields(%v)", len(hi), wantHi))
+	}
+
+	favs := []int{}
+
+	for i := 1; i < len(lists); i++ {
+		rec := lists[i]
+		if len(rec) < len(h) {
+			return nil, errors.Join(ErrBadCsv, fmt.Errorf("lists-prod-lists.csv[%v] length(%v)", i, len(rec)))
+		}
+
+		sKey := strings.TrimSpace(rec[hi[hdr.SKey]])
+
+		if sKey == "favorite-series" {
+			obj := strings.TrimSpace(rec[hi[hdr.Objects]])
+			re := regexp.MustCompile(`\s(id\:\d+)`)
+			matches := re.FindAllString(obj, -1)
+			for _, m := range matches {
+				idStr := strings.TrimPrefix(strings.TrimSpace(m), "id:")
+
+				id, err := strconv.Atoi(idStr)
+				if err != nil {
+					slog.Warn("Bad Match", "m", m, "idStr", idStr, "err", err)
+					continue
+				}
+				favs = append(favs, id)
+			}
+			break
+		}
+	}
+
+	return favs, nil
 }
 
 // tracking-prod-records-v2.csv
@@ -176,7 +265,7 @@ func (ipt *Imported) ProcessRecsV2(recsV2 [][]string) ([]*ImportedSeries, []*Imp
 	}
 
 	if len(recsV2) < 1 {
-		return nil, nil, errors.Join(ErrBadCsv, fmt.Errorf("tracking-prod-records-v2.csv length(%v)", len(recsV2)))
+		return nil, nil, errors.Join(ErrBadCsv, fmt.Errorf("Empty tracking-prod-records-v2.csv file length(%v)", len(recsV2)))
 	}
 	h := recsV2[0]
 
@@ -207,6 +296,7 @@ func (ipt *Imported) ProcessRecsV2(recsV2 [][]string) ([]*ImportedSeries, []*Imp
 	}
 
 	if len(hi) != reflect.ValueOf(hdr).NumField() {
+		slog.Error("tracking-prod-records-v2.csv headers", "headers", hi)
 		return nil, nil, errors.Join(ErrBadCsv, fmt.Errorf("tracking-prod-records-v2.csv header length(%v)", len(hi)))
 	}
 
@@ -317,11 +407,4 @@ func (ipt *Imported) ProcessRecsV2(recsV2 [][]string) ([]*ImportedSeries, []*Imp
 	}
 
 	return rvSrs, rvEps, nil
-}
-func (ipt *Imported) processRecs(recs [][]string) ([]*ImportedMovies, error) {
-	panic("Unimplemented")
-}
-
-func (ipt *Imported) getRecs(f *zip.File) ([][]string, error) {
-	panic("Unimplemented")
 }
