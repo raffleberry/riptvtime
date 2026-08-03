@@ -24,6 +24,11 @@ const (
 	TvStatusUpToDate
 )
 
+const (
+	SourceImport string = "import"
+	SourceUI     string = "ui"
+)
+
 var (
 	ErrNotFound = errors.New("Record Not Found")
 	ErrBadData  = errors.New("Bad Data")
@@ -52,6 +57,9 @@ type TvSeries struct {
 	Year           int
 	TrackingStatus TvStatus `gorm:"default:1"`
 	RuntimeApprox  int
+
+	Source    string
+	SourceKey string
 }
 
 type TvTrackedEps struct {
@@ -64,6 +72,9 @@ type TvTrackedEps struct {
 	Season     int
 	Episode    int
 	Runtime    int
+
+	Source    string
+	SourceKey string
 }
 
 type TvEpisode struct {
@@ -118,4 +129,7 @@ type Db interface {
 	SeriesSeasonAdd(t *TvSeason) error
 
 	SeriesEpisodeGet(mId int, season int, episode int) (*TvEpisode, error)
+
+	ImportedSeriesCheck(key string) (bool, error)
+	ImportedTrackedEpsCheck(key string) (bool, error)
 }

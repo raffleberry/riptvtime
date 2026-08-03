@@ -3,9 +3,14 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/raffleberry/riptvtime/internal/db"
 	"github.com/raffleberry/riptvtime/internal/services"
@@ -54,7 +59,7 @@ func (a *Api) SeriesAdd() http.HandlerFunc {
 
 		slog.Debug("tv add", "payload", payload)
 
-		s, err := a.tv.Add(payload.MId)
+		s, err := a.tv.Add(payload.MId, db.SourceUI)
 
 		if err != nil {
 			return err
@@ -76,7 +81,7 @@ func (a *Api) SeriesEpisodeWatch() http.HandlerFunc {
 			return err
 		}
 
-		insertId, err := a.tv.SetEpisodeWatched(payload.SeriesMId, payload.SeasonNo, payload.EpisodeNo)
+		insertId, err := a.tv.SetEpisodeWatched(payload.SeriesMId, payload.SeasonNo, payload.EpisodeNo, db.SourceUI)
 		if err != nil {
 			return err
 		}
@@ -221,5 +226,77 @@ func (a *Api) SeriesAll() http.HandlerFunc {
 			return err
 		}
 		return c.JSON(http.StatusOK, respItem)
+	})
+}
+func (a *Api) SeriesImportUpload() http.HandlerFunc {
+	return WithCtx(func(ctx *Context) error {
+		err := ctx.R.ParseMultipartForm(10 << 20)
+		if err != nil {
+			ctx.StatusCode = http.StatusUnprocessableEntity
+			return err
+		}
+
+		formFile, formFileHdr, err := ctx.R.FormFile("file")
+		if err != nil {
+			ctx.StatusCode = http.StatusBadRequest
+			return err
+		}
+		defer formFile.Close()
+
+		fname := fmt.Sprintf("%s-%d", formFileHdr.Filename, time.Now().Unix())
+		fpath := filepath.Join(a.cfg.ImportTmpDir, fname)
+		fp, err := os.Create(fpath)
+		if err != nil {
+			return err
+		}
+		defer fp.Close()
+
+		_, err = io.Copy(fp, formFile)
+		if err != nil {
+			return err
+		}
+
+		go func() {
+			services.State.IUploadError = nil
+			srs, eps, err := a.tv.IptImportTvTimeSeries(fpath)
+			if err != nil {
+				slog.Error("Error while importing tv time series", "error", err)
+				services.State.IUploadError = err
+				return
+			}
+			slog.Info("IMPORT", "status", "success", "series_processed", srs, "episodes_processed", eps)
+		}()
+
+		return ctx.JSON(http.StatusOK, struct{}{})
+	})
+}
+
+func (a *Api) SeriesImportList() http.HandlerFunc {
+	return WithCtx(func(ctx *Context) error {
+		list, err := a.tv.IptGetUnmatchedTvTimeSeries()
+		if err != nil {
+			return err
+		}
+		return ctx.JSON(http.StatusOK, list)
+	})
+}
+
+func (a *Api) GetState() http.HandlerFunc {
+	return WithCtx(func(ctx *Context) error {
+		return ctx.JSON(http.StatusOK, services.State)
+	})
+}
+
+func (a *Api) SeriesImportMatchAndRemove() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		var payload struct {
+			MId       int
+			TvTimeSId int
+		}
+
+		if err := json.NewDecoder(c.R.Body).Decode(&payload); err != nil {
+			return err
+		}
+		return a.tv.IptImportMatchedAndDelete(payload.TvTimeSId, payload.MId)
 	})
 }

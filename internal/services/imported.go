@@ -14,11 +14,20 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/raffleberry/riptvtime/internal/config"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	glog "gorm.io/gorm/logger"
+)
+
+var (
+	ErrAlreadyProcessing = errors.New("Upload already in progress")
 )
 
 // tracking-prod-records-v2.csv
 type ImportedSeries struct {
-	Key string
+	Key string `gorm:"primaryKey"`
 
 	Name      string
 	TvTimeSId int
@@ -28,11 +37,12 @@ type ImportedSeries struct {
 
 	IsFavourite bool
 
+	UpdatedAt time.Time
 	CreatedAt time.Time
 }
 
 type ImportedTrackedEps struct {
-	Key string
+	Key string `gorm:"primaryKey"`
 
 	SeriesName string
 	TvTimeSId  int
@@ -41,6 +51,7 @@ type ImportedTrackedEps struct {
 	Season  int
 	Episode int
 
+	UpdatedAt time.Time
 	CreatedAt time.Time
 }
 
@@ -55,17 +66,80 @@ var (
 	ErrBadCsv = errors.New("Invalid or corrupt csv file")
 )
 
-type Imported struct {
-	s *SeriesService
+type ImportSvc struct {
+	ImportTmpDir string
+	idb          *gorm.DB
+	cfg          *config.Config
 }
 
-func NewImportService(_s *SeriesService) *Imported {
-	return &Imported{
-		s: _s,
+func NewImportService(logger *slog.Logger, cfg *config.Config) *ImportSvc {
+
+	iTmpDir := cfg.ImportTmpDir
+	if iTmpDir == "" {
+		tmp := os.TempDir()
+		iTmpDir = filepath.Join(tmp, "riptvtime_import_tmp")
+	}
+
+	err := os.MkdirAll(iTmpDir, 0755)
+	if err != nil {
+		panic(err)
+	}
+
+	files, err := os.ReadDir(iTmpDir)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, f := range files {
+		p := filepath.Join(iTmpDir, f.Name())
+		if err := os.RemoveAll(p); err != nil {
+			slog.Warn("Failed to remove old tmp files: ", "file", p)
+		}
+	}
+
+	iDbPath := filepath.Join(cfg.ConfigDir, fmt.Sprintf("%s.db", "tvtime_imports"))
+
+	slog.Debug("Initializing import Sqlite Database", "path", iDbPath)
+
+	idb, err := gorm.Open(sqlite.Open(fmt.Sprintf("%v?", iDbPath)), &gorm.Config{
+		Logger: glog.NewSlogLogger(logger, glog.Config{
+			IgnoreRecordNotFoundError: true,
+		}),
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	err = idb.AutoMigrate(&ImportedSeries{}, &ImportedTrackedEps{})
+
+	if err != nil {
+		panic(err)
+	}
+
+	return &ImportSvc{
+		ImportTmpDir: iTmpDir,
+		idb:          idb,
 	}
 }
 
-func (ipt *Imported) ImportTvTimeSeries(zipPath string) ([]*ImportedSeries, []*ImportedTrackedEps, error) {
+func (ipt *ImportSvc) CleanImportedData() {
+	ipt.idb.Unscoped().Where("1=1").Delete(&ImportedSeries{})
+	ipt.idb.Unscoped().Where("1=1").Delete(&ImportedTrackedEps{})
+}
+
+func (ipt *ImportSvc) ImportTvTimeSeries(zipPath string) (int, int, error) {
+	if State.IUploadActive {
+		return 0, 0, ErrAlreadyProcessing
+	}
+	State.IUploadActive = true
+
+	State.IUploadingEpsCnt = 0
+	State.IUploadingEpsCntTotal = 0
+
+	State.IUploadingSrsCnt = 0
+	State.IUploadingSrsCntTotal = 0
+
+	defer func() { State.IUploadActive = false }()
 
 	var allowedFiles = struct {
 		SeriesTrackingDataFile string
@@ -77,14 +151,14 @@ func (ipt *Imported) ImportTvTimeSeries(zipPath string) ([]*ImportedSeries, []*I
 
 	stat, err := os.Stat(zipPath)
 	if err != nil {
-		return nil, nil, err
+		return 0, 0, err
 	}
 
 	zf, err := os.OpenFile(zipPath, os.O_RDONLY, stat.Mode())
 
 	zr, err := zip.NewReader(zf, stat.Size())
 	if err != nil {
-		return nil, nil, ErrBadZip
+		return 0, 0, ErrBadZip
 	}
 
 	defer zf.Close()
@@ -118,22 +192,22 @@ func (ipt *Imported) ImportTvTimeSeries(zipPath string) ([]*ImportedSeries, []*I
 		case allowedFiles.SeriesTrackingDataFile:
 			recs, err := getRecsFromZf(f)
 			if err != nil {
-				return nil, nil, csvErr(fname, err)
+				return 0, 0, csvErr(fname, err)
 			}
 			isrs, iteps, err = ipt.ProcessRecsV2(recs)
 			if err != nil {
-				return nil, nil, csvErr(fname, err)
+				return 0, 0, csvErr(fname, err)
 			}
 			processedCnt++
 		case allowedFiles.FavouriteSeriesFile:
 			recs, err := getRecsFromZf(f)
 			if err != nil {
-				return nil, nil, csvErr(fname, err)
+				return 0, 0, csvErr(fname, err)
 			}
 
 			favs, err = ipt.ProcessFavs(recs)
 			if err != nil {
-				return nil, nil, csvErr(fname, err)
+				return 0, 0, csvErr(fname, err)
 			}
 			processedCnt++
 		}
@@ -142,18 +216,127 @@ func (ipt *Imported) ImportTvTimeSeries(zipPath string) ([]*ImportedSeries, []*I
 	allowedFilesCnt := reflect.ValueOf(allowedFiles).NumField()
 	if processedCnt != allowedFilesCnt {
 		err := errors.Join(ErrBadZip, fmt.Errorf("(Expected %d files but processed %d files) in zip archive", allowedFilesCnt, processedCnt))
-		return nil, nil, err
+		return 0, 0, err
 	}
 
 	for _, s := range isrs {
 		s.IsFavourite = slices.Contains(favs, s.TvTimeSId)
 	}
 
-	return isrs, iteps, nil
+	newSeriesCnt := 0
+	newTrackedEpsCnt := 0
+
+	State.IUploadingSrsCntTotal = len(isrs)
+	State.IUploadingEpsCntTotal = len(iteps)
+
+	for _, s := range isrs {
+		tx := ipt.idb.Save(s)
+		newSeriesCnt += int(tx.RowsAffected)
+		if tx.Error != nil {
+			return 0, 0, tx.Error
+		}
+		State.IUploadingSrsCnt += 1
+	}
+
+	for _, e := range iteps {
+		tx := ipt.idb.Save(e)
+		newTrackedEpsCnt += int(tx.RowsAffected)
+		if tx.Error != nil {
+			return 0, 0, tx.Error
+		}
+		State.IUploadingEpsCnt += 1
+	}
+
+	return newSeriesCnt, newTrackedEpsCnt, nil
+}
+
+func (ipt *ImportSvc) GetUnmatched() ([]*ImportedSeries, error) {
+	var rv []*ImportedSeries
+	err := ipt.idb.Find(&rv, "m_id = 0").Error
+	if err != nil {
+		return nil, err
+	}
+
+	var eps []*ImportedTrackedEps
+	err = ipt.idb.Find(&eps, "m_id = 0").Error
+	if err != nil {
+		return nil, err
+	}
+	for _, ep := range eps {
+		if slices.ContainsFunc(rv, func(item *ImportedSeries) bool {
+			return item.TvTimeSId == ep.TvTimeSId
+		}) {
+			continue
+		}
+		rv = append(rv, &ImportedSeries{
+			TvTimeSId: ep.TvTimeSId,
+			Name:      ep.SeriesName,
+		})
+	}
+	return rv, nil
+}
+
+func (ipt *ImportSvc) GetMatched() ([]*ImportedSeries, []*ImportedTrackedEps, error) {
+	var rv1 []*ImportedSeries
+	err := ipt.idb.Find(&rv1, "m_id != 0").Error
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var rv2 []*ImportedTrackedEps
+	err = ipt.idb.Find(&rv2, "m_id != 0").Error
+	if err != nil {
+		return nil, nil, err
+	}
+	return rv1, rv2, nil
+}
+
+func (ipt *ImportSvc) DeleteSeries(key string) (int, error) {
+	tx := ipt.idb.Where("Key = ?", key).Delete(&ImportedSeries{})
+	return int(tx.RowsAffected), tx.Error
+}
+
+func (ipt *ImportSvc) DeleteTrackedEps(key string) (int, error) {
+	tx := ipt.idb.Where("Key = ?", key).Delete(&ImportedTrackedEps{})
+	return int(tx.RowsAffected), tx.Error
+}
+
+func (ipt *ImportSvc) Match(tvTimeSId, mId int) error {
+	tx := ipt.idb.Model(&ImportedSeries{}).Where("tv_time_s_id = ?", tvTimeSId).Update("m_id", mId)
+	slog.Debug("ipt matched", "tvTimeSId", tvTimeSId, "mId", mId, "table", "ImportedSeries", "Rows Affected", tx.RowsAffected)
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	tx = ipt.idb.Model(&ImportedTrackedEps{}).Where("tv_time_s_id = ?", tvTimeSId).Update("m_id", mId)
+	slog.Debug("ipt matched", "tvTimeSId", tvTimeSId, "mId", mId, "table", "ImportedTrackedEps", "Rows Affected", tx.RowsAffected)
+	if tx.Error != nil {
+		return tx.Error
+	}
+	return nil
+}
+
+func (ipt *ImportSvc) UpdateMeta(mId int, tvTimeSId int) (int, error) {
+	updatedEntriesCnt := 0
+	err := ipt.idb.Transaction(func(tx *gorm.DB) error {
+		t := tx.Model(&ImportedSeries{}).Where("tv_time_s_id = ?", tvTimeSId).Update("m_id", mId)
+		if t.Error != nil {
+			return t.Error
+		}
+		updatedEntriesCnt += int(t.RowsAffected)
+		t = tx.Model(&ImportedTrackedEps{}).Where("tv_time_s_id = ?", tvTimeSId).Update("m_id", mId)
+		if t.Error != nil {
+			return t.Error
+		}
+		updatedEntriesCnt += int(t.RowsAffected)
+		return nil
+	})
+
+	return updatedEntriesCnt, err
 }
 
 // lists-prod-lists.csv
-func (ipt *Imported) ProcessFavs(lists [][]string) ([]int, error) {
+func (ipt *ImportSvc) ProcessFavs(lists [][]string) ([]int, error) {
 
 	hdr := struct {
 		SKey      string
@@ -229,7 +412,7 @@ func (ipt *Imported) ProcessFavs(lists [][]string) ([]int, error) {
 }
 
 // tracking-prod-records-v2.csv
-func (ipt *Imported) ProcessRecsV2(recsV2 [][]string) ([]*ImportedSeries, []*ImportedTrackedEps, error) {
+func (ipt *ImportSvc) ProcessRecsV2(recsV2 [][]string) ([]*ImportedSeries, []*ImportedTrackedEps, error) {
 
 	hdr := struct {
 		SId        string

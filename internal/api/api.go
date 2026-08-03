@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	"github.com/raffleberry/riptvtime/internal/config"
 	"github.com/raffleberry/riptvtime/internal/db"
 	"github.com/raffleberry/riptvtime/internal/meta"
 	"github.com/raffleberry/riptvtime/internal/services"
@@ -16,9 +17,10 @@ type Api struct {
 	db     db.Db
 	meta   meta.Meta
 	tv     *services.SeriesService
+	cfg    *config.Config
 }
 
-func NewApi(db db.Db, meta meta.Meta, tv *services.SeriesService) *Api {
+func NewApi(db db.Db, meta meta.Meta, tv *services.SeriesService, cfg *config.Config) *Api {
 	mux := http.NewServeMux()
 
 	a := &Api{
@@ -26,6 +28,7 @@ func NewApi(db db.Db, meta meta.Meta, tv *services.SeriesService) *Api {
 		db:     db,
 		meta:   meta,
 		tv:     tv,
+		cfg:    cfg,
 	}
 
 	mux.HandleFunc("GET /api/series", a.SeriesAll())
@@ -42,6 +45,11 @@ func NewApi(db db.Db, meta meta.Meta, tv *services.SeriesService) *Api {
 	mux.HandleFunc("POST /api/series/episode", a.SeriesEpisodeWatch())
 	mux.HandleFunc("PUT /api/series/episode", a.SeriesEpisodeUnWatch())
 
+	mux.HandleFunc("POST /api/import/upload", a.SeriesImportUpload())
+	mux.HandleFunc("GET /api/import/list", a.SeriesImportList())
+	mux.HandleFunc("PUT /api/import/match", a.SeriesImportMatchAndRemove())
+
+	mux.HandleFunc("GET /api/state", a.GetState())
 	// mux.HandleFunc("GET /api/series/{tmdbId}/{episode}", a.SeriesEpisodeGet())
 
 	mux.Handle("GET /", ui.NewSpaHandler("internal/ui/static"))

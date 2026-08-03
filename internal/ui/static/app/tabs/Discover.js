@@ -1,28 +1,18 @@
-import { PAGE, theme } from "../utils.js";
-import { onMounted, ref } from "../vue.js";
-
+import { PAGE, theme } from "../utils.js"
+import { onMounted, ref } from "../vue.js"
 
 const Discover = {
-    props: {
+  props: {},
+  components: {},
+  setup: (props) => {
+    onMounted(() => {})
 
-    },
-    components: {
-
-    },
-    setup: (props) => {
-
-        onMounted(() => {
-        });
-
-
-        return {
-        }
-    },
-    template: `
+    return {}
+  },
+  template: /* HTML */ `
     <div>
-        <h1>Discover</h1>
+      <h1>Discover</h1>
     </div>
-    `
+  `,
 }
-export { Discover };
-
+export { Discover }

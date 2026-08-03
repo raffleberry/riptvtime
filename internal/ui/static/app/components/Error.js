@@ -1,4 +1,3 @@
-
 export const notifyError = (message) => {
-    console.error("Error: ", message)
+  console.error("Error: ", message)
 }

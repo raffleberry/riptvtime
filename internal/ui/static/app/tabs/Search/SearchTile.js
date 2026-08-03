@@ -1,73 +1,71 @@
-import { useTracked } from "../../stores/tracked.js";
-import { TvStatus } from "../../utils.js";
-import { computed, ref, storeToRefs, watch } from "../../vue.js";
-import { selected } from "./SearchTileOpts.js";
+import { useTracked } from "../../stores/tracked.js"
+import { TvStatus } from "../../utils.js"
+import { computed, ref, storeToRefs, watch } from "../../vue.js"
+import { selected } from "./SearchTileOpts.js"
 
 const SearchTile = {
-    components: {
-    },
-    props: {
-        tv: Object
-    },
-    setup(props) {
-        let tv = computed(() => props.tv)
-        
-        const { series } = storeToRefs(useTracked())
+  components: {},
+  props: {
+    tv: Object,
+  },
+  setup(props) {
+    let tv = computed(() => props.tv)
 
-        const cardBorder = ref('')
-        const btnIcon = ref('')
+    const { series } = storeToRefs(useTracked())
 
-        const status = computed(() => {
-            let ob = series.value?.[tv.value.Id]
-            if (ob) {
-                return ob.TrackingStatus
-            }
-            return TvStatus.NotWatching
-        })
+    const cardBorder = ref("")
+    const btnIcon = ref("")
 
-        const statusCss = computed(() => {
-            let card = 'card'
-            let icon = 'bi'
-            switch (status.value) {
-                case TvStatus.Watching:
-                    card += ' border border-warning'
-                    icon += ' bi-bookmark-check'
-                    break;
-                case TvStatus.NotWatching:
-                    // cb += ' border border-primary'
-                    icon += ' bi-three-dots-vertical'
-                    break;
-                case TvStatus.Stopped:
-                    card += ' border border-danger'
-                    icon += ' bi-bookmark-x'
-                    break;
-                case TvStatus.Completed:
-                    card += ' border border-success'
-                    icon += ' bi-bookmark-check-fill'
-                    break;
-            
-                default:
-                    break;
-            }
-            return {
-                card,
-                icon
-            };
-        });
+    const status = computed(() => {
+      let ob = series.value?.[tv.value.Id]
+      if (ob) {
+        return ob.TrackingStatus
+      }
+      return TvStatus.NotWatching
+    })
 
+    const statusCss = computed(() => {
+      let card = "card"
+      let icon = "bi"
+      switch (status.value) {
+        case TvStatus.Watching:
+          card += " border border-warning"
+          icon += " bi-bookmark-check"
+          break
+        case TvStatus.NotWatching:
+          // cb += ' border border-primary'
+          icon += " bi-three-dots-vertical"
+          break
+        case TvStatus.Stopped:
+          card += " border border-danger"
+          icon += " bi-bookmark-x"
+          break
+        case TvStatus.Completed:
+          card += " border border-success"
+          icon += " bi-bookmark-check-fill"
+          break
 
-        const openSeriesOptions = () => {
-            selected.value = tv.value
-        }
+        default:
+          break
+      }
+      return {
+        card,
+        icon,
+      }
+    })
 
-        return {
-            tv,
-            openSeriesOptions,
-            statusCss,
-        }
-    },
+    const openSeriesOptions = () => {
+      selected.value = tv.value
+    }
 
-    template: `
+    return {
+      tv,
+      openSeriesOptions,
+      statusCss,
+    }
+  },
+
+  template: /* HTML */ `
     <div :class="statusCss.card">
         <div class="row">
             <!--
@@ -96,7 +94,7 @@ const SearchTile = {
             </div>
         </div>
     </div>
-`
+`,
 }
 
-export { SearchTile };
+export { SearchTile }

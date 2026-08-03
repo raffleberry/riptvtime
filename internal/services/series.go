@@ -20,19 +20,22 @@ import (
 var (
 	ErrInvalidData = errors.New("Invalid Data")
 	ErrNotFound    = errors.New("Not Found")
+	ErrDuplicate   = errors.New("Duplicate already in database")
 )
 
 type SeriesService struct {
 	db   db.Db
 	meta meta.Meta
 	c    db.Cache
+	ipt  *ImportSvc
 }
 
-func NewTvService(c db.Cache, db db.Db, meta meta.Meta) *SeriesService {
+func NewTvService(c db.Cache, db db.Db, meta meta.Meta, ipt *ImportSvc) *SeriesService {
 	return &SeriesService{
 		db:   db,
 		meta: meta,
 		c:    c,
+		ipt:  ipt,
 	}
 }
 
@@ -410,8 +413,8 @@ func (srv *SeriesService) UpNext(mId int) (*SeriesEpisode, error) {
 
 }
 
-// Returns insertId from db
-func (srv *SeriesService) Add(mId int) (*db.TvSeries, error) {
+// Returns insertModel from db
+func (srv *SeriesService) Add(mId int, source string) (*db.TvSeries, error) {
 	tvM, err := srv.GetDetails(mId, false)
 	if err != nil {
 		return nil, err
@@ -424,11 +427,97 @@ func (srv *SeriesService) Add(mId int) (*db.TvSeries, error) {
 		Overview:       tvM.Overview,
 		Year:           tvM.Year,
 		TrackingStatus: db.TvStatusWatching,
+		RuntimeApprox:  tvM.LastEpisodeToAir.Runtime,
+		Source:         source,
 	}
+
+	insertId, err := srv.db.SeriesAdd(tvDb)
+
+	tvDb.ID = uint(insertId)
+
+	return tvDb, err
+}
+
+func (srv *SeriesService) AddImportedSeries(iSrs *ImportedSeries) (*db.TvSeries, error) {
+
+	exists, err := srv.db.ImportedSeriesCheck(iSrs.Key)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists {
+		return nil, ErrDuplicate
+	}
+
+	if iSrs.MId == 0 {
+		return nil, errors.Join(ErrInvalidData, errors.New("Missing MId"))
+	}
+
+	tvM, err := srv.GetDetails(iSrs.MId, false)
+	if err != nil {
+		return nil, err
+	}
+
+	ts := db.TvStatusWatching
+	if iSrs.IsStopped {
+		ts = db.TvStatusStopped
+	}
+
+	tvDb := &db.TvSeries{
+		MName:          srv.meta.Name(),
+		MId:            int64(tvM.Id),
+		Name:           tvM.Name,
+		Overview:       tvM.Overview,
+		Year:           tvM.Year,
+		TrackingStatus: ts,
+		RuntimeApprox:  tvM.LastEpisodeToAir.Runtime,
+		Source:         db.SourceImport,
+		SourceKey:      iSrs.Key,
+	}
+	tvDb.CreatedAt = iSrs.CreatedAt
 
 	_, err = srv.db.SeriesAdd(tvDb)
 
 	return tvDb, err
+}
+
+func (srv *SeriesService) AddImportedEpisode(iep *ImportedTrackedEps) (int, error) {
+
+	exists, err := srv.db.ImportedTrackedEpsCheck(iep.Key)
+	if err != nil {
+		return 0, err
+	}
+
+	if exists {
+		return 0, ErrDuplicate
+	}
+
+	if iep.MId == 0 {
+		return 0, errors.Join(ErrInvalidData, errors.New("Missing MId"))
+	}
+
+	ep, err := srv.getEpisodeDetails(iep.MId, iep.Season, iep.Episode)
+	if err != nil {
+		return -1, err
+	}
+
+	trackItem := db.TvTrackedEps{
+		MName:      ep.MName,
+		EpisodeMId: int64(ep.MId),
+		SeriesMId:  int64(iep.MId),
+		Name:       ep.Name,
+		Overview:   ep.Overview,
+		Season:     ep.Season,
+		Episode:    ep.Episode,
+		Runtime:    ep.Runtime,
+		Source:     db.SourceImport,
+		SourceKey:  iep.Key,
+	}
+
+	trackItem.CreatedAt = iep.CreatedAt
+
+	return srv.db.SeriesTrackedEpsAdd(&trackItem)
+
 }
 
 func (srv *SeriesService) UpdateStatus(mId int, newStatus db.TvStatus) error {
@@ -469,7 +558,7 @@ func (srv *SeriesService) SetEpisodeUnwatch(mId int, sNo int, eNo int) error {
 
 }
 
-func (srv *SeriesService) SetEpisodeWatched(mId int, sNo int, eNo int) (int, error) {
+func (srv *SeriesService) SetEpisodeWatched(mId int, sNo int, eNo int, source string) (int, error) {
 
 	status, err := srv.db.SeriesStatusGet(mId)
 
@@ -479,7 +568,7 @@ func (srv *SeriesService) SetEpisodeWatched(mId int, sNo int, eNo int) (int, err
 
 	if status == db.TvStatusNotWatching {
 		slog.Debug("Tv show isn't added, creating a record for tracking", "mId", mId)
-		_, err := srv.Add(mId)
+		_, err := srv.Add(mId, db.SourceUI)
 		if err != nil {
 			return -1, err
 		}
@@ -499,6 +588,7 @@ func (srv *SeriesService) SetEpisodeWatched(mId int, sNo int, eNo int) (int, err
 		Season:     ep.Season,
 		Episode:    ep.Episode,
 		Runtime:    ep.Runtime,
+		Source:     source,
 	}
 
 	return srv.db.SeriesTrackedEpsAdd(&trackItem)
@@ -571,4 +661,67 @@ func (srv *SeriesService) deriveStatus(mId int, cur db.TvStatus) (db.TvStatus, e
 		}
 	}
 	return rv, nil
+}
+
+func (srv *SeriesService) IptImportTvTimeSeries(zipPath string) (int, int, error) {
+	srs, eps, err := srv.ipt.ImportTvTimeSeries(zipPath)
+	if err != nil {
+		return 0, 0, err
+	}
+	slog.Info("IMPORT", "series_processed", srs, "episodes_processed", eps)
+	return srs, eps, err
+}
+
+func (srv *SeriesService) IptGetUnmatchedTvTimeSeries() ([]*ImportedSeries, error) {
+	return srv.ipt.GetUnmatched()
+}
+
+func (srv *SeriesService) IptImportMatchedAndDelete(tvTimeSId int, mId int) error {
+	err := srv.ipt.Match(tvTimeSId, mId)
+	if err != nil {
+		return err
+	}
+	srs, teps, err := srv.ipt.GetMatched()
+	if err != nil {
+		return err
+	}
+
+	slog.Debug("MatchAndDelete - Matched Count", "series", len(srs), "episodes", len(teps))
+
+	for _, s := range srs {
+		is, err := srv.AddImportedSeries(s)
+		if err != nil {
+			slog.Error("MatchAndDelete - Series - Failed to add", "Name", s.Name, "Error", err)
+			continue
+		}
+		slog.Debug("MatchAndDelete - Series - Added", "Name", s.Name, "Added", is.Name)
+
+		delCnt, err := srv.ipt.DeleteSeries(s.Key)
+		if err != nil {
+			slog.Error("MatchAndDelete - Series - Failed to delete", "Name", s.Name, "Error", err)
+			continue
+		}
+		slog.Debug("MatchAndDelete - Series - Deleted", "Name", s.Name, "DeletedCnt", delCnt)
+	}
+
+	for _, te := range teps {
+		insertId, err := srv.AddImportedEpisode(te)
+
+		if err != nil {
+			slog.Error("MatchAndDelete - Episode - Failed to add", "Name", te.SeriesName, "Season", te.Season, "Episode", te.Episode, "Error", err)
+			continue
+		}
+
+		slog.Debug("MatchAndDelete - Episode - Added", "Name", te.SeriesName, "Season", te.Season, "Episode", te.Episode, "Added", insertId)
+
+		delCnt, err := srv.ipt.DeleteTrackedEps(te.Key)
+		if err != nil {
+			slog.Error("MatchAndDelete - Episode - Failed to delete", "Name", te.SeriesName, "Season", te.Season, "Episode", te.Episode, "Error", err)
+			continue
+		}
+		slog.Debug("MatchAndDelete - Episode - Deleted", "Name", te.SeriesName, "Season", te.Season, "Episode", te.Episode, "DeletedCnt", delCnt)
+
+	}
+
+	return nil
 }

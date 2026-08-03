@@ -180,3 +180,15 @@ func (db *DbSqlite) SeriesStatusUpdate(mId int, newStatus TvStatus) error {
 
 	return err
 }
+
+func (db *DbSqlite) ImportedSeriesCheck(key string) (bool, error) {
+	var cnt int64
+	err := db.orm.Model(&TvSeries{}).Where("source_key = ?", key).Where("source = ?", SourceImport).Count(&cnt).Error
+	return cnt > 0, err
+}
+
+func (db *DbSqlite) ImportedTrackedEpsCheck(key string) (bool, error) {
+	var cnt int64
+	err := db.orm.Model(&TvTrackedEps{}).Where("source_key = ?", key).Where("source = ?", SourceImport).Count(&cnt).Error
+	return cnt > 0, err
+}

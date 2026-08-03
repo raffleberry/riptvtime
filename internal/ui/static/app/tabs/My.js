@@ -1,28 +1,18 @@
-import { PAGE, theme } from "../utils.js";
-import { onMounted, ref } from "../vue.js";
-
+import { PAGE, theme } from "../utils.js"
+import { onMounted, ref } from "../vue.js"
 
 const My = {
-    props: {
+  props: {},
+  components: {},
+  setup: (props) => {
+    onMounted(() => {})
 
-    },
-    components: {
-
-    },
-    setup: (props) => {
-
-        onMounted(() => {
-        });
-
-
-        return {
-        }
-    },
-    template: `
+    return {}
+  },
+  template: /* HTML */ `
     <div>
-        <h1>My</h1>
+      <h1>My</h1>
     </div>
-    `
+  `,
 }
-export { My };
-
+export { My }

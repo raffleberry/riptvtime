@@ -1,119 +1,119 @@
 /* Firefox */
 * {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(13, 110, 253, 1) whitesmoke;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(13, 110, 253, 1) whitesmoke;
 }
 
 /*Chrome, Edge, and Safari */
 *::-webkit-scrollbar {
-    width: 12px;
+  width: 12px;
 }
 
 *::-webkit-scrollbar-track {
-    background: whitesmoke;
+  background: whitesmoke;
 }
 
 *::-webkit-scrollbar-thumb {
-    background-color: rgba(13, 110, 253, 1);
-    border-radius: 20px;
-    border: 3px solid whitesmoke;
+  background-color: rgba(13, 110, 253, 1);
+  border-radius: 20px;
+  border: 3px solid whitesmoke;
 }
 
 .preformat {
-    text-wrap: pretty;
-    white-space: pre-line;
+  text-wrap: pretty;
+  white-space: pre-line;
 }
 
 .now-playing-artwork-container {
-    height: 60vh;
-    align-self: self-start;
-    padding-top: 32px;
-    position: sticky;
-    top: 20px;
+  height: 60vh;
+  align-self: self-start;
+  padding-top: 32px;
+  position: sticky;
+  top: 20px;
 }
 
 @media (max-width: 768px) {
-    .now-playing-artwork-container {
-        position: static;
-        margin-bottom: 20px;
-    }
+  .now-playing-artwork-container {
+    position: static;
+    margin-bottom: 20px;
+  }
 }
 
 .router-text-link {
-    color: inherit;
-    /* match normal text */
-    text-decoration: none;
-    /* remove underline */
-    cursor: text;
-    /* normal text cursor */
+  color: inherit;
+  /* match normal text */
+  text-decoration: none;
+  /* remove underline */
+  cursor: text;
+  /* normal text cursor */
 }
 
 .router-text-link:hover {
-    color: var(--bs-link-color);
-    /* Bootstrap's link color */
-    text-decoration: underline;
-    /* underline on hover */
-    cursor: pointer;
-    /* pointer cursor on hover */
+  color: var(--bs-link-color);
+  /* Bootstrap's link color */
+  text-decoration: underline;
+  /* underline on hover */
+  cursor: pointer;
+  /* pointer cursor on hover */
 }
 
 .ellipsis-2 {
-    display: -webkit-box;
-    display: box;
-    -webkit-box-orient: vertical;
-    box-orient: vertical;
+  display: -webkit-box;
+  display: box;
+  -webkit-box-orient: vertical;
+  box-orient: vertical;
 
-    -webkit-line-clamp: 2;
-    /* Safari, Chrome, etc. */
-    line-clamp: 2;
-    /* Future standard */
+  -webkit-line-clamp: 2;
+  /* Safari, Chrome, etc. */
+  line-clamp: 2;
+  /* Future standard */
 
-    overflow: hidden;
+  overflow: hidden;
 }
 
 .invisible {
-    visibility: hidden;
+  visibility: hidden;
 }
 
 @keyframes shimmer {
-    0% {
-        background-position: -200% 0;
-    }
+  0% {
+    background-position: -200% 0;
+  }
 
-    100% {
-        background-position: 200% 0;
-    }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 @keyframes pulseActive {
-    0% {
-        background-color: var(--bs-primary);
-    }
+  0% {
+    background-color: var(--bs-primary);
+  }
 
-    50% {
-        background-color: var(--bs-primary-bg-subtle);
-    }
+  50% {
+    background-color: var(--bs-primary-bg-subtle);
+  }
 
-    100% {
-        background-color: var(--bs-primary);
-    }
+  100% {
+    background-color: var(--bs-primary);
+  }
 }
 
 .list-group-item.active.playing {
-    position: relative;
-    color: #fff;
-    background: linear-gradient(110deg,
-            var(--bs-primary) 25%,
-            #854fca 50%,
-            var(--bs-primary) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 10s linear infinite;
+  position: relative;
+  color: #fff;
+  background: linear-gradient(110deg, var(--bs-primary) 25%, #854fca 50%, var(--bs-primary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 10s linear infinite;
 }
 
 /* Base state during fade-out animation */
 .offcanvas-backdrop.fade,
 .modal-backdrop.fade {
-  transition: backdrop-filter 0.3s ease-in-out, background-color 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  transition:
+    backdrop-filter 0.3s ease-in-out,
+    background-color 0.3s ease-in-out,
+    opacity 0.3s ease-in-out;
   backdrop-filter: blur(0px) saturate(100%);
   -webkit-backdrop-filter: blur(0px) saturate(100%);
   background-color: rgba(255, 255, 255, 0) !important;
@@ -140,5 +140,3 @@
   -webkit-backdrop-filter: blur(6px) saturate(100%);
   background-color: rgba(0, 0, 0, 0.2) !important;
 }
-
-

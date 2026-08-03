@@ -17,8 +17,9 @@ import (
 )
 
 type Context struct {
-	W http.ResponseWriter
-	R *http.Request
+	W          http.ResponseWriter
+	R          *http.Request
+	StatusCode int
 }
 
 func WithCtx(handler func(*Context) error) http.HandlerFunc {
@@ -27,8 +28,11 @@ func WithCtx(handler func(*Context) error) http.HandlerFunc {
 		ctx := &Context{W: w, R: r}
 		err := handler(ctx)
 		if err != nil && !errors.Is(err, syscall.EPIPE) {
+			if ctx.StatusCode == 0 {
+				ctx.StatusCode = http.StatusInternalServerError
+			}
 			slog.Error("Error while handling request", "uri", r.RequestURI, "err", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), ctx.StatusCode)
 		}
 	}
 }

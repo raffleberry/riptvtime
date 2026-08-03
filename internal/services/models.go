@@ -44,3 +44,7 @@ type SeriesTracked struct {
 	db.TvSeries
 	InProduction bool
 }
+
+type ImportedData struct {
+	TvTimeSeries []*ImportedSeries
+}

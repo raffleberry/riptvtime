@@ -69,6 +69,7 @@ func (t *MetaTmdb) Search(query string, page int) (*TvSearchResults, error) {
 			Overview: v.Overview,
 			Year:     parseYear(v.FirstAirDate),
 			MName:    t.Name(),
+			Image:    v.PosterPath,
 		})
 	}
 

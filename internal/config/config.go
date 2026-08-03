@@ -22,7 +22,8 @@ type Config struct {
 	Port       int
 	TmdbApiKey string
 
-	ConfigDir string
+	ConfigDir    string
+	ImportTmpDir string
 }
 
 func setConfigDir(c *Config) {
@@ -31,7 +32,14 @@ func setConfigDir(c *Config) {
 		log.Fatalf("Error getting user config dir: %v\n", err)
 	}
 	c.ConfigDir = filepath.Join(conf, "riptvtime")
+
+	c.ImportTmpDir = filepath.Join(os.TempDir(), "riptvtime_import_tmp")
+
 	err = os.MkdirAll(c.ConfigDir, 0755)
+	if err != nil {
+		log.Fatalf("Error creating user config dir: %v - %v\n", conf, err)
+	}
+	err = os.MkdirAll(c.ImportTmpDir, 0755)
 	if err != nil {
 		log.Fatalf("Error creating user config dir: %v - %v\n", conf, err)
 	}
