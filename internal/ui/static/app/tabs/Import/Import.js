@@ -138,11 +138,11 @@ const Import = {
     }
   },
   template: /* HTML */ `
-    <div class="container mt-4">
+    <div class="mt-4">
       <div class="position-relative">
         <div
           v-if="Mloading"
-          class="mx-3 position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-body bg-opacity-25 rounded"
+          class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-body bg-opacity-25 rounded"
           style="z-index: 11; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);"
         >
           <div class="spinner-border" role="status">

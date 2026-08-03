@@ -53,7 +53,6 @@ export const SearchTileOpts = {
       // })
 
       el.addEventListener("hidden.bs.offcanvas", () => {
-        console.log("selected.value = {}", selected.value)
         selected.value = {}
       })
     })

@@ -51,7 +51,6 @@ export const useSeriesStore = defineStore("series", () => {
     if (tSeries.value[mId].TrackingStatus === TvStatus.Stopped) {
       return
     }
-    console.log("updating")
     let cnt = getWatchedEpsCnt()
     if (cnt === sd.value.EpisodesAired) {
       if (sd.value.InProduction) {
@@ -117,7 +116,6 @@ export const useSeriesStore = defineStore("series", () => {
       }
 
       const idx = watchedEps.value.findIndex((ep) => ep.S === sNo && ep.E === epNo)
-      console.log(watchedEps.value, idx)
       if (idx !== -1) {
         watchedEps.value.splice(idx, 1)
         updateTrackingStore(mId)
@@ -138,7 +136,6 @@ export const useSeriesStore = defineStore("series", () => {
       if (err) {
         throw err
       }
-      console.log("Adding")
       updateTrackingStore(mId)
     } catch (error) {
       console.error(error)

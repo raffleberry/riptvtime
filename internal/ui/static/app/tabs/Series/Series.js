@@ -28,7 +28,6 @@ const Series = {
 
     const status = computed(() => {
       let ob = series.value?.[Id.value]
-      console.log("status ", series.value[Id.value])
       if (ob) {
         return ob.TrackingStatus
       }

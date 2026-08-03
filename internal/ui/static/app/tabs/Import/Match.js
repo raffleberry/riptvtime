@@ -24,7 +24,6 @@ const Match = {
       if (!props.series || props.series.length === 0) {
         return {}
       }
-      searchTerm.value = props.series[0].Name
       return props.series[0]
     })
 
@@ -33,7 +32,7 @@ const Match = {
 
     const loading = ref(false)
 
-    watch(searchTerm, async () => {
+    const handleSearch = async () => {
       try {
         if (!searchTerm.value) return
         loading.value = true
@@ -48,16 +47,25 @@ const Match = {
         } else {
           searchResults.value = data.Results
         }
-        searchResultsImgLoaded.value = new Array(data.Results.length).fill(false)
+        searchResultsImgLoaded.value = new Array(searchResults.value.length).fill(false)
       } catch (e) {
         notifyError(e)
       } finally {
         loading.value = false
       }
-    })
+    }
+
+    watch(
+      () => props.series,
+      () => {
+        if (props.series.length === 0) return
+        searchTerm.value = props.series[0].Name.replace(/ \(\s*\d{4}\s*\)\s*/g, "")
+        handleSearch()
+      },
+      { immediate: true },
+    )
 
     const onMatchDone = (TvTimeSId, MId) => {
-      console.log(TvTimeSId, MId)
       ctx.emit("matchDone", { TvTimeSId, MId })
     }
 
@@ -69,6 +77,8 @@ const Match = {
       loading,
       onMatchDone,
       selected,
+      searchTerm,
+      handleSearch,
     }
   },
   template: /* HTML */ `
@@ -90,6 +100,25 @@ const Match = {
           <p v-if="!selected">Please Select the correct one:</p>
         </div>
 
+        <div class="row my-2 px-0">
+          <div class="input-group search-container">
+            <input
+              v-model="searchTerm"
+              type="text"
+              class="form-control search-input"
+              placeholder="Search..."
+              @keyup.enter="handleSearch"
+            />
+            <button
+              class="btn btn-outline-primary"
+              type="button"
+              id="searchButton"
+              @click="handleSearch"
+            >
+              <i class="bi bi-search"></i>
+            </button>
+          </div>
+        </div>
         <div
           v-if="loading"
           class="d-flex flex-row justify-content-center align-items-center"
@@ -99,8 +128,16 @@ const Match = {
             <span class="visually-hidden">Loading...</span>
           </div>
         </div>
-
-        <div v-else class="row flex-nowrap overflow-x-auto pb-2">
+        <div
+          v-if="!loading && sr.length == 0"
+          class="d-flex justify-content-center align-items-center"
+        >
+          <h2>No Results</h2>
+        </div>
+        <div
+          v-if="!loading && sr.length > 0"
+          class="mx-0 pb-2 row d-flex flex-nowrap overflow-x-auto"
+        >
           <div
             v-for="(r, idx) in sr"
             class="me-3 d-flex flex-column justify-content-between card p-1"
@@ -110,7 +147,7 @@ const Match = {
           >
             <div class="position-relative" style="min-height: 320px;">
               <div
-                v-if="!srl[idx]"
+                v-if="!srl[idx] && r.Image"
                 class="position-absolute top-50 start-50 translate-middle spinner-border text-secondary"
                 role="status"
               >
@@ -120,13 +157,14 @@ const Match = {
                 :src="imgUrl(r.Image)"
                 loading="lazy"
                 class="img-fluid rounded"
-                alt="image"
+                :alt="r.Name"
                 @load="srl[idx] = true"
               />
             </div>
             <div class="text-center mt-2">{{ r.Name }} ({{r.Year}})</div>
           </div>
         </div>
+        <div v-if="selected" class="row"><p>Overview: {{selected?.Overview}}</p></div>
       </div>
     </div>
   `,

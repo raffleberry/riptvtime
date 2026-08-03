@@ -91,7 +91,7 @@ const Upload = {
     <h4 class="mt-4">Upload</h4>
 
     <div
-      class="card text-center p-5 border-2 position-relative"
+      class="mb-3 card text-center p-5 border-2 position-relative"
       :class="[
                 isDragging ? 'border-primary bg-primary bg-opacity-10' : 'border-secondary-subtle bg-body-tertiary',
                 isUploading ? 'opacity-75' : ''
