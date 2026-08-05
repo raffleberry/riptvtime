@@ -192,3 +192,11 @@ func (db *DbSqlite) ImportedTrackedEpsCheck(key string) (bool, error) {
 	err := db.orm.Model(&TvTrackedEps{}).Where("source_key = ?", key).Where("source = ?", SourceImport).Count(&cnt).Error
 	return cnt > 0, err
 }
+
+func (db *DbSqlite) SeriesStatsTotal() (int, error) {
+	var res struct {
+		Total int
+	}
+	err := db.orm.Model(&TvTrackedEps{}).Select("sum(runtime) as total").First(&res).Error
+	return res.Total, err
+}

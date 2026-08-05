@@ -132,4 +132,6 @@ type Db interface {
 
 	ImportedSeriesCheck(key string) (bool, error)
 	ImportedTrackedEpsCheck(key string) (bool, error)
+
+	SeriesStatsTotal() (int, error)
 }

@@ -928,3 +928,7 @@ func (srv *SeriesService) cGetEpisodeFromTvTimeId(tvTimeId int) (*meta.TvEpisode
 func (srv *SeriesService) IptGetUnresolved() (*ImportedData, error) {
 	return srv.ipt.GetUnresolved()
 }
+
+func (srv *SeriesService) StatsTotal() (int, error) {
+	return srv.db.SeriesStatsTotal()
+}

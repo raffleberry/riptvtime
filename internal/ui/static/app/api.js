@@ -40,6 +40,9 @@ const ENDPOINT = Object.freeze({
   STATE: () => {
     return `/api/state`
   },
+  STATS_TOTAL: () => {
+    return `/api/stats/total`
+  },
 })
 
 export const apiSearchTv = async (search, page) => {
@@ -366,6 +369,26 @@ export const apiImportMatch = async (TvTimeSId, MId) => {
     if (!res.ok) {
       const errTxt = await res.text()
       return new Error(`Error, response from server: ${res.status} - ${errTxt}`)
+    }
+  } catch (error) {
+    console.error(error)
+    return error
+  }
+  return null
+}
+
+export const apiGetStatsTotal = async () => {
+  try {
+    const res = await fetch(ENDPOINT.STATS_TOTAL())
+    if (!res.ok) {
+      const errTxt = await res.text()
+      return {
+        err: new Error(`Error, response from server: ${res.status} - ${errTxt}`),
+      }
+    }
+    const data = await res.json()
+    return {
+      data: data,
     }
   } catch (error) {
     console.error(error)

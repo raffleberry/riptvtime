@@ -312,3 +312,15 @@ func (a *Api) SeriesImportMatchAndRemove() http.HandlerFunc {
 		return nil
 	})
 }
+
+func (a *Api) SeriesStatsTotal() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		v, err := a.tv.StatsTotal()
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, struct {
+			Total int
+		}{v})
+	})
+}

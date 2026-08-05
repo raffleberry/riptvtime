@@ -67,6 +67,7 @@ func NewApi(db db.Db, meta meta.Meta, tv *services.SeriesService, cfg *config.Co
 	})
 	mux.HandleFunc("GET /api/import/list", a.SeriesImportDataUnresolved())
 	mux.HandleFunc("PUT /api/import/match", a.SeriesImportMatchAndRemove())
+	mux.HandleFunc("GET /api/stats/total", a.SeriesStatsTotal())
 
 	mux.HandleFunc("GET /api/state", a.GetState())
 	// mux.HandleFunc("GET /api/series/{tmdbId}/{episode}", a.SeriesEpisodeGet())

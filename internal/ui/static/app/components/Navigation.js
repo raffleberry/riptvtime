@@ -25,7 +25,7 @@ const Navigation = {
     }
   },
   template: /* HTML */ `
-    <div class="nav nav-pills py-2 nav-fill d-flex justify-content-between bg-body">
+    <div class="mx-2 nav nav-pills py-2 nav-fill d-flex justify-content-between bg-body">
       <div class="d-flex flex-row flex-wrap">
         <li v-for="tab in tabs" :key="tab.path" class="nav-item">
           <router-link class="nav-link" :class="{ active: tab.path === curPath }" :to="tab.path"
