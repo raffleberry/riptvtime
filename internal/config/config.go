@@ -24,6 +24,8 @@ type Config struct {
 
 	ConfigDir    string
 	ImportTmpDir string
+
+	TmdbMaxRetries int
 }
 
 func setConfigDir(c *Config) {
@@ -81,6 +83,12 @@ func LoadFromFile(path string) (*Config, error) {
 			}
 		case "tmdbapikey":
 			c.TmdbApiKey = kv[1]
+
+		case "tmdbmaxretries":
+			c.TmdbMaxRetries, err = strconv.Atoi(kv[1])
+			if err != nil {
+				return nil, fmt.Errorf("Invalid TmdbMaxRetries: %v", err.Error())
+			}
 		default:
 			return nil, errInvalidKV
 		}
@@ -112,6 +120,12 @@ func LoadFromEnv() (*Config, error) {
 
 	if len(c.TmdbApiKey) == 0 {
 		return nil, errTmdbKey
+	}
+
+	c.TmdbMaxRetries, err = strconv.Atoi(os.Getenv("TMDB_MAX_RETRIES"))
+	if err != nil {
+		c.TmdbMaxRetries = 10
+		slog.Warn("invalid `TMDB_MAX_RETRIES` in environment, setting default value", "retries", c.TmdbMaxRetries)
 	}
 
 	return c, nil

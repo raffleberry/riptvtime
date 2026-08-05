@@ -177,6 +177,69 @@ func (t *MetaTmdb) GetTVEpisodeDetails(tmdbId int, season int, episode int) (*Tv
 	}, err
 }
 
+func (t *MetaTmdb) GetTVFromTvTimeId(tvTimeId int) (*TvDetails, error) {
+	var rv TvDetails
+
+	opts := map[string]string{
+		"external_source": "tvdb_id",
+	}
+	res, err := t.c.GetFindByID(strconv.Itoa(tvTimeId), opts)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(res.TvResults) == 0 {
+		return nil, ErrNotFound
+	} else if len(res.TvResults) == 1 {
+		tv := res.TvResults[0]
+		rv = TvDetails{
+			Id:       int(tv.ID),
+			Name:     tv.Name,
+			Overview: tv.Overview,
+			Year:     parseYear(tv.FirstAirDate),
+			MName:    t.Name(),
+		}
+	} else {
+		return nil, ErrConfused
+	}
+
+	return &rv, nil
+}
+
+func (t *MetaTmdb) GetEpisodeFromTvTimeId(tvTimeEId int) (*TvEpisode, error) {
+	var rv TvEpisode
+
+	opts := map[string]string{
+		"external_source": "tvdb_id",
+	}
+	res, err := t.c.GetFindByID(strconv.Itoa(tvTimeEId), opts)
+
+	if err != nil {
+		return nil, err
+	}
+	if len(res.TvEpisodeResults) == 0 {
+		return nil, ErrNotFound
+	} else if len(res.TvEpisodeResults) == 1 {
+		ep := res.TvEpisodeResults[0]
+		rv = TvEpisode{
+			Id:            int(ep.ID),
+			ShowId:        int(ep.ShowID),
+			Name:          ep.Name,
+			Overview:      ep.Overview,
+			SeasonNumber:  ep.SeasonNumber,
+			EpisodeNumber: ep.EpisodeNumber,
+			AirDate:       parseAirDate(ep.AirDate),
+			Year:          parseYear(ep.AirDate),
+			MName:         t.Name(),
+		}
+	} else {
+		return nil, ErrConfused
+	}
+
+	return &rv, nil
+}
+
 func NewTmdbMeta(c *config.Config) *MetaTmdb {
 	m := &MetaTmdb{}
 	var err error
@@ -185,7 +248,7 @@ func NewTmdbMeta(c *config.Config) *MetaTmdb {
 	m.c.SetClientAutoRetry()
 
 	retryClient := retryablehttp.NewClient()
-	retryClient.RetryMax = 5
+	retryClient.RetryMax = c.TmdbMaxRetries
 
 	m.c.SetClientConfig(*retryClient.StandardClient())
 

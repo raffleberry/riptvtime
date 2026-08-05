@@ -46,5 +46,6 @@ type SeriesTracked struct {
 }
 
 type ImportedData struct {
-	TvTimeSeries []*ImportedSeries
+	Series   []*ImportedSeries
+	Episodes []*ImportedTrackedEps
 }

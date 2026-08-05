@@ -1,4 +1,4 @@
-import { apiGetState, apiGetUnMatchedImportList, apiImportMatch } from "../../api.js"
+import { apiGetState, apiGetUnMatchedImportData, apiImportMatch } from "../../api.js"
 import { notifyError } from "../../components/Error.js"
 import { PAGE, theme } from "../../utils.js"
 import { computed, onMounted, ref, watch } from "../../vue.js"
@@ -17,9 +17,10 @@ const Import = {
     const unMatched = ref([])
 
     const refresh = async () => {
+      return // TODO
       try {
         Mloading.value = true
-        const { data, err } = await apiGetUnMatchedImportList()
+        const { data, err } = await apiGetUnMatchedImportData()
         if (err) {
           throw err
         }
@@ -40,17 +41,28 @@ const Import = {
     const successAlert = ref(false)
 
     const state = ref({
-      IUploadingSrsCnt: 0,
-      IUploadingSrsCntTotal: 0,
-      IUploadingEpsCnt: 0,
-      IUploadingEpsCntTotal: 0,
-      IUploadActive: false,
-      IUploadError: null,
+      UploadingSrsCnt: 0,
+      UploadingSrsCntTotal: 0,
+
+      UploadingEpsCnt: 0,
+      UploadingEpsCntTotal: 0,
+
+      ProcessingSrsCnt: 0,
+      ProcessingSrsCntTotal: 0,
+
+      ProcessingEpsCnt: 0,
+      ProcessingEpsCntTotal: 0,
+
+      Stage: 0,
+      StageCnt: 2,
+
+      uploadActive: false,
+      uploadError: null,
     })
 
     watch(state, (nv, ov) => {
-      if (!nv.IUploadActive && ov.IUploadActive) {
-        if (!nv.IUploadError) {
+      if (!nv.uploadActive && ov.uploadActive) {
+        if (!nv.uploadError) {
           successAlert.value = true
         }
         clearInterval(pollStateId.value)
@@ -58,12 +70,19 @@ const Import = {
       }
     })
 
-    const IUploadProgress = computed(() => {
-      return (
-        ((state.value.IUploadingSrsCnt + state.value.IUploadingEpsCnt) /
-          (state.value.IUploadingSrsCntTotal + state.value.IUploadingEpsCntTotal)) *
-        100
-      )
+    const totalProgress = computed(() => {
+      const num =
+        state.value.UploadingSrsCnt +
+        state.value.UploadingEpsCnt +
+        state.value.ProcessingSrsCnt +
+        state.value.ProcessingEpsCnt
+      const deno =
+        state.value.UploadingSrsCntTotal +
+        state.value.UploadingEpsCntTotal +
+        state.value.ProcessingSrsCntTotal +
+        state.value.ProcessingEpsCntTotal
+      if (deno == 0) return 0
+      return (num / deno) * 100
     })
 
     onMounted(() => {
@@ -77,12 +96,13 @@ const Import = {
 
     const getState = async () => {
       const { data, err } = await apiGetState()
+      // if network error, then let theUI KNOW
       if (err) {
         if (errCnt++ > 3) {
           clearInterval(pollStateId.value)
           pollStateId.value = null
-          state.value.IUploadError = err.message
-          state.value.IUploadActive = false
+          state.value.uploadError = err.message
+          state.value.uploadActive = false
           Uloading.value = false
         }
         console.log(err)
@@ -93,7 +113,7 @@ const Import = {
 
     const onUploadStart = () => {
       successAlert.value = false
-      state.value.IUploadError = null
+      state.value.uploadError = null
       Uloading.value = true
     }
 
@@ -105,6 +125,7 @@ const Import = {
       }
       pollStateId.value = setInterval(getState, 2000)
     }
+    window.poll = onUploadDone
 
     const onMatchDone = async ({ TvTimeSId, MId }) => {
       try {
@@ -133,7 +154,7 @@ const Import = {
       onUploadDone,
       state,
       pollStateId,
-      IUploadProgress,
+      totalProgress,
       successAlert,
     }
   },
@@ -149,22 +170,28 @@ const Import = {
             <span class="visually-hidden">Loading...</span>
           </div>
         </div>
-        <Match v-if="unMatched?.length > 0" :series="unMatched" @match-done="onMatchDone"></Match>
+        <!-- TODO
+        <Match
+          v-if="unMatched.Series?.length > 0 || unMatched.Episodes?.length > 0"
+          :data="unMatched"
+          @match-done="onMatchDone"
+        ></Match>
+        -->
       </div>
 
       <div v-if="successAlert" class="alert alert-success" role="alert">
         <i class="bi bi-check-circle-fill text-success"></i>
-        Processed {{ state.IUploadingSrsCnt + state.IUploadingEpsCnt }} records
+        Processed {{ state.ProcessingSrsCnt + state.ProcessingEpsCnt }} records
       </div>
 
-      <div v-if="state.IUploadError" class="alert alert-danger" role="alert">
+      <div v-if="state.uploadError" class="alert alert-danger" role="alert">
         <i class="bi bi-x-circle-fill text-danger"></i>
-        {{ state.IUploadError }}
+        {{ state.uploadError }}
       </div>
       <div v-if="pollStateId" class="progress" style="height: 6px;" style="z-index: 12;">
         <div
           class="progress-bar progress-bar-striped progress-bar-animated"
-          :style="{ width: IUploadProgress + '%' }"
+          :style="{ width: totalProgress + '%' }"
         ></div>
       </div>
 
@@ -174,12 +201,21 @@ const Import = {
           class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-body bg-opacity-75 rounded"
           style="z-index: 11; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);"
         >
-          <p class="text-center">
-            Series: {{ state.IUploadingSrsCnt }} / {{ state.IUploadingSrsCntTotal }}
-          </p>
-          <p class="text-center">
-            Episodes: {{ state.IUploadingEpsCnt }} / {{ state.IUploadingEpsCntTotal }}
-          </p>
+          <div>
+            <p class="text-center">Stage: {{ state.Stage }} / {{ state.StageCnt }}</p>
+            <p v-if="state.Stage == 1" class="text-center">
+              Series: {{ state.UploadingSrsCnt }} / {{ state.UploadingSrsCntTotal }}
+            </p>
+            <p v-if="state.Stage == 1" class="text-center">
+              Episodes: {{ state.UploadingEpsCnt }} / {{ state.UploadingEpsCntTotal }}
+            </p>
+            <p v-if="state.Stage == 2" class="text-center">
+              Series: {{ state.ProcessingSrsCnt }} / {{ state.ProcessingSrsCntTotal }}
+            </p>
+            <p v-if="state.Stage == 2" class="text-center">
+              Episodes: {{ state.ProcessingEpsCnt }} / {{ state.ProcessingEpsCntTotal }}
+            </p>
+          </div>
         </div>
 
         <Upload

@@ -13,7 +13,7 @@ import (
 
 	"github.com/raffleberry/riptvtime/internal/db"
 	"github.com/raffleberry/riptvtime/internal/meta"
-	"github.com/raffleberry/riptvtime/internal/utils"
+	"github.com/raffleberry/riptvtime/internal/services/state"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -438,49 +438,6 @@ func (srv *SeriesService) Add(mId int, source string) (*db.TvSeries, error) {
 	return tvDb, err
 }
 
-func (srv *SeriesService) AddImportedSeries(iSrs *ImportedSeries) (*db.TvSeries, error) {
-
-	exists, err := srv.db.ImportedSeriesCheck(iSrs.Key)
-	if err != nil {
-		return nil, err
-	}
-
-	if exists {
-		return nil, ErrDuplicate
-	}
-
-	if iSrs.MId == 0 {
-		return nil, errors.Join(ErrInvalidData, errors.New("Missing MId"))
-	}
-
-	tvM, err := srv.GetDetails(iSrs.MId, false)
-	if err != nil {
-		return nil, err
-	}
-
-	ts := db.TvStatusWatching
-	if iSrs.IsStopped {
-		ts = db.TvStatusStopped
-	}
-
-	tvDb := &db.TvSeries{
-		MName:          srv.meta.Name(),
-		MId:            int64(tvM.Id),
-		Name:           tvM.Name,
-		Overview:       tvM.Overview,
-		Year:           tvM.Year,
-		TrackingStatus: ts,
-		RuntimeApprox:  tvM.LastEpisodeToAir.Runtime,
-		Source:         db.SourceImport,
-		SourceKey:      iSrs.Key,
-	}
-	tvDb.CreatedAt = iSrs.CreatedAt
-
-	_, err = srv.db.SeriesAdd(tvDb)
-
-	return tvDb, err
-}
-
 func (srv *SeriesService) AddImportedEpisode(iep *ImportedTrackedEps) (int, error) {
 
 	exists, err := srv.db.ImportedTrackedEpsCheck(iep.Key)
@@ -601,8 +558,8 @@ func (srv *SeriesService) cacheSeasonInDb(mId int, season int) (*db.TvSeason, er
 	sn, err := srv.db.SeriesSeasonGet(mId, season)
 
 	if errors.Is(err, db.ErrNotFound) {
+		slog.Debug("Caching Tv Season in Db", "mId", mId, "season", season)
 		mSd, err := srv.meta.GetTVSeasonDetails(mId, season)
-		slog.Debug("Caching Tv Season in Db", "name", mSd.Name, "MSource", srv.meta.Name(), "MId", mId, "Season", mSd.SeasonNumber, "Episodes", len(mSd.Episodes))
 		if err != nil {
 			return nil, err
 		}
@@ -625,20 +582,23 @@ func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int) (*d
 	}
 
 	if !errors.Is(err, db.ErrNotFound) {
-		return nil, errors.Join(err, errors.New(utils.Jn("err while getting ep details", id, season, episode)))
+		slog.Error("err while getting ep details", "id", id, "season", season, "episode", episode)
+		return nil, err
 	}
 
 	sn, err := srv.cacheSeasonInDb(id, season)
 
 	if err != nil {
-		return nil, errors.Join(err, errors.New(utils.Jn("Coudn't cache season", "season", season, "error", err)))
+		slog.Error("Coudn't cache season", "season", season, "error", err)
+		return nil, err
 	}
 	idx := slices.IndexFunc(sn.Episodes, func(x db.TvEpisode) bool {
 		return (x.Episode == episode)
 	})
 
 	if idx == -1 {
-		return nil, fmt.Errorf("%w: Episode %d Not Found in slice returned by db", ErrNotFound, episode)
+		slog.Error("Episode not found in season", "mId", id, "season", season, "episode", episode)
+		return nil, ErrNotFound
 	}
 
 	return &sn.Episodes[idx], err
@@ -663,65 +623,308 @@ func (srv *SeriesService) deriveStatus(mId int, cur db.TvStatus) (db.TvStatus, e
 	return rv, nil
 }
 
-func (srv *SeriesService) IptImportTvTimeSeries(zipPath string) (int, int, error) {
-	srs, eps, err := srv.ipt.ImportTvTimeSeries(zipPath)
-	if err != nil {
-		return 0, 0, err
-	}
-	slog.Info("IMPORT", "series_processed", srs, "episodes_processed", eps)
-	return srs, eps, err
-}
+func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 
-func (srv *SeriesService) IptGetUnmatchedTvTimeSeries() ([]*ImportedSeries, error) {
-	return srv.ipt.GetUnmatched()
-}
-
-func (srv *SeriesService) IptImportMatchedAndDelete(tvTimeSId int, mId int) error {
-	err := srv.ipt.Match(tvTimeSId, mId)
-	if err != nil {
-		return err
+	state.Import.StageCnt = 2
+	state.Import.Stage = 1
+	if zipPath != "" {
+		spc, epc, err := srv.ipt.DumpTvTimeGdprData(zipPath)
+		if err != nil {
+			return err
+		}
+		slog.Info("IMPORTED COUNT", "series_processed_count", spc, "episodes_processed_count", epc)
 	}
-	srs, teps, err := srv.ipt.GetMatched()
+
+	ids, err := srv.ipt.GetUnmatched()
 	if err != nil {
 		return err
 	}
 
-	slog.Debug("MatchAndDelete - Matched Count", "series", len(srs), "episodes", len(teps))
+	state.Import.ProcessingEpsCntTotal = len(ids.Episodes)
+	state.Import.ProcessingSrsCntTotal = len(ids.Series)
+	state.Import.Stage = 2
 
-	for _, s := range srs {
-		is, err := srv.AddImportedSeries(s)
+	slog.Info("UNMATCHED COUNT", "series", len(ids.Series), "episodes", len(ids.Episodes))
+	slog.Info("Processing", "series", len(ids.Series))
+
+	for _, srs := range ids.Series {
+		state.Import.ProcessingSrsCnt += 1
+
+		exists, err := srv.db.ImportedSeriesCheck(srs.Key)
 		if err != nil {
-			slog.Error("MatchAndDelete - Series - Failed to add", "Name", s.Name, "Error", err)
+			return err
+		}
+
+		if exists {
+			slog.Info("Already processed, skipping", "series", srs.Name, "tvTimeId", srs.TvTimeId)
 			continue
 		}
-		slog.Debug("MatchAndDelete - Series - Added", "Name", s.Name, "Added", is.Name)
 
-		delCnt, err := srv.ipt.DeleteSeries(s.Key)
+		tvd, err := srv.cGetTVFromTvTimeId(srs.TvTimeId)
+
 		if err != nil {
-			slog.Error("MatchAndDelete - Series - Failed to delete", "Name", s.Name, "Error", err)
+			slog.Error("Error getting meta", "series", srs.Name, "tvTimeId", srs.TvTimeId, "error", err)
+			err1 := srv.ipt.SetSeriesUnresolved(srs.Key, err.Error())
+			if err1 != nil {
+				slog.Error("Failed to set series unresolved", "error", err1)
+				return err1
+			}
 			continue
 		}
-		slog.Debug("MatchAndDelete - Series - Deleted", "Name", s.Name, "DeletedCnt", delCnt)
+
+		ts := db.TvStatusWatching
+		if srs.IsStopped {
+			ts = db.TvStatusStopped
+		}
+
+		tvDb := &db.TvSeries{
+			MName:          srv.meta.Name(),
+			MId:            int64(tvd.Id),
+			Name:           tvd.Name,
+			Overview:       tvd.Overview,
+			Year:           tvd.Year,
+			TrackingStatus: ts,
+			RuntimeApprox:  tvd.LastEpisodeToAir.Runtime,
+			Source:         db.SourceImport,
+			SourceKey:      srs.Key,
+		}
+		tvDb.CreatedAt = srs.CreatedAt
+
+		_, err = srv.db.SeriesAdd(tvDb)
+
+		if err != nil {
+			err1 := srv.ipt.SetSeriesUnresolved(srs.Key, err.Error())
+			if err1 != nil {
+				slog.Error("Failed to set series as unresolved", "error", err1)
+				return err1
+			}
+			slog.Error("Error adding series to db", "series", srs.Name, "tvTimeId", srs.TvTimeId, "error", err)
+		} else {
+
+			err1 := srv.ipt.SetImported(srs.Key)
+			if err1 != nil {
+				slog.Warn("Failed to mark episode as imported", "error", err1)
+			}
+			slog.Info("IMPORT match success", "series", srs.Name, "tvTimeId", srs.TvTimeId, srv.meta.Name()+"Id", tvd.Id)
+
+		}
+
 	}
 
-	for _, te := range teps {
-		insertId, err := srv.AddImportedEpisode(te)
+	insertEpisode := func(epd *db.TvEpisode, iep *ImportedTrackedEps) error {
+		trackItem := db.TvTrackedEps{
+			MName:      srv.meta.Name(),
+			EpisodeMId: int64(epd.MId),
+			SeriesMId:  int64(epd.SeriesMId),
+			Name:       epd.Name,
+			Overview:   epd.Overview,
+			Season:     epd.Season,
+			Episode:    epd.Episode,
+			Runtime:    epd.Runtime,
+			Source:     db.SourceImport,
+			SourceKey:  iep.Key,
+		}
+		trackItem.CreatedAt = iep.CreatedAt
 
-		if err != nil {
-			slog.Error("MatchAndDelete - Episode - Failed to add", "Name", te.SeriesName, "Season", te.Season, "Episode", te.Episode, "Error", err)
-			continue
+		_, err := srv.db.SeriesTrackedEpsAdd(&trackItem)
+
+		if err == nil {
+			slog.Info("IMPORT episode match success", "series", iep.SeriesName, "TvTimeId", iep.TvTimeId, "TvTimeEId", iep.TvTimeEId, "MId", epd.MId, "SeriesMId", epd.SeriesMId)
+			err1 := srv.ipt.SetImported(iep.Key)
+			if err1 != nil {
+				slog.Warn("Failed to mark episode as imported", "error", err1)
+			}
+		} else {
+			slog.Error("Error inserting episode to db", "series", iep.SeriesName, "tvTimeId", iep.TvTimeId, "tvTimeEId", iep.TvTimeEId, "error", err)
+			err1 := srv.ipt.SetEpisodeUnresolved(iep.Key, err.Error())
+			if err1 != nil {
+				slog.Error("Fatal - Failed to set episode unresolved", "error", err1)
+				return err1
+			}
 		}
 
-		slog.Debug("MatchAndDelete - Episode - Added", "Name", te.SeriesName, "Season", te.Season, "Episode", te.Episode, "Added", insertId)
-
-		delCnt, err := srv.ipt.DeleteTrackedEps(te.Key)
-		if err != nil {
-			slog.Error("MatchAndDelete - Episode - Failed to delete", "Name", te.SeriesName, "Season", te.Season, "Episode", te.Episode, "Error", err)
-			continue
-		}
-		slog.Debug("MatchAndDelete - Episode - Deleted", "Name", te.SeriesName, "Season", te.Season, "Episode", te.Episode, "DeletedCnt", delCnt)
-
+		return nil
 	}
 
-	return nil
+	for _, iep := range ids.Episodes {
+		state.Import.ProcessingEpsCnt += 1
+
+		exists, err := srv.db.ImportedTrackedEpsCheck(iep.Key)
+		if err != nil {
+			slog.Error("Fatal - Failed to check if imported episode exists in app db", "error", err)
+			return err
+		}
+		if exists {
+			slog.Warn("Already processed, skipping", "episode", iep.SeriesName, "seriesTvTimeId", iep.TvTimeId, "epTvTimeEId", iep.TvTimeEId)
+			continue
+		}
+
+		var epd *db.TvEpisode
+		tvm, err := srv.cGetTVFromTvTimeId(iep.TvTimeId)
+		if err != nil {
+			slog.Error("Error getting series meta for episode match", "series", iep.SeriesName, "tvTimeId", iep.TvTimeId, "error", err)
+		} else {
+			epd, err = srv.getEpisodeDetails(tvm.Id, iep.Season, iep.Episode)
+			if err != nil {
+				slog.Warn("Episode not found with std epNo & snNo", "series", iep.SeriesName, "season", iep.Season, "episode", iep.Episode, "err", err)
+			}
+		}
+
+		if epd != nil {
+			err1 := insertEpisode(epd, iep)
+			if err1 != nil {
+				return err1
+			}
+			// a match was found regardless of insert success, we can continue
+			continue
+		}
+
+		slog.Warn("Trying to get episode details using external id", "series", iep.SeriesName, "TvTimeEId", iep.TvTimeEId, "season", iep.Season, "episode", iep.Episode)
+
+		epm, err := srv.cGetEpisodeFromTvTimeId(iep.TvTimeEId)
+
+		if err != nil {
+			slog.Error("Error getting meta", "series", iep.SeriesName, "tvTimeId", iep.TvTimeId, "TvTimeEId", iep.TvTimeEId, "error", err)
+			err1 := srv.ipt.SetEpisodeUnresolved(iep.Key, err.Error())
+			if err1 != nil {
+				slog.Error("Fatal - Failed to set series unresolved", "error", err1)
+				return err1
+			}
+			continue
+		}
+
+		epd = &db.TvEpisode{
+			MName:     srv.meta.Name(),
+			MId:       int64(epm.Id),
+			SeriesMId: int64(epm.ShowId),
+			Name:      epm.Name,
+			Overview:  epm.Overview,
+			Season:    epm.SeasonNumber,
+			Episode:   epm.EpisodeNumber,
+			Runtime:   epm.Runtime,
+		}
+
+		err = insertEpisode(epd, iep)
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
+func (srv *SeriesService) cGetTVFromTvTimeId(tvTimeId int) (*meta.TvDetails, error) {
+
+	key := fmt.Sprintf("GetFindByID{id:%d}", tvTimeId)
+	cd, err := srv.c.Get(key)
+
+	var refresh = func() (*db.Cached, error) {
+		m, err := srv.meta.GetTVFromTvTimeId(tvTimeId)
+		if err != nil {
+			return nil, err
+		}
+		jsonStr, err := json.Marshal(m)
+		if err != nil {
+			return nil, err
+		}
+
+		rv := &db.Cached{
+			Key:      key,
+			JsonData: string(jsonStr),
+		}
+
+		err = srv.c.Set(rv)
+		if err != nil {
+			return nil, err
+		}
+		return rv, nil
+	}
+
+	if errors.Is(err, db.ErrNotFound) {
+		cd, err = refresh()
+		if err != nil {
+			return nil, err
+		}
+	} else if err != nil {
+		return nil, err
+	}
+
+	expiredAt := cd.UpdatedAt.Add(24 * 7 * time.Hour)
+
+	if time.Now().After(expiredAt) {
+		slog.Debug("Cache expired, refreshing", "expiredAt", expiredAt, "UpdatedAt", cd.UpdatedAt)
+		cd, err = refresh()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	rv := meta.TvDetails{}
+	err = json.Unmarshal([]byte(cd.JsonData), &rv)
+	if err != nil {
+		return nil, err
+	}
+
+	return &rv, nil
+
+}
+
+func (srv *SeriesService) cGetEpisodeFromTvTimeId(tvTimeId int) (*meta.TvEpisode, error) {
+
+	key := fmt.Sprintf("GetFindByID{id:%d}", tvTimeId)
+	cd, err := srv.c.Get(key)
+
+	var refresh = func() (*db.Cached, error) {
+		m, err := srv.meta.GetEpisodeFromTvTimeId(tvTimeId)
+		if err != nil {
+			return nil, err
+		}
+		jsonStr, err := json.Marshal(m)
+		if err != nil {
+			return nil, err
+		}
+
+		rv := &db.Cached{
+			Key:      key,
+			JsonData: string(jsonStr),
+		}
+
+		err = srv.c.Set(rv)
+		if err != nil {
+			return nil, err
+		}
+		return rv, nil
+	}
+
+	if errors.Is(err, db.ErrNotFound) {
+		cd, err = refresh()
+		if err != nil {
+			return nil, err
+		}
+	} else if err != nil {
+		return nil, err
+	}
+
+	expiredAt := cd.UpdatedAt.Add(24 * 7 * time.Hour)
+
+	if time.Now().After(expiredAt) {
+		slog.Debug("Cache expired, refreshing", "expiredAt", expiredAt, "UpdatedAt", cd.UpdatedAt)
+		cd, err = refresh()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	rv := meta.TvEpisode{}
+	err = json.Unmarshal([]byte(cd.JsonData), &rv)
+	if err != nil {
+		return nil, err
+	}
+
+	return &rv, nil
+
+}
+
+func (srv *SeriesService) IptGetUnresolved() (*ImportedData, error) {
+	return srv.ipt.GetUnresolved()
 }

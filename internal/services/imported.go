@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/raffleberry/riptvtime/internal/config"
+	"github.com/raffleberry/riptvtime/internal/services/state"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	glog "gorm.io/gorm/logger"
@@ -29,13 +31,18 @@ var (
 type ImportedSeries struct {
 	Key string `gorm:"primaryKey"`
 
-	Name      string
-	TvTimeSId int
-	MId       int
+	Name     string
+	TvTimeId int
+	MId      int
 
 	IsStopped bool
 
 	IsFavourite bool
+
+	Imported      bool `gorm:"default:false"`
+	Ignored       bool `gorm:"default:false"`
+	Unresolved    bool `gorm:"default:false"`
+	UnresolvedMsg string
 
 	UpdatedAt time.Time
 	CreatedAt time.Time
@@ -45,11 +52,19 @@ type ImportedTrackedEps struct {
 	Key string `gorm:"primaryKey"`
 
 	SeriesName string
-	TvTimeSId  int
-	MId        int
+	// series
+	TvTimeId int
+	// episode
+	TvTimeEId int
+	MId       int
 
 	Season  int
 	Episode int
+
+	Imported      bool `gorm:"default:false"`
+	Ignored       bool `gorm:"default:false"`
+	Unresolved    bool `gorm:"default:false"`
+	UnresolvedMsg string
 
 	UpdatedAt time.Time
 	CreatedAt time.Time
@@ -127,20 +142,77 @@ func (ipt *ImportSvc) CleanImportedData() {
 	ipt.idb.Unscoped().Where("1=1").Delete(&ImportedTrackedEps{})
 }
 
-func (ipt *ImportSvc) ImportTvTimeSeries(zipPath string) (int, int, error) {
-	if State.IUploadActive {
-		return 0, 0, ErrAlreadyProcessing
+func (ipt *ImportSvc) isEpisode(key string) bool {
+	return strings.HasPrefix(key, "watch-episode") || strings.HasPrefix(key, "rewatch-episode")
+}
+
+func (ipt *ImportSvc) isSeries(key string) bool {
+	return strings.HasPrefix(key, "user-series")
+}
+
+func (ipt *ImportSvc) SetSeriesUnresolved(key string, reason string) error {
+	err := ipt.idb.Model(&ImportedSeries{}).Where("key = ?", key).Update("unresolved_msg", reason).Error
+	return err
+}
+
+func (ipt *ImportSvc) SetEpisodeUnresolved(key string, reason string) error {
+	err := ipt.idb.Model(&ImportedTrackedEps{}).Where("key = ?", key).Update("unresolved_msg", reason).Error
+	return err
+}
+
+func (ipt *ImportSvc) isDumped(key string) bool {
+	var err error
+
+	if ipt.isSeries(key) {
+		err = ipt.idb.First(&ImportedSeries{}, "key = ?", key).Error
+	} else if ipt.isEpisode(key) {
+		err = ipt.idb.First(&ImportedTrackedEps{}, "key = ?", key).Error
+	} else {
+		return false
 	}
-	State.IUploadActive = true
 
-	State.IUploadingEpsCnt = 0
-	State.IUploadingEpsCntTotal = 0
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return false
+	}
 
-	State.IUploadingSrsCnt = 0
-	State.IUploadingSrsCntTotal = 0
+	return err == nil
+}
 
-	defer func() { State.IUploadActive = false }()
+func (ipt *ImportSvc) IsImported(key string) bool {
+	var err error
+	var rv bool
+	if ipt.isSeries(key) {
+		s := ImportedSeries{}
+		err = ipt.idb.First(&s, "key = ?", key).Error
+		rv = s.Imported
+	} else if ipt.isEpisode(key) {
+		e := ImportedTrackedEps{}
+		err = ipt.idb.First(&e, "key = ?", key).Error
+		rv = e.Imported
+	} else {
+		return false
+	}
 
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return false
+	} else if err != nil {
+		log.Panicln(key)
+	}
+
+	return rv
+}
+
+func (ipt *ImportSvc) SetImported(key string) error {
+	if ipt.isSeries(key) {
+		return ipt.idb.Model(&ImportedSeries{}).Where("key = ?", key).Update("imported", true).Error
+	} else if ipt.isEpisode(key) {
+		return ipt.idb.Model(&ImportedTrackedEps{}).Where("key = ?", key).Update("imported", true).Error
+	} else {
+		return nil
+	}
+}
+
+func (ipt *ImportSvc) DumpTvTimeGdprData(zipPath string) (int, int, error) {
 	var allowedFiles = struct {
 		SeriesTrackingDataFile string
 		FavouriteSeriesFile    string
@@ -220,60 +292,76 @@ func (ipt *ImportSvc) ImportTvTimeSeries(zipPath string) (int, int, error) {
 	}
 
 	for _, s := range isrs {
-		s.IsFavourite = slices.Contains(favs, s.TvTimeSId)
+		s.IsFavourite = slices.Contains(favs, s.TvTimeId)
 	}
 
 	newSeriesCnt := 0
 	newTrackedEpsCnt := 0
 
-	State.IUploadingSrsCntTotal = len(isrs)
-	State.IUploadingEpsCntTotal = len(iteps)
+	state.Import.UploadingSrsCntTotal = len(isrs)
+	state.Import.UploadingEpsCntTotal = len(iteps)
 
 	for _, s := range isrs {
+		state.Import.UploadingSrsCnt += 1
+		if ipt.isDumped(s.Key) {
+			continue
+		}
 		tx := ipt.idb.Save(s)
 		newSeriesCnt += int(tx.RowsAffected)
 		if tx.Error != nil {
 			return 0, 0, tx.Error
 		}
-		State.IUploadingSrsCnt += 1
 	}
 
 	for _, e := range iteps {
+		state.Import.UploadingEpsCnt += 1
+		if ipt.isDumped(e.Key) {
+			continue
+		}
 		tx := ipt.idb.Save(e)
 		newTrackedEpsCnt += int(tx.RowsAffected)
 		if tx.Error != nil {
 			return 0, 0, tx.Error
 		}
-		State.IUploadingEpsCnt += 1
 	}
 
 	return newSeriesCnt, newTrackedEpsCnt, nil
 }
 
-func (ipt *ImportSvc) GetUnmatched() ([]*ImportedSeries, error) {
-	var rv []*ImportedSeries
-	err := ipt.idb.Find(&rv, "m_id = 0").Error
+func (ipt *ImportSvc) GetUnmatched() (*ImportedData, error) {
+	var srs []*ImportedSeries
+	err := ipt.idb.Where("imported = ?", false).Where("ignored = ?", false).Where("unresolved = ?", false).Find(&srs).Error
 	if err != nil {
 		return nil, err
 	}
 
 	var eps []*ImportedTrackedEps
-	err = ipt.idb.Find(&eps, "m_id = 0").Error
+	err = ipt.idb.Where("imported = ?", false).Where("ignored = ?", false).Where("unresolved = ?", false).Find(&eps).Error
 	if err != nil {
 		return nil, err
 	}
-	for _, ep := range eps {
-		if slices.ContainsFunc(rv, func(item *ImportedSeries) bool {
-			return item.TvTimeSId == ep.TvTimeSId
-		}) {
-			continue
-		}
-		rv = append(rv, &ImportedSeries{
-			TvTimeSId: ep.TvTimeSId,
-			Name:      ep.SeriesName,
-		})
+	return &ImportedData{
+		Series:   srs,
+		Episodes: eps,
+	}, nil
+}
+
+func (ipt *ImportSvc) GetUnresolved() (*ImportedData, error) {
+	var srs []*ImportedSeries
+	err := ipt.idb.Where("unresolved = ?", true).Find(&srs).Error
+	if err != nil {
+		return nil, err
 	}
-	return rv, nil
+
+	var eps []*ImportedTrackedEps
+	err = ipt.idb.Where("unresolved = ?", true).Find(&eps).Error
+	if err != nil {
+		return nil, err
+	}
+	return &ImportedData{
+		Series:   srs,
+		Episodes: eps,
+	}, nil
 }
 
 func (ipt *ImportSvc) GetMatched() ([]*ImportedSeries, []*ImportedTrackedEps, error) {
@@ -418,6 +506,9 @@ func (ipt *ImportSvc) ProcessRecsV2(recsV2 [][]string) ([]*ImportedSeries, []*Im
 		SId        string
 		SeriesName string
 
+		EpId      string
+		EpisodeId string
+
 		SeasonNumber string
 		SNo          string
 
@@ -433,6 +524,9 @@ func (ipt *ImportSvc) ProcessRecsV2(recsV2 [][]string) ([]*ImportedSeries, []*Im
 	}{
 		"s_id",
 		"series_name",
+
+		"ep_id",
+		"episode_id",
 
 		"season_number",
 		"s_no",
@@ -460,6 +554,10 @@ func (ipt *ImportSvc) ProcessRecsV2(recsV2 [][]string) ([]*ImportedSeries, []*Im
 			hi[hdr.SId] = i
 		case hdr.SeriesName:
 			hi[hdr.SeriesName] = i
+		case hdr.EpId:
+			hi[hdr.EpId] = i
+		case hdr.EpisodeId:
+			hi[hdr.EpisodeId] = i
 		case hdr.SeasonNumber:
 			hi[hdr.SeasonNumber] = i
 		case hdr.SNo:
@@ -478,10 +576,10 @@ func (ipt *ImportSvc) ProcessRecsV2(recsV2 [][]string) ([]*ImportedSeries, []*Im
 			hi[hdr.CreatedAt] = i
 		}
 	}
-
-	if len(hi) != reflect.ValueOf(hdr).NumField() {
+	hiWant := reflect.ValueOf(hdr).NumField()
+	if len(hi) != hiWant {
 		slog.Error("tracking-prod-records-v2.csv headers", "headers", hi)
-		return nil, nil, errors.Join(ErrBadCsv, fmt.Errorf("tracking-prod-records-v2.csv header length(%v)", len(hi)))
+		return nil, nil, errors.Join(ErrBadCsv, fmt.Errorf("tracking-prod-records-v2.csv want-cols#(%v) got-cols#(%v)", hiWant, len(hi)))
 	}
 
 	get := func(i int, hname string) string {
@@ -494,17 +592,26 @@ func (ipt *ImportSvc) ProcessRecsV2(recsV2 [][]string) ([]*ImportedSeries, []*Im
 	for i := 1; i < len(recsV2); i++ {
 		rec := recsV2[i]
 		if len(rec) < len(h) {
-			return nil, nil, errors.Join(ErrBadCsv, fmt.Errorf("tracking-prod-records-v2.csv[%v] length(%v)", i, len(rec)))
+			return nil, nil, errors.Join(ErrBadCsv, fmt.Errorf("tracking-prod-records-v2.csv inconsistent row at idx(%v) with length(%v). want(%v)", i, len(rec), hiWant))
 		}
 
 		key := strings.TrimSpace(rec[hi[hdr.Key]])
 
-		if strings.HasPrefix(key, "watch-episode") || strings.HasPrefix(key, "rewatch-episode") {
+		if ipt.isEpisode(key) {
 
 			ttsidStr := get(i, hdr.SId)
 			ttSid, err := strconv.Atoi(ttsidStr)
 			if err != nil {
 				slog.Warn("parsing csv", "TvTimeSId", ttsidStr, "err", err, "index", i)
+			}
+
+			ttEpIdStr := get(i, hdr.EpId)
+			ttEpId, errEId1 := strconv.Atoi(ttEpIdStr)
+
+			ttEpisodeIdStr := get(i, hdr.EpisodeId)
+			ttEpisodeId, errEId2 := strconv.Atoi(ttEpisodeIdStr)
+			if errEId1 != nil && errEId2 != nil {
+				slog.Warn("parsing csv", "ttEpId", ttEpIdStr, "errEId1", errEId1, "ttEpisodeId", ttEpisodeIdStr, "errEId2", errEId2, "index", i)
 			}
 
 			seasonNumberStr := get(i, hdr.SeasonNumber)
@@ -532,14 +639,14 @@ func (ipt *ImportSvc) ProcessRecsV2(recsV2 [][]string) ([]*ImportedSeries, []*Im
 			rvEps = append(rvEps, &ImportedTrackedEps{
 				Key:        key,
 				SeriesName: get(i, hdr.SeriesName),
-				TvTimeSId:  ttSid,
-				MId:        0,
+				TvTimeId:   ttSid,
+				TvTimeEId:  max(ttEpId, ttEpisodeId),
 				Season:     max(sNo, seasonNumber),
 				Episode:    max(epNo, episodeNumber),
 				CreatedAt:  cAt,
 			})
 
-		} else if strings.HasPrefix(key, "user-series") {
+		} else if ipt.isSeries(key) {
 
 			isFollowedStr := get(i, hdr.IsFollowed)
 			isFollowed, err := strconv.ParseBool(isFollowedStr)
@@ -574,7 +681,7 @@ func (ipt *ImportSvc) ProcessRecsV2(recsV2 [][]string) ([]*ImportedSeries, []*Im
 			rvSrs = append(rvSrs, &ImportedSeries{
 				Key:       key,
 				Name:      get(i, hdr.SeriesName),
-				TvTimeSId: ttSid,
+				TvTimeId:  ttSid,
 				MId:       0,
 				IsStopped: isStopped,
 				CreatedAt: cAt,

@@ -1,7 +1,13 @@
 package meta
 
 import (
+	"errors"
 	"time"
+)
+
+var (
+	ErrNotFound = errors.New("meta not found")
+	ErrConfused = errors.New("got more than expected")
 )
 
 type TvSearchResult struct {
@@ -22,6 +28,7 @@ type TvSearchResults struct {
 }
 type TvEpisode struct {
 	Id            int
+	ShowId        int
 	Name          string
 	Overview      string
 	Year          int
@@ -65,6 +72,8 @@ type Meta interface {
 	GetTvDetails(mId int) (*TvDetails, error)
 	GetTVSeasonDetails(mId int, season int) (*TvSeason, error)
 	GetTVEpisodeDetails(mId int, season int, episode int) (*TvEpisode, error)
+	GetTVFromTvTimeId(tvTimeId int) (*TvDetails, error)
+	GetEpisodeFromTvTimeId(tvTimeEId int) (*TvEpisode, error)
 }
 
 // func GetEpisodeDetails(seriesTmdbId int64, sNo int, epNo int) (*TvEpisode, error) {

@@ -310,7 +310,7 @@ export const apiUploadImportZip = async (formData, progress) => {
   })
 }
 
-export const apiGetUnMatchedImportList = async () => {
+export const apiGetUnMatchedImportData = async () => {
   try {
     const res = await fetch(ENDPOINT.IMPORT_UNMATCHED())
     if (!res.ok) {

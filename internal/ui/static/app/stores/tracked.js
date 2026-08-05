@@ -33,7 +33,6 @@ export const useTracked = defineStore("trackedSeries", () => {
       if (err) {
         throw err
       }
-      console.log(data, Id)
       series.value[Id] = data
     } catch (error) {
       console.error(error)

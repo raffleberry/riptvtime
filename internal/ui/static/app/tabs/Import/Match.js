@@ -10,7 +10,7 @@ const imgUrl = (id) => {
 
 const Match = {
   props: {
-    series: Object,
+    data: Object,
   },
   components: {},
   emits: ["matchDone"],
@@ -81,7 +81,8 @@ const Match = {
       handleSearch,
     }
   },
-  template: /* HTML */ `
+  template: /* HTML */ `{data}`,
+  templatex: /* HTML */ `
     <div>
       <h4 class="mt-4">Match ({{ series.length }} Pending) - {{ tv.Name }}</h4>
       <div class="col">
