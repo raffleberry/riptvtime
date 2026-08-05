@@ -151,12 +151,12 @@ func (ipt *ImportSvc) isSeries(key string) bool {
 }
 
 func (ipt *ImportSvc) SetSeriesUnresolved(key string, reason string) error {
-	err := ipt.idb.Model(&ImportedSeries{}).Where("key = ?", key).Update("unresolved_msg", reason).Error
+	err := ipt.idb.Model(&ImportedSeries{}).Where("key = ?", key).Updates(map[string]any{"unresolved_msg": reason, "unresolved": true}).Error
 	return err
 }
 
 func (ipt *ImportSvc) SetEpisodeUnresolved(key string, reason string) error {
-	err := ipt.idb.Model(&ImportedTrackedEps{}).Where("key = ?", key).Update("unresolved_msg", reason).Error
+	err := ipt.idb.Model(&ImportedTrackedEps{}).Where("key = ?", key).Updates(map[string]any{"unresolved_msg": reason, "unresolved": true}).Error
 	return err
 }
 
