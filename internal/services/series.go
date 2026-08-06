@@ -613,7 +613,11 @@ func (srv *SeriesService) deriveStatus(mId int, cur db.TvStatus) (db.TvStatus, e
 	if err != nil {
 		return -1, err
 	}
-	if fd.EpisodesAired == len(fd.EpsWatched) {
+	mp := map[string]struct{}{}
+	for _, t := range fd.EpsWatched {
+		mp[fmt.Sprintf("%d-%d", t.S, t.E)] = struct{}{}
+	}
+	if fd.EpisodesAired == len(mp) {
 		if fd.InProduction {
 			rv = db.TvStatusUpToDate
 		} else {
