@@ -1,7 +1,7 @@
 package api
 
 import (
-	"log/slog"
+	"encoding/json"
 	"net/http"
 
 	"github.com/raffleberry/riptvtime/internal/config"
@@ -48,30 +48,28 @@ func NewApi(db db.Db, meta meta.Meta, tv *services.SeriesService, cfg *config.Co
 	mux.HandleFunc("PUT /api/series/episode", a.SeriesEpisodeUnWatch())
 
 	mux.HandleFunc("POST /api/import/upload", a.SeriesImportUpload())
-	mux.HandleFunc("POST /api/import/process", func(w http.ResponseWriter, r *http.Request) {
-		// TODO
-		go func() {
-			if state.Import.GetUploadActive() {
-				return
-			}
-			state.Import.SetUploadActive(true)
-			defer state.Import.SetUploadActive(false)
-			state.Import.Reset()
-
-			err := a.tv.IptImportTvTimeData("")
-			if err != nil {
-				slog.Error("Error while importing tv time series", "error", err)
-				state.Import.SetUploadError(err)
-			}
-		}()
-	})
-	mux.HandleFunc("GET /api/import/list", a.SeriesImportDataUnresolved())
-	mux.HandleFunc("PUT /api/import/match", a.SeriesImportMatchAndRemove())
+	mux.HandleFunc("GET /api/import/unresolved", a.SeriesImportUnresolved())
+	mux.HandleFunc("PUT /api/import/resolve", a.SeriesImportResolve())
 	mux.HandleFunc("GET /api/stats/total", a.SeriesStatsTotal())
 
 	mux.HandleFunc("GET /api/state", a.GetState())
+	mux.HandleFunc("POST /api/state", a.SetState()) // dev
+	mux.HandleFunc("DELETE /api/state", a.ResetState())
 	// mux.HandleFunc("GET /api/series/{tmdbId}/{episode}", a.SeriesEpisodeGet())
 
 	mux.Handle("GET /", ui.NewSpaHandler("internal/ui/static"))
 	return a
+}
+
+func (a *Api) SetState() http.HandlerFunc {
+	return WithCtx(func(ctx *Context) error {
+		mapState := make(map[string]any)
+		d := json.NewDecoder(ctx.R.Body)
+		if err := d.Decode(&mapState); err != nil {
+			return err
+		}
+
+		state.Import.Set(mapState)
+		return ctx.JSON(http.StatusOK, struct{}{})
+	})
 }

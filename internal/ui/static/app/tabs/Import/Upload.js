@@ -66,9 +66,9 @@ const Upload = {
       } finally {
         setTimeout(() => {
           isUploading.value = false
-        }, 2000)
-        uploadProgress.value = 0
-        ctx.emit("uploadDone")
+          ctx.emit("uploadDone")
+          uploadProgress.value = 0
+        }, 500)
       }
     }
 

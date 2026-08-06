@@ -282,7 +282,7 @@ func (a *Api) SeriesImportUpload() http.HandlerFunc {
 	})
 }
 
-func (a *Api) SeriesImportDataUnresolved() http.HandlerFunc {
+func (a *Api) SeriesImportUnresolved() http.HandlerFunc {
 	return WithCtx(func(ctx *Context) error {
 		data, err := a.tv.IptGetUnresolved()
 		if err != nil {
@@ -294,11 +294,18 @@ func (a *Api) SeriesImportDataUnresolved() http.HandlerFunc {
 
 func (a *Api) GetState() http.HandlerFunc {
 	return WithCtx(func(ctx *Context) error {
-		return ctx.JSON(http.StatusOK, state.Import.Json())
+		return ctx.JSON(http.StatusOK, state.Import.JsonMap())
 	})
 }
 
-func (a *Api) SeriesImportMatchAndRemove() http.HandlerFunc {
+func (a *Api) ResetState() http.HandlerFunc {
+	return WithCtx(func(ctx *Context) error {
+		state.Import.Reset()
+		return ctx.JSON(http.StatusOK, state.Import.JsonMap())
+	})
+}
+
+func (a *Api) SeriesImportResolve() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
 		var payload struct {
 			MId       int

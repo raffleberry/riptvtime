@@ -31,11 +31,11 @@ const ENDPOINT = Object.freeze({
   IMPORT_UPLOAD: () => {
     return `/api/import/upload`
   },
-  IMPORT_UNMATCHED: () => {
-    return `/api/import/list`
+  IMPORT_UNRESOLVED: () => {
+    return `/api/import/unresolved`
   },
-  IMPORT_MATCH: () => {
-    return `/api/import/match`
+  IMPORT_RESOLVE: () => {
+    return `/api/import/resolve`
   },
   STATE: () => {
     return `/api/state`
@@ -313,9 +313,9 @@ export const apiUploadImportZip = async (formData, progress) => {
   })
 }
 
-export const apiGetUnMatchedImportData = async () => {
+export const apiGetUnrImportData = async () => {
   try {
-    const res = await fetch(ENDPOINT.IMPORT_UNMATCHED())
+    const res = await fetch(ENDPOINT.IMPORT_UNRESOLVED())
     if (!res.ok) {
       return {
         err: new Error(`${res.status} - ${await res.text()}`),
@@ -355,6 +355,26 @@ export const apiGetState = async () => {
   }
 }
 
+export const apiResetState = async () => {
+  try {
+    const res = await fetch(ENDPOINT.STATE(), { method: "DELETE" })
+    if (!res.ok) {
+      return {
+        err: new Error(`${res.status} - ${await res.text()}`),
+      }
+    }
+    const data = await res.json()
+
+    return {
+      data: data,
+    }
+  } catch (error) {
+    console.error(error)
+    return {
+      err: error,
+    }
+  }
+}
 export const apiImportMatch = async (TvTimeSId, MId) => {
   try {
     const res = await fetch(ENDPOINT.IMPORT_MATCH(), {

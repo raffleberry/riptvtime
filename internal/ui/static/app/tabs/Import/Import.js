@@ -1,9 +1,12 @@
-import { apiGetState, apiGetUnMatchedImportData, apiImportMatch } from "../../api.js"
+import { apiGetState, apiGetUnrImportData, apiImportMatch, apiResetState } from "../../api.js"
 import { notifyError } from "../../components/Error.js"
-import { PAGE, theme } from "../../utils.js"
+import { generateRandomString, PAGE, theme } from "../../utils.js"
 import { computed, onMounted, ref, watch } from "../../vue.js"
 import { Match } from "./Match.js"
 import { Upload } from "./Upload.js"
+
+var errCnt = 0
+var pollingId = null
 
 const Import = {
   props: {},
@@ -12,33 +15,24 @@ const Import = {
     Match,
   },
   setup: (props) => {
-    const Mloading = ref(false)
+    const unresolved = ref([])
 
-    const unMatched = ref([])
+    const loading = ref(false)
 
     const refresh = async () => {
-      return // TODO
       try {
-        Mloading.value = true
-        const { data, err } = await apiGetUnMatchedImportData()
+        loading.value = true
+        const { data, err } = await apiGetUnrImportData()
         if (err) {
           throw err
         }
-        unMatched.value = data
+        unresolved.value = data
       } catch (error) {
-        console.error("Error fetching unmatched list data:", error)
+        console.error("Error fetching unresolved list data:", error)
       } finally {
-        Mloading.value = false
+        loading.value = false
       }
     }
-
-    const Uloading = ref(false)
-
-    const pollStateId = ref(null)
-
-    let errCnt = 0
-
-    const successAlert = ref(false)
 
     const state = ref({
       UploadingSrsCnt: 0,
@@ -60,124 +54,153 @@ const Import = {
       uploadError: null,
     })
 
-    watch(state, (nv, ov) => {
-      if (!nv.uploadActive && ov.uploadActive) {
-        if (!nv.uploadError) {
-          successAlert.value = true
-        }
-        clearInterval(pollStateId.value)
-        pollStateId.value = null
-      }
+    const successAlert = computed(() => {
+      return (
+        state.value.ProcessingSrsCnt + state.value.ProcessingEpsCnt > 0 &&
+        state.value.uploadError === null
+      )
     })
+
+    const pollState = async (id = generateRandomString(6)) => {
+      if (pollingId === null) {
+        pollingId = id
+      } else if (pollingId === id) {
+        console.log("Polling, id: ", id)
+      } else {
+        return
+      }
+      const { data, err } = await apiGetState()
+      // if network error, then let theUI KNOW TODO
+      if (err) {
+        console.error(err)
+        if (errCnt++ > 3) {
+          state.value.uploadError = err.message
+          state.value.uploadActive = false
+          pollingId = null
+          return
+        }
+      }
+
+      let again = data.uploadActive
+      // let stop = (data.uploadActive === false && state.value.uploadActive) || data.uploadError
+
+      state.value = data
+
+      if (again) {
+        setTimeout(() => pollState(id), 2000)
+      } else {
+        pollingId = null
+      }
+    }
 
     const totalProgress = computed(() => {
-      const num =
-        state.value.UploadingSrsCnt +
-        state.value.UploadingEpsCnt +
-        state.value.ProcessingSrsCnt +
-        state.value.ProcessingEpsCnt
-      const deno =
-        state.value.UploadingSrsCntTotal +
-        state.value.UploadingEpsCntTotal +
-        state.value.ProcessingSrsCntTotal +
-        state.value.ProcessingEpsCntTotal
-      if (deno == 0) return 0
-      return (num / deno) * 100
+      let num1 = state.value.UploadingSrsCnt + state.value.UploadingEpsCnt
+      let deno1 = state.value.UploadingSrsCntTotal + state.value.UploadingEpsCntTotal
+      let fract1 = deno1 === 0 ? 0 : (num1 / deno1) * 50
+      let num2 = state.value.ProcessingSrsCnt + state.value.ProcessingEpsCnt
+      let deno2 = state.value.ProcessingSrsCntTotal + state.value.ProcessingEpsCntTotal
+      let fract2 = deno2 === 0 ? 0 : (num2 / deno2) * 50
+      return fract1 + fract2
     })
 
+    const entrypoint = async () => {
+      pollState()
+      await refresh()
+    }
+
     onMounted(() => {
-      refresh()
+      entrypoint()
     })
 
     const onUploadSuccess = (data) => {
-      // update upload count
-      refresh()
+      pollState()
     }
 
-    const getState = async () => {
-      const { data, err } = await apiGetState()
-      // if network error, then let theUI KNOW
+    const onUploadStart = () => {
+      state.value.uploadError = null
+    }
+
+    const handleReset = async () => {
+      const { data, err } = await apiResetState()
       if (err) {
-        if (errCnt++ > 3) {
-          clearInterval(pollStateId.value)
-          pollStateId.value = null
-          state.value.uploadError = err.message
-          state.value.uploadActive = false
-          Uloading.value = false
-        }
-        console.log(err)
+        console.error(err)
+        notifyError(err)
         return
       }
       state.value = data
     }
 
-    const onUploadStart = () => {
-      successAlert.value = false
-      state.value.uploadError = null
-      Uloading.value = true
-    }
+    const onUploadDone = () => {}
 
-    const onUploadDone = () => {
-      Uloading.value = false
-      if (pollStateId.value) {
-        console.warn("POLLING ALREADY ACTIVE!!")
-        clearInterval(pollStateId.value)
-      }
-      pollStateId.value = setInterval(getState, 2000)
-    }
-    window.poll = onUploadDone
-
-    const onMatchDone = async ({ TvTimeSId, MId }) => {
-      try {
-        Mloading.value = true
-        const err = await apiImportMatch(TvTimeSId, MId)
-        if (err) {
-          throw err
-        }
-      } catch (error) {
-        console.error(error)
-        notifyError(error)
-      } finally {
-        Mloading.value = false
-        refresh()
-      }
-    }
+    // const onMatchDone = async ({ TvTimeSId, MId }) => {
+    //   try {
+    //     const err = await apiImportMatch(TvTimeSId, MId)
+    //     if (err) {
+    //       throw err
+    //     }
+    //   } catch (error) {
+    //     console.error(error)
+    //     notifyError(error)
+    //   } finally {
+    //     refresh()
+    //   }
+    // }
 
     return {
-      unMatched,
-      onMatchDone,
-      Mloading,
+      unresolved,
+      // onMatchDone,
 
-      loading: Uloading,
+      loading,
       onUploadSuccess,
       onUploadStart,
       onUploadDone,
       state,
-      pollStateId,
       totalProgress,
       successAlert,
+
+      handleReset,
     }
   },
   template: /* HTML */ `
-    <div class="mt-4">
-      <div class="position-relative">
+    <div class="d-flex flex-grow-1 flex-column position-relative">
+      <! -- loader::: -->
+      <div
+        v-if="loading"
+        class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-body bg-opacity-75 rounded"
+      >
         <div
-          v-if="Mloading"
-          class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-body bg-opacity-25 rounded"
-          style="z-index: 11; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);"
+          class="spinner-border text-primary mb-3"
+          role="status"
+          style="width: 3rem; height: 3rem;"
         >
-          <div class="spinner-border" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
+          <span class="visually-hidden">Loading...</span>
         </div>
-        <!-- TODO
-        <Match
-          v-if="unMatched.Series?.length > 0 || unMatched.Episodes?.length > 0"
-          :data="unMatched"
-          @match-done="onMatchDone"
-        ></Match>
-        -->
       </div>
+      <div
+        v-if="state.uploadActive"
+        class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-body bg-opacity-75 rounded"
+        style="z-index: 11; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);"
+      >
+        <div>
+          <p class="text-center">Stage: {{ state.Stage }} / {{ state.StageCnt }}</p>
+          <p v-if="state.Stage == 1" class="text-center">
+            Series: {{ state.UploadingSrsCnt }} / {{ state.UploadingSrsCntTotal }}
+          </p>
+          <p v-if="state.Stage == 1" class="text-center">
+            Episodes: {{ state.UploadingEpsCnt }} / {{ state.UploadingEpsCntTotal }}
+          </p>
+          <p v-if="state.Stage == 2" class="text-center">
+            Series: {{ state.ProcessingSrsCnt }} / {{ state.ProcessingSrsCntTotal }}
+          </p>
+          <p v-if="state.Stage == 2" class="text-center">
+            Episodes: {{ state.ProcessingEpsCnt }} / {{ state.ProcessingEpsCntTotal }}
+          </p>
+        </div>
+      </div>
+      <! -- :::loader -->
+      <h4 v-if="unresolved.Series?.length > 0 || unresolved.Episodes?.length > 0" class="mb-3">
+        {{unresolved.Series.length}} Series, {{unresolved.Episodes.length}} Episodes
+      </h4>
 
       <div v-if="successAlert" class="alert alert-success" role="alert">
         <i class="bi bi-check-circle-fill text-success"></i>
@@ -188,42 +211,28 @@ const Import = {
         <i class="bi bi-x-circle-fill text-danger"></i>
         {{ state.uploadError }}
       </div>
-      <div v-if="pollStateId" class="progress" style="height: 6px;" style="z-index: 12;">
+      <button
+        v-if="state.uploadError || successAlert"
+        class="btn btn-primary align-self-end"
+        role="alert"
+        @click="handleReset"
+      >
+        <i class="bi bi-x"></i>
+        Clear
+      </button>
+      <div v-if="state.uploadActive" class="progress" style="height: 6px;" style="z-index: 12;">
         <div
           class="progress-bar progress-bar-striped progress-bar-animated"
           :style="{ width: totalProgress + '%' }"
         ></div>
       </div>
 
-      <div class="position-relative">
-        <div
-          v-if="pollStateId"
-          class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-body bg-opacity-75 rounded"
-          style="z-index: 11; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);"
-        >
-          <div>
-            <p class="text-center">Stage: {{ state.Stage }} / {{ state.StageCnt }}</p>
-            <p v-if="state.Stage == 1" class="text-center">
-              Series: {{ state.UploadingSrsCnt }} / {{ state.UploadingSrsCntTotal }}
-            </p>
-            <p v-if="state.Stage == 1" class="text-center">
-              Episodes: {{ state.UploadingEpsCnt }} / {{ state.UploadingEpsCntTotal }}
-            </p>
-            <p v-if="state.Stage == 2" class="text-center">
-              Series: {{ state.ProcessingSrsCnt }} / {{ state.ProcessingSrsCntTotal }}
-            </p>
-            <p v-if="state.Stage == 2" class="text-center">
-              Episodes: {{ state.ProcessingEpsCnt }} / {{ state.ProcessingEpsCntTotal }}
-            </p>
-          </div>
-        </div>
-
-        <Upload
-          @success="onUploadSuccess"
-          @upload-start="onUploadStart"
-          @upload-done="onUploadDone"
-        ></Upload>
-      </div>
+      <Upload
+        v-if="!loading"
+        @success="onUploadSuccess"
+        @upload-start="onUploadStart"
+        @upload-done="onUploadDone"
+      ></Upload>
     </div>
   `,
 }

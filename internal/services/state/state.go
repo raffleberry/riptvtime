@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -28,9 +29,52 @@ type importState struct {
 
 var Import = &importState{}
 
-func (s *importState) Json() map[string]any {
+// for debugging purposes
+func (s *importState) Set(mp map[string]any) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	getInt := func(key string) int {
+		if val, ok := mp[key].(float64); ok {
+			return int(val)
+		}
+		if val, ok := mp[key].(int); ok {
+			return val
+		}
+		return 0
+	}
+
+	s.UploadingSrsCnt = getInt("UploadingSrsCnt")
+	s.UploadingEpsCnt = getInt("UploadingEpsCnt")
+	s.ProcessingSrsCnt = getInt("ProcessingSrsCnt")
+	s.ProcessingEpsCnt = getInt("ProcessingEpsCnt")
+	s.UploadingSrsCntTotal = getInt("UploadingSrsCntTotal")
+	s.UploadingEpsCntTotal = getInt("UploadingEpsCntTotal")
+	s.ProcessingSrsCntTotal = getInt("ProcessingSrsCntTotal")
+	s.ProcessingEpsCntTotal = getInt("ProcessingEpsCntTotal")
+	s.Stage = getInt("Stage")
+	s.StageCnt = getInt("StageCnt")
+
+	if b, ok := mp["uploadActive"].(bool); ok {
+		s.uploadActive = b
+	} else {
+		s.uploadActive = false
+	}
+	errStr, ok := mp["uploadError"].(string)
+	if ok {
+		s.uploadError = fmt.Errorf("%v", errStr)
+	}
+}
+
+func (s *importState) JsonMap() map[string]any {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var errStr *string
+	if s.uploadError != nil {
+		_s := s.uploadError.Error()
+		errStr = &_s
+	}
 	return map[string]any{
 		"UploadingSrsCnt":       s.UploadingSrsCnt,
 		"UploadingEpsCnt":       s.UploadingEpsCnt,
@@ -43,7 +87,7 @@ func (s *importState) Json() map[string]any {
 		"Stage":                 s.Stage,
 		"StageCnt":              s.StageCnt,
 		"uploadActive":          s.uploadActive,
-		"uploadError":           s.uploadError,
+		"uploadError":           errStr,
 	}
 }
 

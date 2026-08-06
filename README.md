@@ -14,8 +14,8 @@
 | :--- | :---: |
 | Upcoming(To Be Aired) Episodes Feed | ❌ |
 | Import TVTime gdpr data | ✅ |
-| Total Time Watched | 0% |
-| Episodes Watched/Rewatched that count towards total time | 0% |
+| Total Time Watched | ✅ |
+| Episodes Watched/Rewatched that count towards total time | ✅ |
 
 ## Optional Features list
 | Features | Done |
