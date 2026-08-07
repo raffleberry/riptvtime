@@ -57,6 +57,7 @@ type TvSeries struct {
 	Year           int
 	TrackingStatus TvStatus `gorm:"default:1"`
 	RuntimeApprox  int
+	InProduction   bool `gorm:"default:true"`
 
 	Source    string
 	SourceKey string
@@ -127,6 +128,8 @@ type Db interface {
 
 	SeriesSeasonGet(mId int, season int) (*TvSeason, error)
 	SeriesSeasonAdd(t *TvSeason) error
+
+	SeriesUpdateInProd(id int, inProd bool) error
 
 	SeriesEpisodeGet(mId int, season int, episode int) (*TvEpisode, error)
 

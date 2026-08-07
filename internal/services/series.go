@@ -269,6 +269,14 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 
 		fd := freshSeriesData[idx]
 
+		if fd.InProduction != srs.InProduction {
+			slog.Debug("Updating in prod", "name", srs.Name, "mId", srs.MId, "old", srs.InProduction, "new", fd.InProduction)
+			err := srv.updateInProd(int(srs.ID), fd.InProduction)
+			if err != nil {
+				slog.Warn("Failed to update In Production", "name", srs.Name, "mId", srs.MId, "old", srs.InProduction, "new", fd.InProduction, "error", err)
+			}
+		}
+
 		// update series data from fresh data
 		srs.Name = fd.Name
 		srs.Overview = fd.Overview
@@ -341,6 +349,10 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 
 	return &rv, nil
 
+}
+
+func (srv *SeriesService) updateInProd(id int, inProd bool) error {
+	return srv.db.SeriesUpdateInProd(id, inProd)
 }
 
 func (srv *SeriesService) UpNext(mId int) (*SeriesEpisode, error) {
@@ -429,6 +441,7 @@ func (srv *SeriesService) Add(mId int, source string) (*db.TvSeries, error) {
 		TrackingStatus: db.TvStatusWatching,
 		RuntimeApprox:  tvM.LastEpisodeToAir.Runtime,
 		Source:         source,
+		InProduction:   tvM.InProduction,
 	}
 
 	insertId, err := srv.db.SeriesAdd(tvDb)
@@ -691,6 +704,7 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 			RuntimeApprox:  tvd.LastEpisodeToAir.Runtime,
 			Source:         db.SourceImport,
 			SourceKey:      srs.Key,
+			InProduction:   tvd.InProduction,
 		}
 		tvDb.CreatedAt = srs.CreatedAt
 
