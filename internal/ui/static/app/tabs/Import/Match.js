@@ -1,5 +1,5 @@
 import { apiSearchTv, apiUploadImportZip } from "../../api.js"
-import { notifyError } from "../../components/Error.js"
+import { notify } from "../../components/Notify/Notify.js"
 import { PAGE, theme } from "../../utils.js"
 import { computed, onMounted, ref, watch } from "../../vue.js"
 
@@ -49,7 +49,7 @@ const Match = {
         }
         searchResultsImgLoaded.value = new Array(searchResults.value.length).fill(false)
       } catch (e) {
-        notifyError(e)
+        notify(e)
       } finally {
         loading.value = false
       }

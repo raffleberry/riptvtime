@@ -1,5 +1,5 @@
 import { apiUploadImportZip } from "../../api.js"
-import { notifyError } from "../../components/Error.js"
+import { notify } from "../../components/Notify/Notify.js"
 import { PAGE, theme } from "../../utils.js"
 import { onMounted, ref } from "../../vue.js"
 
@@ -62,7 +62,7 @@ const Upload = {
         ctx.emit("success", data)
       } catch (error) {
         console.error("Upload error details:", error)
-        notifyError(error)
+        notify(error)
       } finally {
         setTimeout(() => {
           isUploading.value = false

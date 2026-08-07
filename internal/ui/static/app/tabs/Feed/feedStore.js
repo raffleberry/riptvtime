@@ -1,4 +1,5 @@
 import { apiEpUpNext, apiEpWatch } from "../../api.js"
+import { notify } from "../../components/Notify/Notify.js"
 import { ENDPOINT } from "../../utils.js"
 import { defineStore, ref } from "../../vue.js"
 
@@ -51,7 +52,7 @@ export const useFeedStore = defineStore("feed", () => {
       }
     } catch (error) {
       console.error(mId, sNo, epNo, "Error marking ep watched:", error)
-      notifyError(error)
+      notify(error)
     } finally {
     }
   }

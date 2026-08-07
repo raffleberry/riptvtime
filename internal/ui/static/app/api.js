@@ -1,4 +1,4 @@
-import { notifyError } from "./components/Error.js"
+import { notify } from "./components/Notify/Notify.js"
 
 const ENDPOINT = Object.freeze({
   FEED: () => {

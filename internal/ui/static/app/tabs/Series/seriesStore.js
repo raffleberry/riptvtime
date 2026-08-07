@@ -5,7 +5,7 @@ import {
   apiGetSeriesDetails,
   apiRemSeries,
 } from "../../api.js"
-import { notifyError } from "../../components/Error.js"
+import { notify } from "../../components/Notify/Notify.js"
 import { useTracked } from "../../stores/tracked.js"
 import { ENDPOINT, ky, TvStatus } from "../../utils.js"
 import { computed, defineStore, ref, storeToRefs, watch } from "../../vue.js"
@@ -79,7 +79,7 @@ export const useSeriesStore = defineStore("series", () => {
       watchedEps.value = we || []
     } catch (error) {
       console.error("Error getting series data:", error)
-      notifyError(error)
+      notify(error)
     } finally {
       loading.value = false
     }
@@ -103,7 +103,7 @@ export const useSeriesStore = defineStore("series", () => {
       updateTrackingStore(mId)
     } catch (error) {
       console.error("Error fetching series data:", error)
-      notifyError(error)
+      notify(error)
     } finally {
     }
   }
@@ -125,7 +125,7 @@ export const useSeriesStore = defineStore("series", () => {
       }
     } catch (error) {
       console.error("Error fetching series data:", error)
-      notifyError(error)
+      notify(error)
     } finally {
     }
   }
@@ -139,7 +139,7 @@ export const useSeriesStore = defineStore("series", () => {
       updateTrackingStore(mId)
     } catch (error) {
       console.error(error)
-      notifyError(error)
+      notify(error)
     } finally {
     }
   }
@@ -152,7 +152,7 @@ export const useSeriesStore = defineStore("series", () => {
       }
     } catch (error) {
       console.error(error)
-      notifyError(error)
+      notify(error)
     } finally {
     }
   }

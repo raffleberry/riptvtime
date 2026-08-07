@@ -1,6 +1,6 @@
 import { TvStatus } from "../../utils.js"
 import { computed, onMounted, ref, storeToRefs, watch } from "../../vue.js"
-import { notifyError } from "../../components/Error.js"
+import { notify } from "../../components/Notify/Notify.js"
 import { useTracked } from "../../stores/tracked.js"
 
 export const selected = ref({
@@ -68,7 +68,7 @@ export const SearchTileOpts = {
         }
         bSelf.hide()
       } catch (error) {
-        notifyError(error)
+        notify(error)
       } finally {
         loading.value = false
       }
@@ -92,7 +92,7 @@ export const SearchTileOpts = {
         bSelf.hide()
       } catch (error) {
         console.error(error)
-        notifyError(error)
+        notify(error)
       } finally {
         loading.value = false
       }

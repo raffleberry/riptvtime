@@ -1,4 +1,4 @@
-import { notifyError } from "../../components/Error.js"
+import { notify } from "../../components/Notify/Notify.js"
 import { Navigation } from "../../components/Navigation.js"
 import { ky } from "../../utils.js"
 import { computed, onMounted, ref, RouterView, storeToRefs } from "../../vue.js"

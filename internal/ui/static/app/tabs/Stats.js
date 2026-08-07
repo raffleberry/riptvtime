@@ -1,5 +1,5 @@
 import { apiGetStatsTotal } from "../api.js"
-import { notifyError } from "../components/Error.js"
+import { notify } from "../components/Notify/Notify.js"
 import { PAGE, theme } from "../utils.js"
 import { onMounted, ref } from "../vue.js"
 
@@ -13,7 +13,7 @@ const Stats = {
       const { data, err } = await apiGetStatsTotal()
       if (err) {
         console.log(err)
-        notifyError(err)
+        notify(err)
         return
       }
       total.value = data

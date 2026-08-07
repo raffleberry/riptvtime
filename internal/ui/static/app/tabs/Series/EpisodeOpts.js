@@ -1,6 +1,6 @@
 import { ky, TvStatus } from "../../utils.js"
 import { computed, onMounted, ref, storeToRefs, watch } from "../../vue.js"
-import { notifyError } from "../../components/Error.js"
+import { notify } from "../../components/Notify/Notify.js"
 import { useTracked } from "../../stores/tracked.js"
 import { useSeriesStore } from "./seriesStore.js"
 
