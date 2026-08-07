@@ -12,6 +12,7 @@ import {
   ref,
   watch,
 } from "./vue.js"
+import { Notify } from "./components/Notify/Notify.js"
 
 const router = createRouter({
   history: createWebHistory(),
@@ -27,6 +28,7 @@ const app = createApp({
   components: {
     PageRouter,
     Confirm,
+    Notify,
   },
 
   setup() {

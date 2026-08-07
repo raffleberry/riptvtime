@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"path/filepath"
 
+	"github.com/glebarez/sqlite"
 	"github.com/raffleberry/riptvtime/internal/config"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	glog "gorm.io/gorm/logger"

@@ -210,7 +210,7 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 	var mu sync.Mutex
 
 	g, ctx := errgroup.WithContext(context.Background())
-	g.SetLimit(3)
+	g.SetLimit(10)
 
 	for _, s := range *series {
 		mId := s.MId
