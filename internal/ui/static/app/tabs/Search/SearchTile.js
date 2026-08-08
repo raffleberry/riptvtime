@@ -44,6 +44,10 @@ const SearchTile = {
           card += " border border-success"
           icon += " bi-bookmark-check-fill"
           break
+        case TvStatus.UpToDate:
+          card += " border border-info"
+          icon += " bi-bookmark-check-fill"
+          break
 
         default:
           break
