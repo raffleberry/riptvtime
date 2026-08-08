@@ -163,7 +163,7 @@ func (db *DbSqlite) SeriesTrackedEpsAdd(ep *TvTrackedEps) (int, error) {
 func (db *DbSqlite) SeriesTrackedEpRemove(mId int, season int, episode int) error {
 	var ep TvTrackedEps
 
-	err := db.orm.First(&ep, "series_m_id = ? AND season = ? AND episode = ?", mId, season, episode).Error
+	err := db.orm.Last(&ep, "series_m_id = ? AND season = ? AND episode = ?", mId, season, episode).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return ErrNotFound

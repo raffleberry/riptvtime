@@ -1,15 +1,26 @@
+import { MsgType, notify } from "../../components/Notify/Notify.js"
 import { useTracked } from "../../stores/tracked.js"
 import { ky, TvStatus } from "../../utils.js"
-import { computed, onMounted, ref, storeToRefs, useRoute, watch } from "../../vue.js"
+import {
+  computed,
+  onMounted,
+  ref,
+  storeToRefs,
+  useRoute,
+  useTemplateRef,
+  watch,
+} from "../../vue.js"
 import { EpisodeOpts } from "./EpisodeOpts.js"
+import { SeriesMarkPrev } from "./SeriesMarkPrev.js"
 import { SeriesOpts } from "./SeriesOpts.js"
 import { useSeriesStore } from "./seriesStore.js"
 
-const Series = {
+export const Series = {
   props: {},
   components: {
     SeriesOpts,
     EpisodeOpts,
+    SeriesMarkPrev,
   },
   setup: (props) => {
     onMounted(() => {})
@@ -35,6 +46,8 @@ const Series = {
     })
 
     const selectedEp = ref({})
+
+    const eps = ref([])
 
     onMounted(() => {
       if (r.hash) {
@@ -130,11 +143,13 @@ const Series = {
     )
 
     var epOptEl = null
+    var epMpEl = null
 
     onMounted(() => {
       const el = document.getElementById("episodeOpts")
       epOptEl = bootstrap.Offcanvas.getOrCreateInstance(el)
-
+      const elmp = document.getElementById("seriesMarkPrev")
+      epMpEl = bootstrap.Offcanvas.getOrCreateInstance(elmp)
       // el.addEventListener('show.bs.offcanvas', () => {
       // })
 
@@ -146,9 +161,39 @@ const Series = {
       return epWatchCnt.value[ky(s, e)] ?? 0
     }
 
+    const getPopEpsCnt = (s, e) => {
+      let episodes = []
+      let foundWatched = false
+      let watchedCnt = 0
+      let totalEps = 0
+
+      for (let sNo = s; sNo >= 1; sNo--) {
+        for (let eNo = e; eNo >= 1; eNo--) {
+          totalEps += 1
+          if (cnt(sNo, eNo) > 0) {
+            foundWatched = true
+            watchedCnt += 1
+          }
+          if (!foundWatched) {
+            episodes.push({ S: sNo, E: eNo })
+          }
+        }
+      }
+      if (episodes.length + watchedCnt === totalEps) {
+        return episodes
+      }
+      return [{ S: s, E: e }]
+    }
+
     const openEpOpts = async (ep) => {
       if (cnt(ep.SeasonNumber, ep.EpisodeNumber) === 0) {
-        await epMarkWatched(Number(Id.value), ep.SeasonNumber, ep.EpisodeNumber)
+        const epsPopCount = getPopEpsCnt(ep.SeasonNumber, ep.EpisodeNumber)
+        if (epsPopCount.length > 1) {
+          eps.value = epsPopCount
+          epMpEl.show()
+        } else {
+          await epMarkWatched(Number(Id.value), epsPopCount)
+        }
       } else {
         selectedEp.value = ep
         epOptEl.show()
@@ -174,9 +219,11 @@ const Series = {
       cnt,
       progress,
       isAired,
+      eps,
     }
   },
   template: /* HTML */ `
+    <SeriesMarkPrev :mid="sd.Id" :eps="eps"></SeriesMarkPrev>
     <EpisodeOpts :mid="sd.Id" :ep="selectedEp"></EpisodeOpts>
     <SeriesOpts :mid="sd.Id" :name="sd.Name" :year="sd.Year"></SeriesOpts>
     <div class="container-fluid">
@@ -282,4 +329,3 @@ const Series = {
     </div>
   `,
 }
-export { Series }

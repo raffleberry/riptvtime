@@ -1,5 +1,5 @@
 import { apiAddSeries, apiRemSeries, apiSeriesTracked, apiSetStatus } from "../api.js"
-import { notify } from "../components/Notify/Notify.js"
+import { MsgType, notify } from "../components/Notify/Notify.js"
 import { defineStore, ref, watch } from "../vue.js"
 
 export const useTracked = defineStore("trackedSeries", () => {
@@ -20,7 +20,7 @@ export const useTracked = defineStore("trackedSeries", () => {
       series.value = ns
     } catch (error) {
       console.error("Error fetching feed data:", error)
-      notify(error)
+      notify(MsgType.Error, "Tracked", error)
     } finally {
       loading.value = false
     }
@@ -70,7 +70,7 @@ export const useTracked = defineStore("trackedSeries", () => {
       series.value[Id].TrackingStatus = newStatus
     } catch (error) {
       console.error("Error changing status:", error)
-      notify(error)
+      notify(MsgType.Error, "Tracked", error)
     } finally {
     }
   }

@@ -1,6 +1,6 @@
 import { TvStatus } from "../../utils.js"
 import { computed, onMounted, ref, storeToRefs, watch } from "../../vue.js"
-import { notify } from "../../components/Notify/Notify.js"
+import { MsgType, notify } from "../../components/Notify/Notify.js"
 import { useTracked } from "../../stores/tracked.js"
 import { useSeriesStore } from "./seriesStore.js"
 
@@ -55,7 +55,7 @@ export const SeriesOpts = {
         }
         bSelf.hide()
       } catch (error) {
-        notify(error)
+        notify(MsgType.Error, "Series", error)
       } finally {
         loading.value = false
       }
@@ -79,7 +79,7 @@ export const SeriesOpts = {
         bSelf.hide()
       } catch (error) {
         console.error(error)
-        notify(error)
+        notify(MsgType.Error, "Series", error)
       } finally {
         loading.value = false
       }

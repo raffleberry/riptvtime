@@ -68,7 +68,7 @@ export const SearchTileOpts = {
         }
         bSelf.hide()
       } catch (error) {
-        notify(error)
+        notify(MsgType.Error, "Series", error)
       } finally {
         loading.value = false
       }
@@ -92,7 +92,7 @@ export const SearchTileOpts = {
         bSelf.hide()
       } catch (error) {
         console.error(error)
-        notify(error)
+        notify(MsgType.Error, "Series", error)
       } finally {
         loading.value = false
       }

@@ -1,5 +1,5 @@
 import { apiGetState, apiGetUnrImportData, apiImportMatch, apiResetState } from "../../api.js"
-import { notify } from "../../components/Notify/Notify.js"
+import { MsgType, notify } from "../../components/Notify/Notify.js"
 import { generateRandomString, PAGE, theme } from "../../utils.js"
 import { computed, onMounted, ref, watch } from "../../vue.js"
 import { Match } from "./Match.js"
@@ -124,7 +124,7 @@ const Import = {
       const { data, err } = await apiResetState()
       if (err) {
         console.error(err)
-        notify(err)
+        notify(MsgType.Error, "Import", err)
         return
       }
       state.value = data

@@ -619,9 +619,12 @@ func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int) (*d
 	ep, err := srv.db.SeriesEpisodeGet(id, season, episode)
 
 	forceRefresh := false
-	if ep.UpdatedAt.Before(ep.AirDate) && time.Now().After(ep.AirDate) {
-		forceRefresh = true
-		slog.Debug("getEpisodeDetails", "force refresh", forceRefresh, "id", id, "season", season, "episode", episode)
+	if ep != nil {
+		if ep.UpdatedAt.Before(ep.AirDate) && time.Now().After(ep.AirDate) {
+			forceRefresh = true
+			slog.Debug("getEpisodeDetails", "force refresh", forceRefresh, "id", id, "season", season, "episode", episode)
+		}
+
 	}
 
 	if err == nil {

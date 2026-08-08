@@ -1,5 +1,5 @@
 import { apiGetUpcoming } from "../../api.js"
-import { notify } from "../../components/Notify/Notify.js"
+import { MsgType, notify } from "../../components/Notify/Notify.js"
 import { PAGE, theme } from "../../utils.js"
 import { onMounted, ref } from "../../vue.js"
 import { UpcomingTile } from "./UpcomingTile.js"
@@ -19,7 +19,7 @@ const Upcoming = {
       const { data, err } = await apiGetUpcoming()
       if (err) {
         console.log(err)
-        notify(err)
+        notify(MsgType.Error, "Upcoming", err)
         return
       }
       upcoming.value = data

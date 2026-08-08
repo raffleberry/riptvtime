@@ -5,8 +5,9 @@ import {
   apiGetSeriesDetails,
   apiRemSeries,
 } from "../../api.js"
-import { notify } from "../../components/Notify/Notify.js"
+import { MsgType, notify } from "../../components/Notify/Notify.js"
 import { useTracked } from "../../stores/tracked.js"
+import { ky, TvStatus } from "../../utils.js"
 import { computed, defineStore, ref, storeToRefs, watch } from "../../vue.js"
 
 export const useSeriesStore = defineStore("series", () => {
@@ -78,13 +79,13 @@ export const useSeriesStore = defineStore("series", () => {
       watchedEps.value = we || []
     } catch (error) {
       console.error("Error getting series data:", error)
-      notify(error)
+      notify(MsgType.Error, "Series", error)
     } finally {
       loading.value = false
     }
   }
 
-  const epMarkWatched = async (mId, sNo, epNo) => {
+  const epMarkWatched = async (mId, eps) => {
     try {
       if (!tSeries.value?.[mId]) {
         const err = await tAddSeries(mId)
@@ -93,16 +94,15 @@ export const useSeriesStore = defineStore("series", () => {
         }
       }
 
-      const err = await apiEpWatch(mId, sNo, epNo)
+      const err = await apiEpWatch(mId, eps)
       if (err) {
         throw err
       }
-
-      watchedEps.value.push({ S: sNo, E: epNo })
+      watchedEps.value = watchedEps.value.concat(eps)
       updateTrackingStore(mId)
     } catch (error) {
       console.error("Error fetching series data:", error)
-      notify(error)
+      notify(MsgType.Error, "Series", error)
     } finally {
     }
   }
@@ -124,7 +124,7 @@ export const useSeriesStore = defineStore("series", () => {
       }
     } catch (error) {
       console.error("Error fetching series data:", error)
-      notify(error)
+      notify(MsgType.Error, "Series", error)
     } finally {
     }
   }
@@ -138,7 +138,7 @@ export const useSeriesStore = defineStore("series", () => {
       updateTrackingStore(mId)
     } catch (error) {
       console.error(error)
-      notify(error)
+      notify(MsgType.Error, "Series", error)
     } finally {
     }
   }
@@ -151,7 +151,7 @@ export const useSeriesStore = defineStore("series", () => {
       }
     } catch (error) {
       console.error(error)
-      notify(error)
+      notify(MsgType.Error, "Series", err)
     } finally {
     }
   }

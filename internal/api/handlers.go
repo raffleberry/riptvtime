@@ -74,20 +74,23 @@ func (a *Api) SeriesEpisodeWatch() http.HandlerFunc {
 	return WithCtx(func(ctx *Context) error {
 		var payload struct {
 			SeriesMId int
-			SeasonNo  int
-			EpisodeNo int
+			Episodes  []struct {
+				S int
+				E int
+			}
 		}
 
 		if err := json.NewDecoder(ctx.R.Body).Decode(&payload); err != nil {
 			return err
 		}
-
-		insertId, err := a.tv.SetEpisodeWatched(payload.SeriesMId, payload.SeasonNo, payload.EpisodeNo, db.SourceUI)
-		if err != nil {
-			return err
+		for _, ep := range payload.Episodes {
+			_, err := a.tv.SetEpisodeWatched(payload.SeriesMId, ep.S, ep.E, db.SourceUI)
+			if err != nil {
+				return err
+			}
 		}
 
-		return ctx.JSON(http.StatusOK, insertId)
+		return ctx.JSON(http.StatusOK, struct{}{})
 	})
 }
 

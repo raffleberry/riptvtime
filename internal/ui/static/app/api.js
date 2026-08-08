@@ -190,15 +190,14 @@ export const apiSeriesTracked = async (Id) => {
   return {}
 }
 
-export const apiEpWatch = async (mId, sNo, epNo) => {
+export const apiEpWatch = async (mId, eps) => {
   try {
     const res = await fetch(ENDPOINT.SERIES_EP_MARK(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         SeriesMId: mId,
-        SeasonNo: sNo,
-        EpisodeNo: epNo,
+        Episodes: eps,
       }),
     })
 

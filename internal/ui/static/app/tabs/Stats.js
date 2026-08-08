@@ -13,7 +13,7 @@ const Stats = {
       const { data, err } = await apiGetStatsTotal()
       if (err) {
         console.log(err)
-        notify(err)
+        notify(MsgType.Error, "Stats", err)
         return
       }
       total.value = data

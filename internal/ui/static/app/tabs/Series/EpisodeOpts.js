@@ -34,7 +34,7 @@ export const EpisodeOpts = {
     const handleIncr = async () => {
       try {
         loading.value = true
-        await epMarkWatched(props.mid, props.ep.SeasonNumber, props.ep.EpisodeNumber)
+        await epMarkWatched(props.mid, [{ S: props.ep.SeasonNumber, E: props.ep.EpisodeNumber }])
       } catch (e) {
       } finally {
         bSelf.hide()
