@@ -1,6 +1,5 @@
 import { TvFeedTile } from "./TvFeedTile.js"
 import { useFeedStore } from "./feedStore.js"
-import { ENDPOINT, ky, PAGE, theme } from "../../utils.js"
 import { onMounted, ref, storeToRefs } from "../../vue.js"
 import { ConfirmOpts, openConfirm } from "./ConfirmOpts.js"
 

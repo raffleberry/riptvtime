@@ -331,3 +331,13 @@ func (a *Api) SeriesStatsTotal() http.HandlerFunc {
 		}{v})
 	})
 }
+
+func (a *Api) SeriesUpcoming() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		v, err := a.tv.Upcoming()
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, v)
+	})
+}

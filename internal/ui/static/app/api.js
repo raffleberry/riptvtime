@@ -28,6 +28,9 @@ const ENDPOINT = Object.freeze({
   SERIES_EP_UPNEXT: (Id) => {
     return `/api/series/${Id}/upnext`
   },
+  SERIES_UPCOMING: () => {
+    return `/api/series/upcoming`
+  },
   IMPORT_UPLOAD: () => {
     return `/api/import/upload`
   },
@@ -400,6 +403,26 @@ export const apiImportMatch = async (TvTimeSId, MId) => {
 export const apiGetStatsTotal = async () => {
   try {
     const res = await fetch(ENDPOINT.STATS_TOTAL())
+    if (!res.ok) {
+      const errTxt = await res.text()
+      return {
+        err: new Error(`Error, response from server: ${res.status} - ${errTxt}`),
+      }
+    }
+    const data = await res.json()
+    return {
+      data: data,
+    }
+  } catch (error) {
+    console.error(error)
+    return error
+  }
+  return null
+}
+
+export const apiGetUpcoming = async () => {
+  try {
+    const res = await fetch(ENDPOINT.SERIES_UPCOMING())
     if (!res.ok) {
       const errTxt = await res.text()
       return {

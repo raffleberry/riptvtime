@@ -114,7 +114,8 @@ type TvSeriesDetails struct {
 
 type Db interface {
 	SeriesTrackedAll() (*[]TvSeries, error)
-	SeriesWatchingAll() (*[]TvSeries, error)
+	SeriesWatchingAll() ([]TvSeries, error)
+	SeriesWatchingInProdAll() ([]TvSeries, error)
 	SeriesAdd(t *TvSeries) (int, error)
 	SeriesRem(mId int) error
 

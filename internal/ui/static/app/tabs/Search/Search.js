@@ -1,5 +1,4 @@
 import { SearchButtons } from "../../components/SearchButtons.js"
-import { ENDPOINT, PAGE, theme } from "../../utils.js"
 import { computed, onMounted, ref, storeToRefs, useRoute } from "../../vue.js"
 import { SearchBox } from "./SearchBox.js"
 import { SearchTile } from "./SearchTile.js"

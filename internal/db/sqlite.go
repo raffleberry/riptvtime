@@ -50,10 +50,16 @@ func (db *DbSqlite) SeriesTrackedAll() (*[]TvSeries, error) {
 	return &series, err
 }
 
-func (db *DbSqlite) SeriesWatchingAll() (*[]TvSeries, error) {
+func (db *DbSqlite) SeriesWatchingAll() ([]TvSeries, error) {
 	var series []TvSeries
 	err := db.orm.Where("tracking_status = ?", TvStatusWatching).Find(&series).Error
-	return &series, err
+	return series, err
+}
+
+func (db *DbSqlite) SeriesWatchingInProdAll() ([]TvSeries, error) {
+	var series []TvSeries
+	err := db.orm.Where("tracking_status = ?", TvStatusWatching).Where("in_production = ?", true).Find(&series).Error
+	return series, err
 }
 
 func (db *DbSqlite) SeriesUpdateInProd(id int, inProd bool) error {

@@ -1,6 +1,5 @@
 import { PageRouter } from "./components/PageRouter.js"
 import { Confirm } from "./components/Confirm/Confirm.js"
-import { Upcoming } from "./tabs/Upcoming.js"
 import { PAGE, routes } from "./utils.js"
 import {
   computed,

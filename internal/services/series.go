@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"sort"
 	"sync"
 	"time"
 
@@ -212,38 +213,39 @@ func (srv *SeriesService) TrackedAll() (*[]db.TvSeries, error) {
 	return rv, nil
 }
 
-func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
-
-	series, err := srv.db.SeriesWatchingAll()
-	if err != nil {
-		return nil, err
-	}
-
-	slog.Debug("Tv shows in Db", "series count", len(*series))
-
-	var freshSeriesData []*meta.TvDetails
+func (srv *SeriesService) freshSeriesData(series []db.TvSeries) ([]*meta.TvDetails, error) {
+	fsd := []*meta.TvDetails{}
 
 	var mu sync.Mutex
 
 	g, ctx := errgroup.WithContext(context.Background())
 	g.SetLimit(10)
 
-	for _, s := range *series {
-		mId := s.MId
+	for _, srs := range series {
 
 		g.Go(func() error {
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
 
-			res, err := srv.GetDetails(int(mId), false)
+			res, err := srv.GetDetails(int(srs.MId), false)
 			if err != nil {
-				slog.Error("Error while fetching data", "error", err, "mId", mId)
+				slog.Error("Error while fetching data", "error", err, "mId", srs.MId)
 				return err
 			}
 
+			go func() {
+				if res.InProduction != srs.InProduction {
+					slog.Debug("Updating in prod", "name", srs.Name, "mId", srs.MId, "old", srs.InProduction, "new", res.InProduction)
+					err := srv.updateInProd(int(srs.ID), res.InProduction)
+					if err != nil {
+						slog.Warn("Failed to update in prod", "name", srs.Name, "mId", srs.MId, "old", srs.InProduction, "new", res.InProduction, "err", err)
+					}
+				}
+			}()
+
 			mu.Lock()
-			freshSeriesData = append(freshSeriesData, res.TvDetails)
+			fsd = append(fsd, res.TvDetails)
 			mu.Unlock()
 
 			return nil
@@ -254,11 +256,25 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 		return nil, err
 	}
 
+	return fsd, nil
+}
+
+func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
+
+	series, err := srv.db.SeriesWatchingAll()
+	if err != nil {
+		return nil, err
+	}
+
+	slog.Debug("Tv shows in Db", "series count", len(series))
+
+	freshSeriesData, err := srv.freshSeriesData(series)
+
 	slog.Debug("Fetched Data from Tmdb", "count", len(freshSeriesData))
 
 	var rv []SeriesFeedItem
 
-	for _, srs := range *series {
+	for _, srs := range series {
 
 		slog.Debug("::::Start Calculating Resp data", "Series Name", srs.Name)
 		trackedEps, err := srv.db.SeriesTrackedEps(int(srs.MId))
@@ -284,14 +300,6 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 		})
 
 		fd := freshSeriesData[idx]
-
-		if fd.InProduction != srs.InProduction {
-			slog.Debug("Updating in prod", "name", srs.Name, "mId", srs.MId, "old", srs.InProduction, "new", fd.InProduction)
-			err := srv.updateInProd(int(srs.ID), fd.InProduction)
-			if err != nil {
-				slog.Warn("Failed to update In Production", "name", srs.Name, "mId", srs.MId, "old", srs.InProduction, "new", fd.InProduction, "error", err)
-			}
-		}
 
 		// update series data from fresh data
 		srs.Name = fd.Name
@@ -582,9 +590,13 @@ func (srv *SeriesService) SetEpisodeWatched(mId int, sNo int, eNo int, source st
 }
 
 // returns with all episode details in that season
-func (srv *SeriesService) cacheSeasonInDb(mId int, season int) (*db.TvSeason, error) {
+func (srv *SeriesService) cacheSeasonInDb(mId int, season int, forceRefresh bool) (*db.TvSeason, error) {
 
 	sn, err := srv.db.SeriesSeasonGet(mId, season)
+
+	if err == nil && forceRefresh {
+		err = db.ErrNotFound
+	}
 
 	if errors.Is(err, db.ErrNotFound) {
 		slog.Debug("Caching Tv Season in Db", "mId", mId, "season", season)
@@ -606,6 +618,12 @@ func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int) (*d
 
 	ep, err := srv.db.SeriesEpisodeGet(id, season, episode)
 
+	forceRefresh := false
+	if ep.UpdatedAt.Before(ep.AirDate) && time.Now().After(ep.AirDate) {
+		forceRefresh = true
+		slog.Debug("getEpisodeDetails", "force refresh", forceRefresh, "id", id, "season", season, "episode", episode)
+	}
+
 	if err == nil {
 		return ep, nil
 	}
@@ -615,7 +633,7 @@ func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int) (*d
 		return nil, err
 	}
 
-	sn, err := srv.cacheSeasonInDb(id, season)
+	sn, err := srv.cacheSeasonInDb(id, season, forceRefresh)
 
 	if err != nil {
 		slog.Error("Coudn't cache season", "season", season, "error", err)
@@ -965,4 +983,60 @@ func (srv *SeriesService) IptGetUnresolved() (*ImportedData, error) {
 
 func (srv *SeriesService) StatsTotal() (int, error) {
 	return srv.db.SeriesStatsTotal()
+}
+
+func (srv *SeriesService) Upcoming() ([]UpcomingItem, error) {
+	series, err := srv.db.SeriesWatchingInProdAll()
+	if err != nil {
+		return nil, err
+	}
+	fsd, err := srv.freshSeriesData(series)
+	if err != nil {
+		return nil, err
+	}
+
+	var rv []UpcomingItem
+	now := time.Now()
+
+	for _, srs := range fsd {
+
+		lastAiredS := srs.LastEpisodeToAir.SeasonNumber
+		for _, sn := range srs.Seasons {
+			if sn.SeasonNumber >= lastAiredS {
+				epStart := 1
+				if sn.SeasonNumber == lastAiredS {
+					epStart = 1 + srs.LastEpisodeToAir.EpisodeNumber
+				}
+				for epNo := epStart; epNo <= sn.EpisodeCount; epNo++ {
+					slog.Info("Upcoming : Last Aired Season", "name", srs.Name, "season", sn.SeasonNumber)
+					ep, err := srv.getEpisodeDetails(srs.Id, sn.SeasonNumber, epNo)
+					if err != nil {
+						slog.Error("Upcoming : Error getting episode details", "name", srs.Name, "season", sn.SeasonNumber, "episode", epNo, "err", err)
+						return nil, err
+					}
+					if ep.AirDate.Before(now) {
+						continue
+					}
+					rv = append(rv, UpcomingItem{
+						SeriesName: srs.Name,
+						Year:       srs.Year,
+						Episode:    ep,
+					})
+				}
+			}
+		}
+	}
+
+	sort.Slice(rv, func(i, j int) bool {
+		if rv[i].Episode.AirDate.Equal(rv[j].Episode.AirDate) {
+			if rv[i].SeriesName == rv[j].SeriesName {
+				return rv[i].Episode.Episode < rv[j].Episode.Episode
+			}
+			return rv[i].SeriesName < rv[j].SeriesName
+		}
+		return rv[i].Episode.AirDate.Before(rv[j].Episode.AirDate)
+	})
+
+	return rv, nil
+
 }

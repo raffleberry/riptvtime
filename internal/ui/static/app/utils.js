@@ -5,36 +5,10 @@ import { My } from "./tabs/My.js"
 import { Search } from "./tabs/Search/Search.js"
 import { Series } from "./tabs/Series/Series.js"
 import { Stats } from "./tabs/Stats.js"
-import { Upcoming } from "./tabs/Upcoming.js"
+import { Upcoming } from "./tabs/Upcoming/Upcoming.js"
 import { ref, watch } from "./vue.js"
 
 export const ky = (s, e) => "S" + String(s).padStart(2, "0") + "E" + String(e).padStart(2, "0")
-
-export const ENDPOINT = Object.freeze({
-  FEED: () => {
-    return "/api/series/feed"
-  },
-  SERIES_ALL: () => {
-    return `/api/series`
-  },
-  SEARCH_SERIES: () => {
-    return "/api/series/search"
-  },
-
-  SERIES_STATUS: (Id) => {
-    return `/api/series/${Id}/status`
-  },
-
-  SERIES_ADD: () => {
-    return `/api/series`
-  },
-  SERIES_REM: (Id) => {
-    return `/api/series/${Id}`
-  },
-  SERIES_GET: (Id) => {
-    return `/api/series/${Id}?full=1`
-  },
-})
 
 export const PAGE = Object.freeze({
   FEED: { name: "Feed", path: "/" },

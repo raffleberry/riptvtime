@@ -49,3 +49,9 @@ type ImportedData struct {
 	Series   []*ImportedSeries
 	Episodes []*ImportedTrackedEps
 }
+
+type UpcomingItem struct {
+	SeriesName string
+	Year       int
+	Episode    *db.TvEpisode
+}

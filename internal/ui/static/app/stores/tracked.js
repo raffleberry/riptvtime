@@ -1,6 +1,5 @@
 import { apiAddSeries, apiRemSeries, apiSeriesTracked, apiSetStatus } from "../api.js"
 import { notify } from "../components/Notify/Notify.js"
-import { ENDPOINT } from "../utils.js"
 import { defineStore, ref, watch } from "../vue.js"
 
 export const useTracked = defineStore("trackedSeries", () => {

@@ -1,6 +1,5 @@
 import { apiEpUpNext, apiEpWatch } from "../../api.js"
 import { notify } from "../../components/Notify/Notify.js"
-import { ENDPOINT } from "../../utils.js"
 import { defineStore, ref } from "../../vue.js"
 
 export const useFeedStore = defineStore("feed", () => {
@@ -10,7 +9,7 @@ export const useFeedStore = defineStore("feed", () => {
   const fetchFeed = async () => {
     loading.value = true
     try {
-      const response = await fetch(ENDPOINT.FEED())
+      const response = await fetch("/api/series/feed")
       if (response.status === 200) {
         const result = await response.json()
         feed.value = result

@@ -1,5 +1,4 @@
 import { apiSearchTv } from "../../api.js"
-import { ENDPOINT } from "../../utils.js"
 import { defineStore, ref } from "../../vue.js"
 
 export const useSearchStore = defineStore("search", () => {

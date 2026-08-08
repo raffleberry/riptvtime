@@ -7,7 +7,6 @@ import {
 } from "../../api.js"
 import { notify } from "../../components/Notify/Notify.js"
 import { useTracked } from "../../stores/tracked.js"
-import { ENDPOINT, ky, TvStatus } from "../../utils.js"
 import { computed, defineStore, ref, storeToRefs, watch } from "../../vue.js"
 
 export const useSeriesStore = defineStore("series", () => {
