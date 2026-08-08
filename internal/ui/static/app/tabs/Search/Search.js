@@ -1,5 +1,6 @@
-import { SearchButtons } from "../../components/SearchButtons.js"
-import { computed, onMounted, ref, storeToRefs, useRoute } from "../../vue.js"
+import { SearchButtons } from "./SearchButtons.js"
+import { PAGE } from "../../utils.js"
+import { computed, onMounted, ref, storeToRefs, useRoute, watch } from "../../vue.js"
 import { SearchBox } from "./SearchBox.js"
 import { SearchTile } from "./SearchTile.js"
 import { SearchTileOpts } from "./SearchTileOpts.js"
@@ -16,10 +17,32 @@ const Search = {
   setup: (props) => {
     const store = useSearchStore()
 
-    const { loading, searchTerm, pageCur, results, resultsCnt } = storeToRefs(store)
+    const { loading, results, resultsCnt } = storeToRefs(store)
+    const { onSearch, getTotalPages } = store
 
     const r = useRoute()
     const curPath = computed(() => r.path)
+
+    const pageCur = computed(() => r.query.p || 1)
+
+    const searchTerm = computed(() => r.query.q || "")
+
+    watch(
+      () => {
+        return {
+          q: r.query.q,
+          p: r.query.p,
+        }
+      },
+      (val) => {
+        if (val.q && val.p) {
+          onSearch(val.q, val.p)
+        } else if (val.q) {
+          onSearch(val.q, 1)
+        }
+      },
+      { immediate: true },
+    )
 
     onMounted(() => {})
 
@@ -30,12 +53,14 @@ const Search = {
       resultsCnt,
       pageCur,
       curPath,
+      getTotalPages,
       PAGE,
     }
   },
   template: /* HTML */ `
     <SearchTileOpts></SearchTileOpts>
-    <SearchBox class="my-2 ps-3" v-if="curPath === PAGE.SEARCH.path"> </SearchBox>
+    <SearchBox :term="searchTerm" class="my-2 ps-3" v-if="curPath === PAGE.SEARCH.path">
+    </SearchBox>
     <div class="d-flex px-3 flex-column overflow-auto">
       <div
         v-if="loading"
@@ -57,7 +82,13 @@ const Search = {
         <SearchTile class="mb-3" v-for="tv in results[pageCur]" :key="tv.Id" :tv="tv"></SearchTile>
       </div>
     </div>
-    <SearchButtons class="my-2" v-if="curPath === PAGE.SEARCH.path && resultsCnt > 0">
+    <SearchButtons
+      :term="searchTerm"
+      :pageCur="pageCur"
+      :pageTotal="getTotalPages()"
+      class="my-2"
+      v-if="curPath === PAGE.SEARCH.path && resultsCnt > 0"
+    >
     </SearchButtons>
   `,
 }

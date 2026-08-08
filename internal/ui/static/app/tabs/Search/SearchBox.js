@@ -4,37 +4,42 @@ import { useSearchStore } from "./searchStore.js"
 
 const SearchBox = {
   components: {},
-  props: {},
+  props: {
+    term: String,
+  },
 
-  setup() {
-    const searchTerm = ref("")
-
+  setup(props) {
     const router = useRouter()
     const route = useRoute()
 
     const store = useSearchStore()
     const { onSearch } = store
 
-    watch(
-      () => {
-        return {
-          q: route.query.q,
-          p: route.query.p,
-        }
-      },
-      (val) => {
-        if (val.q) {
-          searchTerm.value = val.q
-          onSearch(val.q)
-        }
-      },
-      { immediate: true },
-    )
+    const searchTerm = ref(props.term || "")
+
+    // watch(
+    //   () => {
+    //     return {
+    //       q: route.query.q,
+    //       p: route.query.p,
+    //     }
+    //   },
+    //   (val) => {
+    //     if (val.q && val.p) {
+    //       searchTerm.value = val.q
+    //       onSearch(val.q, val.p)
+    //     } else if (val.q) {
+    //       searchTerm.value = val.q
+    //       onSearch(val.q, 1)
+    //     }
+    //   },
+    //   { immediate: true },
+    // )
 
     const handleSearch = () => {
       let st = searchTerm.value.trim()
       if (st !== "") {
-        console.log("SearchBox - handleSearch - ", st)
+        console.log(st)
         router.push({ path: "/search", query: { q: st, p: 1 } })
       }
     }

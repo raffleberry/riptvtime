@@ -1,9 +1,6 @@
 import { Navigation } from "./Navigation.js"
 import { computed, RouterView, storeToRefs, useRoute } from "../vue.js"
 import { PAGE } from "../utils.js"
-import { SearchBox } from "../tabs/Search/SearchBox.js"
-import { SearchButtons } from "./SearchButtons.js"
-import { useSearchStore } from "../tabs/Search/searchStore.js"
 
 const PageRouter = {
   components: {

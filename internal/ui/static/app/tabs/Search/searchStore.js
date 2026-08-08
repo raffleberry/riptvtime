@@ -1,113 +1,72 @@
 import { apiSearchTv } from "../../api.js"
-import { defineStore, ref } from "../../vue.js"
+import { notify } from "../../components/Notify/Notify.js"
+import { defineStore, ref, useRouter } from "../../vue.js"
 
 export const useSearchStore = defineStore("search", () => {
   const loading = ref(false)
 
   let searchTerm = ""
+  let page = 1
 
-  const pageCur = ref(1)
-  const pageTotal = ref(1)
+  var pageTotal = 1
   const resultsCnt = ref(0)
-  const results = ref({ 1: [] })
+  const results = ref({})
 
-  const onSearch = async (searchText) => {
-    if (loading.value || searchTerm === searchText) return
+  const onSearch = async (searchText, pg) => {
+    if (loading.value) return
+
+    if (searchText === searchTerm && page === pg) {
+      return
+    }
+
+    if (searchText === searchTerm && results.value[pg]) {
+      page = pg
+      return
+    }
 
     try {
       loading.value = true
-      const { data, err } = await apiSearchTv(searchText, 1)
+      if (!pg) {
+        pg = 1
+      }
+      page = pg
+
+      const { data, err } = await apiSearchTv(searchText, pg)
       if (err) {
         throw err
       }
 
-      searchTerm = searchText
-      pageCur.value = 1
-      pageTotal.value = data.TotalPages
+      if (searchTerm !== searchText) {
+        searchTerm = searchText
+        results.value = {}
+      }
+      pageTotal = data.TotalPages
       resultsCnt.value = data.TotalResults
       results.value = {
-        1: data.Results,
+        ...results.value,
+        [pg]: data.Results,
       }
     } catch (error) {
       console.error(error)
+      notify(MsgType.Error, "Error", error.message)
     } finally {
       loading.value = false
     }
   }
 
-  const onPrvBtn = async () => {
-    if (pageCur.value === 1) {
-      return
-    }
-
-    if (results.value[pageCur.value - 1]) {
-      pageCur.value -= 1
-      return
-    }
-
-    try {
-      loading.value = true
-      const { data, err } = await searchTv(searchTerm, pageCur.value - 1)
-      if (err) {
-        throw err
-      }
-
-      pageTotal.value = data.TotalPages
-      resultsCnt.value = data.TotalResults
-      results.value = {
-        ...results.value,
-        [pageCur.value - 1]: data.Results,
-      }
-      pageCur.value -= 1
-    } catch (error) {
-      console.error(error)
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const onNxtBtn = async () => {
-    if (pageCur.value >= pageTotal.value) {
-      return
-    }
-
-    if (results.value[pageCur.value + 1]) {
-      pageCur.value += 1
-      return
-    }
-
-    try {
-      loading.value = true
-      const { data, err } = await searchTv(searchTerm, pageCur.value + 1)
-      if (err) {
-        throw err
-      }
-
-      pageTotal.value = data.TotalPages
-      resultsCnt.value = data.TotalResults
-      results.value = {
-        ...results.value,
-        [pageCur.value + 1]: data.Results,
-      }
-      pageCur.value += 1
-    } catch (error) {
-      console.error(error)
-    } finally {
-      loading.value = false
-    }
+  const getTotalPages = () => {
+    return pageTotal
   }
 
   return {
     // data
     results,
     loading,
-    pageCur,
+    getTotalPages,
     pageTotal,
     resultsCnt,
 
     // actions
     onSearch,
-    onNxtBtn,
-    onPrvBtn,
   }
 })
