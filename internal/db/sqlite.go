@@ -52,7 +52,7 @@ func (db *DbSqlite) SeriesTrackedAll() (*[]TvSeries, error) {
 
 func (db *DbSqlite) SeriesWatchingAll() (*[]TvSeries, error) {
 	var series []TvSeries
-	err := db.orm.Where("tracking_status = ?", TvStatusWatching).Where("in_production = ?", true).Find(&series).Error
+	err := db.orm.Where("tracking_status = ?", TvStatusWatching).Find(&series).Error
 	return &series, err
 }
 

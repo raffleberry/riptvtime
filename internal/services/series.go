@@ -74,21 +74,31 @@ func (srv *SeriesService) Search(searchTerm string, page int) (*SeriesSearchResu
 // Get Tv Show Details (Freshiestest Data possible)
 func (srv *SeriesService) GetDetails(mId int, withEps bool) (*SeriesFullItem, error) {
 	key := fmt.Sprintf("TvDetails{MId:%d}", mId)
-	cd, err := srv.c.Get(key)
+
+	var res *meta.TvDetails
 
 	var refresh = func() (*db.Cached, error) {
-		m, err := srv.meta.GetTvDetails(mId)
+		var err error
+		res, err = srv.meta.GetTvDetails(mId)
 		if err != nil {
 			return nil, err
 		}
-		jsonStr, err := json.Marshal(m)
+		jsonStr, err := json.Marshal(res)
 		if err != nil {
 			return nil, err
+		}
+
+		expireTime := time.Now()
+		if res.InProduction {
+			expireTime = db.GetInProdExpireTime()
+		} else {
+			expireTime = db.GetNotInProdExpireTime()
 		}
 
 		rv := &db.Cached{
-			Key:      key,
-			JsonData: string(jsonStr),
+			Key:       key,
+			JsonData:  string(jsonStr),
+			ExpiredAt: expireTime,
 		}
 
 		err = srv.c.Set(rv)
@@ -97,6 +107,8 @@ func (srv *SeriesService) GetDetails(mId int, withEps bool) (*SeriesFullItem, er
 		}
 		return rv, nil
 	}
+
+	cd, err := srv.c.Get(key)
 
 	if errors.Is(err, db.ErrNotFound) {
 		cd, err = refresh()
@@ -107,20 +119,24 @@ func (srv *SeriesService) GetDetails(mId int, withEps bool) (*SeriesFullItem, er
 		return nil, err
 	}
 
-	expiredAt := cd.UpdatedAt.Add(48 * time.Hour)
+	if cd.ExpiredAt.IsZero() {
+		// old transitional logic after migration
+		cd.ExpiredAt = cd.UpdatedAt.Add(48 * time.Hour)
+	}
 
-	if time.Now().After(expiredAt) {
-		slog.Debug("Cache expired, refreshing", "expiredAt", expiredAt, "UpdatedAt", cd.UpdatedAt)
+	if time.Now().After(cd.ExpiredAt) {
+		slog.Debug("Cache expired, refreshing", "expiredAt", cd.ExpiredAt, "UpdatedAt", cd.UpdatedAt)
 		cd, err = refresh()
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	res := meta.TvDetails{}
-	err = json.Unmarshal([]byte(cd.JsonData), &res)
-	if err != nil {
-		return nil, err
+	if res == nil {
+		err = json.Unmarshal([]byte(cd.JsonData), &res)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	epsAired := 0
@@ -176,7 +192,7 @@ func (srv *SeriesService) GetDetails(mId int, withEps bool) (*SeriesFullItem, er
 	}
 
 	return &SeriesFullItem{
-		&res,
+		res,
 		epsAired,
 		epsWatched,
 	}, nil

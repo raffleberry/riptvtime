@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/rand"
 	"path/filepath"
 	"time"
 
@@ -14,11 +15,22 @@ import (
 	glog "gorm.io/gorm/logger"
 )
 
+func GetInProdExpireTime() time.Time {
+	Hours := rand.Int63n(60-36+1) + 36
+	return time.Now().Add(time.Duration(Hours) * time.Hour)
+}
+
+func GetNotInProdExpireTime() time.Time {
+	days14_21 := rand.Int63n(21-14+1) + 14
+	return time.Now().Add(time.Duration(days14_21) * time.Hour * 24)
+}
+
 type Cached struct {
 	Key       string `gorm:"primaryKey"`
 	JsonData  string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	ExpiredAt time.Time
 }
 
 type Cache interface {
@@ -57,7 +69,7 @@ func NewCacheSqlite(cfg *config.Config, logger *slog.Logger) *CacheSqlite {
 func (c *CacheSqlite) Set(data *Cached) error {
 	return c.orm.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "key"}},
-		DoUpdates: clause.AssignmentColumns([]string{"json_data", "updated_at"}),
+		DoUpdates: clause.AssignmentColumns([]string{"json_data", "updated_at", "expired_at"}),
 	}).Create(data).Error
 }
 
