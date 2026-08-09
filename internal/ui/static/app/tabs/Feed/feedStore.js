@@ -26,7 +26,7 @@ export const useFeedStore = defineStore("feed", () => {
 
   const epMarkAndGetUpNext = async (mId, sNo, epNo) => {
     try {
-      let err1 = await apiEpWatch(mId, sNo, epNo)
+      let err1 = await apiEpWatch(mId, [{ S: sNo, E: epNo }])
       if (err1) {
         throw err1
       }

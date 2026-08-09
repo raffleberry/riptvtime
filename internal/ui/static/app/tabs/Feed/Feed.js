@@ -2,6 +2,7 @@ import { TvFeedTile } from "./TvFeedTile.js"
 import { useFeedStore } from "./feedStore.js"
 import { onMounted, ref, storeToRefs } from "../../vue.js"
 import { ConfirmOpts, openConfirm } from "./ConfirmOpts.js"
+import { ky } from "../../utils.js"
 
 const Feed = {
   props: {},
@@ -27,6 +28,8 @@ const Feed = {
           await epMarkAndGetUpNext(d.MId, d.S, d.E)
         }
       } catch (err) {
+        console.error(err)
+        notify(MsgType.Error, "Feed", err)
       } finally {
       }
     }

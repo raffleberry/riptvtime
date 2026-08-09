@@ -1,6 +1,6 @@
 import { MsgType, notify } from "../../components/Notify/Notify.js"
 import { useTracked } from "../../stores/tracked.js"
-import { ky, TvStatus } from "../../utils.js"
+import { imgBackdropUrl, imgPosterUrl, ky, TvStatus } from "../../utils.js"
 import {
   computed,
   onMounted,
@@ -72,7 +72,7 @@ export const Series = {
     }
 
     const statusCss = computed(() => {
-      let card = "position-sticky top-0 card"
+      let card = "card"
       let icon = "bi"
       let btn = ""
       let pgbar = ""
@@ -80,31 +80,31 @@ export const Series = {
         case TvStatus.Watching:
           card += " border border-warning"
           icon += " bi-bookmark-check"
-          btn += " btn-outline-warning"
+          btn += " btn-warning"
           pgbar += "bg-warning"
           break
         case TvStatus.NotWatching:
           // cb += ' border border-primary'
           icon += " bi-bookmark-plus"
-          btn += " btn-outline-primary"
+          btn += " btn-primary"
           pgbar += "bg-primary"
           break
         case TvStatus.Stopped:
           card += " border border-danger"
           icon += " bi-bookmark-x"
-          btn += " btn-outline-danger"
+          btn += " btn-danger"
           pgbar += "bg-danger"
           break
         case TvStatus.Completed:
           card += " border border-success"
           icon += " bi-bookmark-check-fill"
-          btn += " btn-outline-success"
+          btn += " btn-success"
           pgbar += "bg-success"
           break
         case TvStatus.UpToDate:
           card += " border border-info"
           icon += " bi-bookmark-check-fill"
-          btn += " btn-outline-info"
+          btn += " btn-info"
           pgbar += "bg-info"
           break
 
@@ -160,6 +160,16 @@ export const Series = {
     const cnt = (s, e) => {
       return epWatchCnt.value[ky(s, e)] ?? 0
     }
+
+    const cardStyle = computed(() => {
+      return {
+        height: "360px",
+        backgroundImage: `url(${imgBackdropUrl(sd.value.ImgBackdrop)})`,
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center",
+      }
+    })
 
     const getPopEpsCnt = (s, e) => {
       let episodes = []
@@ -220,6 +230,8 @@ export const Series = {
       progress,
       isAired,
       eps,
+      imgPosterUrl,
+      cardStyle,
     }
   },
   template: /* HTML */ `
@@ -238,27 +250,33 @@ export const Series = {
       </div>
       <div v-else>
         <div :class="statusCss.card" style="z-index: 5;">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <h3 class="card-title">
-                {{ sd.Name }} <span class="text-muted">({{ sd.Year }}) </span>
-              </h3>
+          <div class="card-body d-flex flex-column justify-content-between p-0" :style="cardStyle">
+            <div class="align-self-end">
               <button
                 :class="statusCss.btn"
                 data-bs-toggle="offcanvas"
                 data-bs-target="#seriesOpts"
                 type="button"
-                class="btn btn-sm p-2 d-inline-flex align-items-center justify-content-center"
+                class="btn btn-sm p-2 d-inline-flex align-items-center justify-content-center "
               >
                 <i class="bi me-2" :class="statusCss.icon"></i>
                 {{ getStatusTxt(status) }}
               </button>
             </div>
-            <p class="card-text">{{ sd.Overview }}</p>
+
+            <div class="txt-bg-blur">
+              <div class="d-flex justify-content-between">
+                <h3 class="card-title">{{ sd.Name }} ({{ sd.Year }})</h3>
+              </div>
+
+              <span class="card-text fst-italic ">{{ sd.Tagline }}</span><br />
+              <p class="card-text">{{ sd.Overview }}</p>
+              <!-- -->
+            </div>
           </div>
           <div>
             <div
-              class="progress"
+              class="progress rounded-top-0"
               role="progressbar"
               aria-label="Tv show progress"
               :aria-valuenow="progress"

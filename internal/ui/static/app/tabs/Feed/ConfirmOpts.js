@@ -16,10 +16,13 @@ export const openConfirm = (title, message) => {
   state.value.title = title
   state.value.message = message
   show.value = true
+  console.log(title, message)
   return new Promise((resolve) => {
     resolver = resolve
   })
 }
+
+window.openConfirm = openConfirm
 
 export const ConfirmOpts = {
   props: {},

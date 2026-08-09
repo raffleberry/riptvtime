@@ -16,6 +16,7 @@ type TvSearchResult struct {
 	Overview string
 	Year     int
 	Image    string
+	Genres   []int64
 
 	MName string
 }
@@ -48,6 +49,7 @@ type TvSeason struct {
 	EpisodeCount int
 	Episodes     []TvEpisode
 	AirDate      time.Time
+	ImgPoster    string
 
 	MName string
 }
@@ -62,6 +64,10 @@ type TvDetails struct {
 	NumberOfEpisodes int
 	Seasons          []TvSeason
 	InProduction     bool
+	Tagline          string
+	ImgPoster        string
+	ImgBackdrop      string
+	Genres           string
 
 	MName string
 }

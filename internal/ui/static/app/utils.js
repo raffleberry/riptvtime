@@ -50,6 +50,16 @@ export const formatDuration = (seconds) => {
   return `${minutes}:${secs < 10 ? "0" : ""}${secs}`
 }
 
+export const imgPosterUrl = (id) => {
+  if (!id) return "/poster.png"
+  return `https://image.tmdb.org/t/p/w185/${id}`
+}
+
+export const imgBackdropUrl = (id) => {
+  if (!id) return "/poster.png"
+  return `https://image.tmdb.org/t/p/w780/${id}`
+}
+
 const mediaQuery = window.matchMedia("(max-width: 1000px)")
 export const isMobile = ref(mediaQuery.matches)
 const updateIsMobile = (event) => {

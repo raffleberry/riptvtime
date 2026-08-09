@@ -1,12 +1,7 @@
 import { apiSearchTv, apiUploadImportZip } from "../../api.js"
 import { MsgType, notify } from "../../components/Notify/Notify.js"
-import { PAGE, theme } from "../../utils.js"
+import { imgPosterUrl, PAGE, theme } from "../../utils.js"
 import { computed, onMounted, ref, watch } from "../../vue.js"
-
-const imgUrl = (id) => {
-  if (!id) return ""
-  return `https://image.tmdb.org/t/p/w342/${id}`
-}
 
 const Match = {
   props: {
@@ -73,7 +68,7 @@ const Match = {
       tv,
       sr: searchResults,
       srl: searchResultsImgLoaded,
-      imgUrl,
+      imgUrl: imgPosterUrl,
       loading,
       onMatchDone,
       selected,

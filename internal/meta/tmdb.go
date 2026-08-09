@@ -1,8 +1,10 @@
 package meta
 
 import (
+	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 	"time"
 
 	tmdb "github.com/cyruzin/golang-tmdb"
@@ -70,11 +72,20 @@ func (t *MetaTmdb) Search(query string, page int) (*TvSearchResults, error) {
 			Year:     parseYear(v.FirstAirDate),
 			MName:    t.Name(),
 			Image:    v.PosterPath,
+			Genres:   v.GenreIDs,
 		})
 	}
 
 	return &tvSearchResults, nil
 
+}
+
+func (t *MetaTmdb) genresToStr(genres []tmdb.Genre) string {
+	var rv []string
+	for _, g := range genres {
+		rv = append(rv, fmt.Sprintf("%d:%s", g.ID, g.Name))
+	}
+	return strings.Join(rv, ",")
 }
 
 func (t *MetaTmdb) GetTvDetails(tmdbId int) (*TvDetails, error) {
@@ -90,6 +101,7 @@ func (t *MetaTmdb) GetTvDetails(tmdbId int) (*TvDetails, error) {
 			SeasonNumber: int(s.SeasonNumber),
 			EpisodeCount: int(s.EpisodeCount),
 			AirDate:      parseAirDate(s.AirDate),
+			ImgPoster:    s.PosterPath,
 			MName:        t.Name(),
 		})
 	}
@@ -113,7 +125,12 @@ func (t *MetaTmdb) GetTvDetails(tmdbId int) (*TvDetails, error) {
 		NumberOfEpisodes: res.NumberOfEpisodes,
 		Seasons:          seasons,
 		InProduction:     res.InProduction,
-		MName:            t.Name(),
+		Tagline:          res.Tagline,
+		Genres:           t.genresToStr(res.Genres),
+		ImgPoster:        res.PosterPath,
+		ImgBackdrop:      res.BackdropPath,
+
+		MName: t.Name(),
 	}
 
 	if err != nil {

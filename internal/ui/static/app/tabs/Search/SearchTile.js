@@ -1,5 +1,5 @@
 import { useTracked } from "../../stores/tracked.js"
-import { TvStatus } from "../../utils.js"
+import { imgPosterUrl, TvStatus } from "../../utils.js"
 import { computed, ref, storeToRefs, watch } from "../../vue.js"
 import { selected } from "./SearchTileOpts.js"
 
@@ -63,6 +63,7 @@ const SearchTile = {
     }
 
     return {
+      imgPosterUrl,
       tv,
       openSeriesOptions,
       statusCss,
@@ -72,13 +73,9 @@ const SearchTile = {
   template: /* HTML */ `
     <div :class="statusCss.card">
         <div class="row">
-            <!--
-            <div class="col-md-4">
-            <img src="..." class="img-fluid rounded-start" alt="..."> 
+            <div class="col-2" style="width: 180px">
+            <img :src="imgPosterUrl(tv.Image)" class="img-fluid object-fit-cover rounded-start" alt="..."> 
             </div>
-            <div class="col-md-8">
-            </div>
-            -->
             <div class="col">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">

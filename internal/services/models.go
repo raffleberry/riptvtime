@@ -15,6 +15,7 @@ type SeriesFeedItem struct {
 	UpNextS            int
 	UpNextE            int
 	RecentlyAired      bool
+	Image              string
 	LastEpisodeAirDate time.Time
 }
 

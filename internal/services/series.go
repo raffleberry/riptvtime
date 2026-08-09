@@ -362,6 +362,7 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 			UpNextE:            upNextE,
 			RecentlyAired:      recentlyAired,
 			LastEpisodeAirDate: fd.LastEpisodeToAir.AirDate,
+			Image:              fd.ImgPoster,
 		})
 
 		slog.Debug("::::End Calculating Resp data", "Series Name", srs.Name)
@@ -714,10 +715,20 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 			continue
 		}
 
-		tvd, err := srv.cGetTVFromTvTimeId(srs.TvTimeId)
-
+		ttd, err := srv.cGetTVFromTvTimeId(srs.TvTimeId)
 		if err != nil {
 			slog.Error("Error getting meta", "series", srs.Name, "tvTimeId", srs.TvTimeId, "error", err)
+			err1 := srv.ipt.SetSeriesUnresolved(srs.Key, err.Error())
+			if err1 != nil {
+				slog.Error("Failed to set series unresolved", "error", err1)
+				return err1
+			}
+			continue
+		}
+
+		tvd, err := srv.meta.GetTvDetails(ttd.Id)
+		if err != nil {
+			slog.Error("Error getting tv details", "series", srs.Name, "tvTimeId", srs.TvTimeId, "error", err)
 			err1 := srv.ipt.SetSeriesUnresolved(srs.Key, err.Error())
 			if err1 != nil {
 				slog.Error("Failed to set series unresolved", "error", err1)
@@ -739,9 +750,9 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 			Year:           tvd.Year,
 			TrackingStatus: ts,
 			RuntimeApprox:  tvd.LastEpisodeToAir.Runtime,
+			InProduction:   tvd.InProduction,
 			Source:         db.SourceImport,
 			SourceKey:      srs.Key,
-			InProduction:   tvd.InProduction,
 		}
 		tvDb.CreatedAt = srs.CreatedAt
 
