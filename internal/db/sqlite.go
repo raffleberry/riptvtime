@@ -52,7 +52,13 @@ func (db *DbSqlite) SeriesTrackedAll() (*[]TvSeries, error) {
 
 func (db *DbSqlite) SeriesWatchingAll() ([]TvSeries, error) {
 	var series []TvSeries
-	err := db.orm.Where("tracking_status = ?", TvStatusWatching).Find(&series).Error
+	err := db.orm.Model(&TvSeries{}).
+		Select("tv_series.m_id, tv_series.name, tv_series.in_production, tv_series.tracking_status, IFNULL(MAX(eps.created_at), tv_series.created_at) as ca").
+		Joins("LEFT JOIN tv_tracked_eps eps ON eps.series_m_id = tv_series.m_id").
+		Group("tv_series.m_id").
+		Having("tv_series.tracking_status = ?", TvStatusWatching).
+		Order("ca desc").
+		Find(&series).Error
 	return series, err
 }
 

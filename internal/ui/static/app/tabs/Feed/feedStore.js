@@ -19,6 +19,7 @@ export const useFeedStore = defineStore("feed", () => {
       }
     } catch (error) {
       console.error("Error fetching feed data:", error)
+      notify(MsgType.Error, "Feed", error)
     } finally {
       loading.value = false
     }

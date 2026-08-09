@@ -368,10 +368,6 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 		slog.Debug("::::End Calculating Resp data", "Series Name", srs.Name)
 	}
 
-	slices.SortFunc(rv, func(a SeriesFeedItem, b SeriesFeedItem) int {
-		return b.LastEpisodeAirDate.Compare(a.LastEpisodeAirDate)
-	})
-
 	return &rv, nil
 
 }
