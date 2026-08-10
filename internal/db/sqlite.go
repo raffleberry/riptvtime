@@ -50,15 +50,9 @@ func (db *DbSqlite) SeriesTrackedAll() (*[]TvSeries, error) {
 	return &series, err
 }
 
-func (db *DbSqlite) SeriesWatchingAll() ([]TvSeries, error) {
+func (db *DbSqlite) SeriesFeed() ([]TvSeries, error) {
 	var series []TvSeries
-	err := db.orm.Model(&TvSeries{}).
-		Select("tv_series.m_id, tv_series.name, tv_series.in_production, tv_series.tracking_status, IFNULL(MAX(eps.created_at), tv_series.created_at) as ca").
-		Joins("LEFT JOIN tv_tracked_eps eps ON eps.series_m_id = tv_series.m_id").
-		Group("tv_series.m_id").
-		Having("tv_series.tracking_status = ?", TvStatusWatching).
-		Order("ca desc").
-		Find(&series).Error
+	err := db.orm.Where("tracking_status = ?", TvStatusWatching).Find(&series).Error
 	return series, err
 }
 
@@ -72,10 +66,10 @@ func (db *DbSqlite) SeriesUpdateInProd(id int, inProd bool) error {
 	return db.orm.Model(&TvSeries{}).Where("id = ?", id).Update("in_production", inProd).Error
 }
 
-func (db *DbSqlite) SeriesTrackedEps(tmdbId int) (*[]TvTrackedEps, error) {
+func (db *DbSqlite) SeriesTrackedEps(tmdbId int) ([]TvTrackedEps, error) {
 	var trackedEps []TvTrackedEps
-	err := db.orm.Where("series_m_id = ?", tmdbId).Find(&trackedEps).Error
-	return &trackedEps, err
+	err := db.orm.Where("series_m_id = ?", tmdbId).Order("created_at DESC").Find(&trackedEps).Error
+	return trackedEps, err
 }
 
 func (db *DbSqlite) SeriesAdd(t *TvSeries) (int, error) {

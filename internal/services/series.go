@@ -72,7 +72,7 @@ func (srv *SeriesService) Search(searchTerm string, page int) (*SeriesSearchResu
 	return &rv, nil
 }
 
-// Get Tv Show Details (Freshiestest Data possible)
+// Get Fresh Tv Show Details (Fresh enough)
 func (srv *SeriesService) GetDetails(mId int, withEps bool) (*SeriesFullItem, error) {
 	key := fmt.Sprintf("TvDetails{MId:%d}", mId)
 
@@ -185,7 +185,7 @@ func (srv *SeriesService) GetDetails(mId int, withEps bool) (*SeriesFullItem, er
 		return nil, err
 	}
 
-	for _, tep := range *tEps {
+	for _, tep := range tEps {
 		epsWatched = append(epsWatched, SeriesEpisode{
 			S: tep.Season,
 			E: tep.Episode,
@@ -259,32 +259,58 @@ func (srv *SeriesService) freshSeriesData(series []db.TvSeries) ([]*meta.TvDetai
 	return fsd, nil
 }
 
-func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
+// Sorted by max(TvShowAdded, LastEpisodeAired,, LastEpisodeWatched)
+func (srv *SeriesService) Feed() ([]*SeriesFeedItem, error) {
 
-	series, err := srv.db.SeriesWatchingAll()
+	series, err := srv.db.SeriesFeed()
 	if err != nil {
 		return nil, err
 	}
 
-	slog.Debug("Tv shows in Db", "series count", len(series))
+	slog.Debug("Tv shows for feed", "series count", len(series))
 
 	freshSeriesData, err := srv.freshSeriesData(series)
 
+	trackedEpsMp := map[int][]db.TvTrackedEps{}
+	g, ctx := errgroup.WithContext(context.Background())
+	mu := sync.Mutex{}
+	g.SetLimit(128)
+	for _, srs := range series {
+
+		g.Go(func() error {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+
+			eps, err := srv.db.SeriesTrackedEps(int(srs.MId))
+			if err != nil {
+				return err
+			}
+
+			mu.Lock()
+			trackedEpsMp[int(srs.MId)] = eps
+			mu.Unlock()
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
 	slog.Debug("Fetched Data from Tmdb", "count", len(freshSeriesData))
 
-	var rv []SeriesFeedItem
+	var rv []*SeriesFeedItem
 
 	for _, srs := range series {
 
-		slog.Debug("::::Start Calculating Resp data", "Series Name", srs.Name)
-		trackedEps, err := srv.db.SeriesTrackedEps(int(srs.MId))
-		if err != nil {
-			return nil, err
-		}
 		watched := make(map[string]struct{})
-		for _, t := range *trackedEps {
-			key := fmt.Sprintf("%d-%d", t.Season, t.Episode)
-			watched[key] = struct{}{}
+		trackedEps, exists := trackedEpsMp[int(srs.MId)]
+		if exists {
+			for _, t := range trackedEps {
+				key := fmt.Sprintf("%d-%d", t.Season, t.Episode)
+				watched[key] = struct{}{}
+			}
 		}
 
 		var isWatched = func(s int, e int) bool {
@@ -292,8 +318,6 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 			_, ok := watched[key]
 			return ok
 		}
-
-		slog.Debug("watched eps", "name", srs.Name, "watched map", watched)
 
 		idx := slices.IndexFunc(freshSeriesData, func(fd *meta.TvDetails) bool {
 			return fd.Id == int(srs.MId)
@@ -353,22 +377,50 @@ func (srv *SeriesService) Feed() (*[]SeriesFeedItem, error) {
 			recentlyAired = true
 		}
 
-		rv = append(rv, SeriesFeedItem{
-			TvSeries:           srs,
-			EpisodesTotal:      fd.NumberOfEpisodes,
-			EpisodesAired:      episodesAired,
-			EpisodesWatched:    len(watched),
-			UpNextS:            upNextS,
-			UpNextE:            upNextE,
-			RecentlyAired:      recentlyAired,
-			LastEpisodeAirDate: fd.LastEpisodeToAir.AirDate,
-			Image:              fd.ImgPoster,
+		lastEpisodeWatchDate := time.Time{}
+		if len(watched) > 0 {
+			lastEpisodeWatchDate = trackedEps[0].CreatedAt
+		}
+
+		rv = append(rv, &SeriesFeedItem{
+			TvSeries:             srs,
+			EpisodesTotal:        fd.NumberOfEpisodes,
+			EpisodesAired:        episodesAired,
+			EpisodesWatched:      len(watched),
+			UpNextS:              upNextS,
+			UpNextE:              upNextE,
+			RecentlyAired:        recentlyAired,
+			LastEpisodeAirDate:   fd.LastEpisodeToAir.AirDate,
+			Image:                fd.ImgPoster,
+			ShowAddDate:          srs.CreatedAt,
+			LastEpisodeWatchDate: lastEpisodeWatchDate,
 		})
 
-		slog.Debug("::::End Calculating Resp data", "Series Name", srs.Name)
+		latest := func(a, b, c time.Time) time.Time {
+			rv := a
+			if b.After(rv) {
+				rv = b
+			}
+			if c.After(rv) {
+				rv = c
+			}
+			return rv
+		}
+
+		slices.SortFunc(rv, func(a, b *SeriesFeedItem) int {
+			aT := latest(a.LastEpisodeAirDate, a.LastEpisodeWatchDate, a.ShowAddDate)
+			bT := latest(b.LastEpisodeAirDate, b.LastEpisodeWatchDate, b.ShowAddDate)
+			if aT.After(bT) {
+				return -1
+			} else if aT.Before(bT) {
+				return 1
+			}
+			return 0
+		})
+
 	}
 
-	return &rv, nil
+	return rv, nil
 
 }
 

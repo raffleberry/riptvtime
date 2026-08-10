@@ -114,7 +114,7 @@ type TvSeriesDetails struct {
 
 type Db interface {
 	SeriesTrackedAll() (*[]TvSeries, error)
-	SeriesWatchingAll() ([]TvSeries, error)
+	SeriesFeed() ([]TvSeries, error)
 	SeriesWatchingInProdAll() ([]TvSeries, error)
 	SeriesAdd(t *TvSeries) (int, error)
 	SeriesRem(mId int) error
@@ -123,7 +123,7 @@ type Db interface {
 	SeriesStatusGet(mId int) (TvStatus, error)
 	SeriesStatusUpdate(mId int, newStatus TvStatus) error
 
-	SeriesTrackedEps(mId int) (*[]TvTrackedEps, error)
+	SeriesTrackedEps(mId int) ([]TvTrackedEps, error)
 	SeriesTrackedEpsAdd(ep *TvTrackedEps) (int, error)
 	SeriesTrackedEpRemove(mId int, season int, episode int) error
 

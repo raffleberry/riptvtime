@@ -9,14 +9,17 @@ import (
 
 type SeriesFeedItem struct {
 	db.TvSeries
-	EpisodesTotal      int
-	EpisodesAired      int
-	EpisodesWatched    int
-	UpNextS            int
-	UpNextE            int
-	RecentlyAired      bool
-	Image              string
-	LastEpisodeAirDate time.Time
+	EpisodesTotal   int
+	EpisodesAired   int
+	EpisodesWatched int
+	UpNextS         int
+	UpNextE         int
+	RecentlyAired   bool
+	Image           string
+
+	LastEpisodeAirDate   time.Time
+	LastEpisodeWatchDate time.Time
+	ShowAddDate          time.Time
 }
 
 type SeriesSearchItem struct {
