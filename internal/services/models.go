@@ -34,8 +34,9 @@ type SeriesSearchResult struct {
 }
 
 type SeriesEpisode struct {
-	S int
-	E int
+	S         int
+	E         int
+	CreatedAt time.Time
 }
 
 type SeriesFullItem struct {
@@ -57,5 +58,6 @@ type ImportedData struct {
 type UpcomingItem struct {
 	SeriesName string
 	Year       int
+	ImgPoster  string
 	Episode    *db.TvEpisode
 }

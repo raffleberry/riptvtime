@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
-	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -187,8 +187,9 @@ func (srv *SeriesService) GetDetails(mId int, withEps bool) (*SeriesFullItem, er
 
 	for _, tep := range tEps {
 		epsWatched = append(epsWatched, SeriesEpisode{
-			S: tep.Season,
-			E: tep.Episode,
+			S:         tep.Season,
+			E:         tep.Episode,
+			CreatedAt: tep.CreatedAt,
 		})
 	}
 
@@ -213,8 +214,8 @@ func (srv *SeriesService) TrackedAll() (*[]db.TvSeries, error) {
 	return rv, nil
 }
 
-func (srv *SeriesService) freshSeriesData(series []db.TvSeries) ([]*meta.TvDetails, error) {
-	fsd := []*meta.TvDetails{}
+func (srv *SeriesService) freshSeriesData(series []db.TvSeries) ([]*SeriesFullItem, error) {
+	fsd := []*SeriesFullItem{}
 
 	var mu sync.Mutex
 
@@ -245,7 +246,7 @@ func (srv *SeriesService) freshSeriesData(series []db.TvSeries) ([]*meta.TvDetai
 			}()
 
 			mu.Lock()
-			fsd = append(fsd, res.TvDetails)
+			fsd = append(fsd, res)
 			mu.Unlock()
 
 			return nil
@@ -271,59 +272,29 @@ func (srv *SeriesService) Feed() ([]*SeriesFeedItem, error) {
 
 	freshSeriesData, err := srv.freshSeriesData(series)
 
-	trackedEpsMp := map[int][]db.TvTrackedEps{}
-	g, ctx := errgroup.WithContext(context.Background())
-	mu := sync.Mutex{}
-	g.SetLimit(128)
-	for _, srs := range series {
-
-		g.Go(func() error {
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-
-			eps, err := srv.db.SeriesTrackedEps(int(srs.MId))
-			if err != nil {
-				return err
-			}
-
-			mu.Lock()
-			trackedEpsMp[int(srs.MId)] = eps
-			mu.Unlock()
-			return nil
-		})
-	}
-
-	if err := g.Wait(); err != nil {
-		return nil, err
-	}
-
 	slog.Debug("Fetched Data from Tmdb", "count", len(freshSeriesData))
 
-	var rv []*SeriesFeedItem
+	return srv.MakeFeedList(series, freshSeriesData), nil
+}
+
+func (srv *SeriesService) MakeFeedList(series []db.TvSeries, freshSeriesData []*SeriesFullItem) []*SeriesFeedItem {
+	rv := []*SeriesFeedItem{}
 
 	for _, srs := range series {
 
-		watched := make(map[string]struct{})
-		trackedEps, exists := trackedEpsMp[int(srs.MId)]
-		if exists {
-			for _, t := range trackedEps {
-				key := fmt.Sprintf("%d-%d", t.Season, t.Episode)
-				watched[key] = struct{}{}
-			}
-		}
-
-		var isWatched = func(s int, e int) bool {
-			key := fmt.Sprintf("%d-%d", s, e)
-			_, ok := watched[key]
-			return ok
-		}
-
-		idx := slices.IndexFunc(freshSeriesData, func(fd *meta.TvDetails) bool {
+		idx := slices.IndexFunc(freshSeriesData, func(fd *SeriesFullItem) bool {
 			return fd.Id == int(srs.MId)
 		})
 
 		fd := freshSeriesData[idx]
+		watched := slices.CompactFunc(fd.EpsWatched, func(a, b SeriesEpisode) bool {
+			return a.S == b.S && a.E == b.E
+		})
+		var isWatched = func(s int, e int) bool {
+			return slices.ContainsFunc(watched, func(a SeriesEpisode) bool {
+				return a.S == s && a.E == e
+			})
+		}
 
 		// update series data from fresh data
 		srs.Name = fd.Name
@@ -335,12 +306,12 @@ func (srv *SeriesService) Feed() ([]*SeriesFeedItem, error) {
 
 		lastWatchedFound := false
 
-		episodesAired := 0
 		lastAiredS := fd.LastEpisodeToAir.SeasonNumber
 		lastAiredE := fd.LastEpisodeToAir.EpisodeNumber
 
 		slices.SortFunc(fd.Seasons, func(a, b meta.TvSeason) int { return cmp.Compare(b.SeasonNumber, a.SeasonNumber) })
 
+		// TODO: replace this with UpNext
 		for _, sn := range fd.Seasons {
 			if 1 > sn.SeasonNumber || sn.SeasonNumber > fd.NumberOfSeasons {
 				continue
@@ -352,7 +323,6 @@ func (srv *SeriesService) Feed() ([]*SeriesFeedItem, error) {
 			} else if sn.SeasonNumber == lastAiredS {
 				eps = lastAiredE
 			}
-			episodesAired += eps
 
 			for eNo := eps; eNo >= 1 && !lastWatchedFound; eNo -= 1 {
 				if isWatched(sn.SeasonNumber, eNo) {
@@ -365,7 +335,7 @@ func (srv *SeriesService) Feed() ([]*SeriesFeedItem, error) {
 			}
 		}
 
-		if len(watched) == episodesAired || isWatched(lastAiredS, lastAiredE) {
+		if len(watched) == fd.EpisodesAired || isWatched(lastAiredS, lastAiredE) {
 			continue
 		}
 
@@ -378,14 +348,14 @@ func (srv *SeriesService) Feed() ([]*SeriesFeedItem, error) {
 		}
 
 		lastEpisodeWatchDate := time.Time{}
-		if len(watched) > 0 {
-			lastEpisodeWatchDate = trackedEps[0].CreatedAt
+		if len(fd.EpsWatched) > 0 {
+			lastEpisodeWatchDate = fd.EpsWatched[0].CreatedAt
 		}
 
 		rv = append(rv, &SeriesFeedItem{
 			TvSeries:             srs,
 			EpisodesTotal:        fd.NumberOfEpisodes,
-			EpisodesAired:        episodesAired,
+			EpisodesAired:        fd.EpisodesAired,
 			EpisodesWatched:      len(watched),
 			UpNextS:              upNextS,
 			UpNextE:              upNextE,
@@ -420,7 +390,7 @@ func (srv *SeriesService) Feed() ([]*SeriesFeedItem, error) {
 
 	}
 
-	return rv, nil
+	return rv
 
 }
 
@@ -1047,7 +1017,7 @@ func (srv *SeriesService) StatsTotal() (int, error) {
 	return srv.db.SeriesStatsTotal()
 }
 
-func (srv *SeriesService) Upcoming() ([]UpcomingItem, error) {
+func (srv *SeriesService) Upcoming() ([]*UpcomingItem, error) {
 	series, err := srv.db.SeriesWatchingInProdAll()
 	if err != nil {
 		return nil, err
@@ -1057,7 +1027,7 @@ func (srv *SeriesService) Upcoming() ([]UpcomingItem, error) {
 		return nil, err
 	}
 
-	var rv []UpcomingItem
+	var rv []*UpcomingItem
 	now := time.Now()
 
 	for _, srs := range fsd {
@@ -1079,9 +1049,10 @@ func (srv *SeriesService) Upcoming() ([]UpcomingItem, error) {
 					if ep.AirDate.Before(now) {
 						continue
 					}
-					rv = append(rv, UpcomingItem{
+					rv = append(rv, &UpcomingItem{
 						SeriesName: srs.Name,
 						Year:       srs.Year,
+						ImgPoster:  srs.ImgPoster,
 						Episode:    ep,
 					})
 				}
@@ -1089,14 +1060,14 @@ func (srv *SeriesService) Upcoming() ([]UpcomingItem, error) {
 		}
 	}
 
-	sort.Slice(rv, func(i, j int) bool {
-		if rv[i].Episode.AirDate.Equal(rv[j].Episode.AirDate) {
-			if rv[i].SeriesName == rv[j].SeriesName {
-				return rv[i].Episode.Episode < rv[j].Episode.Episode
+	slices.SortFunc(rv, func(a, b *UpcomingItem) int {
+		if a.Episode.AirDate.Equal(b.Episode.AirDate) {
+			if a.SeriesName == b.SeriesName {
+				return cmp.Compare(a.Episode.Episode, b.Episode.Episode)
 			}
-			return rv[i].SeriesName < rv[j].SeriesName
+			return strings.Compare(a.SeriesName, b.SeriesName)
 		}
-		return rv[i].Episode.AirDate.Before(rv[j].Episode.AirDate)
+		return a.Episode.AirDate.Compare(b.Episode.AirDate)
 	})
 
 	return rv, nil

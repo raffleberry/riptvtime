@@ -45,7 +45,7 @@ const TvFeedTile = {
         <div class="col-2" style="width: 180px">
           <img
             :src="imgPosterUrl(tv.Image)"
-            class="img-fluid object-fit-cover rounded-top rounded-end-0"
+            class="img-fluid object-fit-cover rounded-start"
             alt="..."
           />
         </div>
