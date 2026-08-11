@@ -10,6 +10,7 @@ export const {
   onBeforeMount,
   toRef,
   useTemplateRef,
+  nextTick,
 } = Vue
 export const {
   createRouter,

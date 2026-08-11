@@ -3,6 +3,7 @@ import { useTracked } from "../../stores/tracked.js"
 import { imgBackdropUrl, imgPosterUrl, ky, TvStatus } from "../../utils.js"
 import {
   computed,
+  nextTick,
   onMounted,
   ref,
   storeToRefs,
@@ -47,10 +48,14 @@ export const Series = {
 
     const eps = ref([])
 
-    onMounted(() => {
-      if (r.hash) {
-        let sel = document.querySelector(r.hash)
-        if (sel) sel.scrollIntoView()
+    onMounted(() => {})
+    watch(loading, async (val) => {
+      if (!val) {
+        if (r.hash) {
+          await nextTick()
+          let sel = document.querySelector(r.hash)
+          if (sel) sel.scrollIntoView()
+        }
       }
     })
 
@@ -219,6 +224,10 @@ export const Series = {
       return new Date() >= new Date(dStr)
     }
 
+    const onClickAccordian = (num) => {
+      document.querySelector("#season" + num).scrollIntoView()
+    }
+
     return {
       ky,
       loading,
@@ -237,6 +246,7 @@ export const Series = {
       eps,
       imgPosterUrl,
       cardStyle,
+      onClickAccordian,
     }
   },
   template: /* HTML */ `
@@ -304,6 +314,7 @@ export const Series = {
                 type="button"
                 data-bs-toggle="collapse"
                 :data-bs-target="'#season' + sn.SeasonNumber"
+                @click="onClickAccordian(sn.SeasonNumber)"
               >
                 <div class="d-flex w-100 justify-content-between pe-5">
                   <span>{{ sn.Name }}</span>

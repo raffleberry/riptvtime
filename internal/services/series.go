@@ -404,7 +404,6 @@ func (srv *SeriesService) MakeUpNext(mId int, fd *SeriesFullItem) (*SeriesEpisod
 		if !isLegitSeason(sn.Name, sn.SeasonNumber, fd.NumberOfSeasons) {
 			continue
 		}
-		slog.Debug("processing", "name", sn.Name, "sno", sn.SeasonNumber, "cnt", fd.NumberOfSeasons)
 
 		var eps int
 		if sn.SeasonNumber < lastAiredS {
@@ -415,7 +414,6 @@ func (srv *SeriesService) MakeUpNext(mId int, fd *SeriesFullItem) (*SeriesEpisod
 
 		for eNo := eps; eNo >= 1 && !lastWatchedFound; eNo -= 1 {
 			if isWatched(sn.SeasonNumber, eNo) {
-				slog.Debug("found", "sno", sn.SeasonNumber, "eno", eNo)
 				lastWatchedFound = true
 				break
 			} else {

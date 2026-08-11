@@ -53,7 +53,7 @@ const TvFeedTile = {
         <div class="d-flex flex-column card-body justify-content-between">
           <div>
             <h5 class="card-title">
-              <router-link :to="'/series/' + tv.MId">
+              <router-link :to="'/series/' + tv.MId + '#season' + tv.UpNext.S">
                 {{ tv.Name }} <span class="text-muted">({{ tv.Year }})</span>
                 <span class="badge bg-secondary" v-if="tv.RecentlyAired">New</span>
               </router-link>
