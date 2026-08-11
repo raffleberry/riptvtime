@@ -21,15 +21,10 @@ export const SeriesMarkPrev = {
     const { remSeries, addSeries, epMarkWatched } = useSeriesStore()
 
     var bSelf = null
-    console.log(props.eps)
 
     onMounted(() => {
       const el = document.getElementById("seriesMarkPrev")
       bSelf = bootstrap.Offcanvas.getOrCreateInstance(el)
-      // el.addEventListener('show.bs.offcanvas', () => {
-      // })
-      // el.addEventListener('hidden.bs.offcanvas', () => {
-      // })
     })
     watch(
       () => props.show,
@@ -58,9 +53,14 @@ export const SeriesMarkPrev = {
       }
     }
 
+    const handleCancel = () => {
+      bSelf.hide()
+    }
+
     return {
       handleMark,
       handleMarkAll,
+      handleCancel,
       ky,
     }
   },

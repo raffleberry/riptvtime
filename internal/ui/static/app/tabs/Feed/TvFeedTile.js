@@ -13,7 +13,7 @@ const TvFeedTile = {
   },
   emits: ["markupnext"],
   setup(props, { emit }) {
-    const upNext = computed(() => ky(props.tv.UpNextS, props.tv.UpNextE))
+    const upNext = computed(() => ky(props.tv.UpNext.S, props.tv.UpNext.E))
     const toWatchCnt = computed(() => {
       let c = props.tv.EpisodesAired - props.tv.EpisodesWatched - 1
       return c < 0 ? 0 : c
@@ -25,8 +25,8 @@ const TvFeedTile = {
         MId: props.tv.MId,
         Name: props.tv.Name,
         Year: props.tv.Year,
-        S: props.tv.UpNextS,
-        E: props.tv.UpNextE,
+        S: props.tv.UpNext.S,
+        E: props.tv.UpNext.E,
       })
     }
 

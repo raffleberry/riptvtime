@@ -12,8 +12,7 @@ type SeriesFeedItem struct {
 	EpisodesTotal   int
 	EpisodesAired   int
 	EpisodesWatched int
-	UpNextS         int
-	UpNextE         int
+	UpNext          *SeriesEpisode
 	RecentlyAired   bool
 	Image           string
 
@@ -36,6 +35,7 @@ type SeriesSearchResult struct {
 type SeriesEpisode struct {
 	S         int
 	E         int
+	Cnt       int
 	CreatedAt time.Time
 }
 

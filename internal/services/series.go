@@ -73,7 +73,7 @@ func (srv *SeriesService) Search(searchTerm string, page int) (*SeriesSearchResu
 }
 
 // Get Fresh Tv Show Details (Fresh enough)
-func (srv *SeriesService) GetDetails(mId int, withEps bool) (*SeriesFullItem, error) {
+func (srv *SeriesService) GetDetails(mId int, withEpsDetails bool) (*SeriesFullItem, error) {
 	key := fmt.Sprintf("TvDetails{MId:%d}", mId)
 
 	var res *meta.TvDetails
@@ -152,7 +152,7 @@ func (srv *SeriesService) GetDetails(mId int, withEps bool) (*SeriesFullItem, er
 			}
 		}
 
-		if withEps {
+		if withEpsDetails {
 
 			for epNo := 1; epNo <= s.EpisodeCount; epNo++ {
 				ep, err := srv.getEpisodeDetails(mId, s.SeasonNumber, epNo)
@@ -186,11 +186,19 @@ func (srv *SeriesService) GetDetails(mId int, withEps bool) (*SeriesFullItem, er
 	}
 
 	for _, tep := range tEps {
-		epsWatched = append(epsWatched, SeriesEpisode{
-			S:         tep.Season,
-			E:         tep.Episode,
-			CreatedAt: tep.CreatedAt,
+		idx := slices.IndexFunc(epsWatched, func(ep SeriesEpisode) bool {
+			return ep.S == tep.Season && ep.E == tep.Episode
 		})
+		if idx == -1 {
+			epsWatched = append(epsWatched, SeriesEpisode{
+				S:         tep.Season,
+				E:         tep.Episode,
+				Cnt:       1,
+				CreatedAt: tep.CreatedAt,
+			})
+		} else {
+			epsWatched[idx].Cnt += 1
+		}
 	}
 
 	return &SeriesFullItem{
@@ -290,52 +298,14 @@ func (srv *SeriesService) MakeFeedList(series []db.TvSeries, freshSeriesData []*
 		watched := slices.CompactFunc(fd.EpsWatched, func(a, b SeriesEpisode) bool {
 			return a.S == b.S && a.E == b.E
 		})
-		var isWatched = func(s int, e int) bool {
-			return slices.ContainsFunc(watched, func(a SeriesEpisode) bool {
-				return a.S == s && a.E == e
-			})
-		}
 
 		// update series data from fresh data
 		srs.Name = fd.Name
 		srs.Overview = fd.Overview
 		srs.Year = fd.Year
 
-		upNextS := 1
-		upNextE := 1
-
-		lastWatchedFound := false
-
-		lastAiredS := fd.LastEpisodeToAir.SeasonNumber
-		lastAiredE := fd.LastEpisodeToAir.EpisodeNumber
-
-		slices.SortFunc(fd.Seasons, func(a, b meta.TvSeason) int { return cmp.Compare(b.SeasonNumber, a.SeasonNumber) })
-
-		// TODO: replace this with UpNext
-		for _, sn := range fd.Seasons {
-			if 1 > sn.SeasonNumber || sn.SeasonNumber > fd.NumberOfSeasons {
-				continue
-			}
-
-			var eps int
-			if sn.SeasonNumber < lastAiredS {
-				eps = sn.EpisodeCount
-			} else if sn.SeasonNumber == lastAiredS {
-				eps = lastAiredE
-			}
-
-			for eNo := eps; eNo >= 1 && !lastWatchedFound; eNo -= 1 {
-				if isWatched(sn.SeasonNumber, eNo) {
-					lastWatchedFound = true
-					break
-				} else {
-					upNextS = sn.SeasonNumber
-					upNextE = eNo
-				}
-			}
-		}
-
-		if len(watched) == fd.EpisodesAired || isWatched(lastAiredS, lastAiredE) {
+		upNxt, _, _ := srv.MakeUpNext(int(srs.MId), fd)
+		if upNxt == nil {
 			continue
 		}
 
@@ -357,8 +327,7 @@ func (srv *SeriesService) MakeFeedList(series []db.TvSeries, freshSeriesData []*
 			EpisodesTotal:        fd.NumberOfEpisodes,
 			EpisodesAired:        fd.EpisodesAired,
 			EpisodesWatched:      len(watched),
-			UpNextS:              upNextS,
-			UpNextE:              upNextE,
+			UpNext:               upNxt,
 			RecentlyAired:        recentlyAired,
 			LastEpisodeAirDate:   fd.LastEpisodeToAir.AirDate,
 			Image:                fd.ImgPoster,
@@ -406,18 +375,19 @@ func (srv *SeriesService) UpNext(mId int) (*SeriesEpisode, error) {
 		return nil, err
 	}
 
-	var rv SeriesEpisode
+	rv, _, _ := srv.MakeUpNext(mId, fd)
+	return rv, nil
+}
 
-	watched := make(map[string]struct{})
-	for _, t := range fd.EpsWatched {
-		key := fmt.Sprintf("%d-%d", t.S, t.E)
-		watched[key] = struct{}{}
-	}
+// null if watched everything
+func (srv *SeriesService) MakeUpNext(mId int, fd *SeriesFullItem) (*SeriesEpisode, int, int) {
+
+	rv := SeriesEpisode{}
 
 	var isWatched = func(s int, e int) bool {
-		key := fmt.Sprintf("%d-%d", s, e)
-		_, ok := watched[key]
-		return ok
+		return slices.ContainsFunc(fd.EpsWatched, func(a SeriesEpisode) bool {
+			return a.S == s && a.E == e
+		})
 	}
 
 	upNextS := 1
@@ -425,10 +395,9 @@ func (srv *SeriesService) UpNext(mId int) (*SeriesEpisode, error) {
 
 	lastWatchedFound := false
 
-	episodesAired := 0
 	lastAiredS := fd.LastEpisodeToAir.SeasonNumber
 	lastAiredE := fd.LastEpisodeToAir.EpisodeNumber
-	slog.Debug("dbg", "fd", fd)
+
 	slices.SortFunc(fd.Seasons, func(a, b meta.TvSeason) int { return cmp.Compare(b.SeasonNumber, a.SeasonNumber) })
 
 	for _, sn := range fd.Seasons {
@@ -443,7 +412,6 @@ func (srv *SeriesService) UpNext(mId int) (*SeriesEpisode, error) {
 		} else if sn.SeasonNumber == lastAiredS {
 			eps = lastAiredE
 		}
-		episodesAired += eps
 
 		for eNo := eps; eNo >= 1 && !lastWatchedFound; eNo -= 1 {
 			if isWatched(sn.SeasonNumber, eNo) {
@@ -457,15 +425,14 @@ func (srv *SeriesService) UpNext(mId int) (*SeriesEpisode, error) {
 		}
 	}
 
-	if len(watched) == episodesAired || isWatched(lastAiredS, lastAiredE) {
-		return nil, ErrNotFound
+	if len(fd.EpsWatched) == fd.EpisodesAired || isWatched(lastAiredS, lastAiredE) {
+		return nil, len(fd.EpsWatched), fd.EpisodesAired
 	}
 
 	rv.S = upNextS
 	rv.E = upNextE
 
-	return &rv, nil
-
+	return &rv, len(fd.EpsWatched), fd.EpisodesAired
 }
 
 // Returns insertModel from db
@@ -682,11 +649,7 @@ func (srv *SeriesService) deriveStatus(mId int, cur db.TvStatus) (db.TvStatus, e
 	if err != nil {
 		return -1, err
 	}
-	mp := map[string]struct{}{}
-	for _, t := range fd.EpsWatched {
-		mp[fmt.Sprintf("%d-%d", t.S, t.E)] = struct{}{}
-	}
-	if fd.EpisodesAired == len(mp) {
+	if fd.EpisodesAired == len(fd.EpsWatched) {
 		if fd.InProduction {
 			rv = db.TvStatusUpToDate
 		} else {

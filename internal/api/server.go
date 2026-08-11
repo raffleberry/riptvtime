@@ -24,7 +24,7 @@ type Context struct {
 
 func WithCtx(handler func(*Context) error) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		slog.Info("Request", "uri", r.RequestURI, "method", r.Method)
+		timeStart := time.Now()
 		ctx := &Context{W: w, R: r}
 		err := handler(ctx)
 		if err != nil && !errors.Is(err, syscall.EPIPE) {
@@ -34,6 +34,7 @@ func WithCtx(handler func(*Context) error) http.HandlerFunc {
 			slog.Error("Error while handling request", "uri", r.RequestURI, "err", err)
 			http.Error(w, err.Error(), ctx.StatusCode)
 		}
+		slog.Info("Request", "ResponseTime", time.Since(timeStart).Milliseconds(), "uri", r.RequestURI, "method", r.Method)
 	}
 }
 

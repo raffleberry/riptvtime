@@ -112,6 +112,12 @@ type TvSeriesDetails struct {
 	AirDate  time.Time
 }
 
+type Genres struct {
+	gorm.Model
+	Name string
+	MId  int64
+}
+
 type Db interface {
 	SeriesTrackedAll() (*[]TvSeries, error)
 	SeriesFeed() ([]TvSeries, error)

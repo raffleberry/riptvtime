@@ -2,7 +2,6 @@ package services_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/raffleberry/riptvtime/internal/db"
 	"github.com/raffleberry/riptvtime/internal/meta"
@@ -105,29 +104,7 @@ func TestSeriesService_MakeFeedList(t *testing.T) {
 					5,
 					[]services.SeriesEpisode{},
 				},
-			},
-			[]*services.SeriesFeedItem{
-				&services.SeriesFeedItem{
-					db.TvSeries{
-						MId:            1,
-						MName:          "TvMetaService",
-						Name:           "UpdatedTest1",
-						Overview:       "UpdatedOverview1",
-						Year:           2011,
-						TrackingStatus: db.TvStatusWatching,
-					},
-					1,
-					1,
-					0,
-					2,
-					7,
-					false,
-					"",
-					time.Time{},
-					time.Time{},
-					time.Time{},
-				},
-			},
+			}, nil,
 		},
 	}
 
@@ -135,7 +112,6 @@ func TestSeriesService_MakeFeedList(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			srv := services.NewTvService(tt.c, tt.db, tt.meta, tt.ipt)
 			got := srv.MakeFeedList(tt.series, tt.freshSeriesData)
-			// TODO: update the condition below to compare got with tt.want.
 			if true {
 				t.Errorf("MakeFeedList() = %v, want %v", got, tt.want)
 			}

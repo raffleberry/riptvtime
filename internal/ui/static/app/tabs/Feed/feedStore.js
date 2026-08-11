@@ -43,8 +43,8 @@ export const useFeedStore = defineStore("feed", () => {
       } else {
         feed.value = feed.value.map((f) => {
           if (f.MId === mId) {
-            f.UpNextS = data.S
-            f.UpNextE = data.E
+            f.UpNext.S = data.S
+            f.UpNext.E = data.E
             f.EpisodesWatched = f.EpisodesWatched + 1
           }
           return f

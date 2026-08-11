@@ -141,10 +141,10 @@
   background-color: rgba(0, 0, 0, 0.2) !important;
 }
 
-.txt-bg-blur { 
-  color: white; 
+.txt-bg-blur {
+  color: white;
   background-color: rgba(0, 0, 0, 0.4); /* Darkens the background */
-  backdrop-filter: blur(8px) brightness(0.9); 
-  padding: 10px 20px; 
-  border-radius: 0px; 
+  backdrop-filter: blur(8px) brightness(0.9);
+  padding: 10px 20px;
+  border-radius: 0px;
 }
