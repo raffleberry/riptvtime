@@ -23,8 +23,6 @@ export const Series = {
     SeriesMarkPrev,
   },
   setup: (props) => {
-    onMounted(() => {})
-
     const r = useRoute()
 
     const seriesStore = useSeriesStore()
@@ -53,6 +51,13 @@ export const Series = {
       if (r.hash) {
         let sel = document.querySelector(r.hash)
         if (sel) sel.scrollIntoView()
+      }
+    })
+
+    watch(sd, () => {
+      console.log(sd.value)
+      if (sd.value?.Name) {
+        document.title = `${sd.value.Name} (${sd.value.Year}) - ${document.title}`
       }
     })
 
@@ -257,7 +262,7 @@ export const Series = {
                 data-bs-toggle="offcanvas"
                 data-bs-target="#seriesOpts"
                 type="button"
-                class="btn btn-sm p-2 d-inline-flex align-items-center justify-content-center "
+                class="btn btn-sm p-2 d-inline-flex align-items-center justify-content-center rounded-top-0 rounded-end-0"
               >
                 <i class="bi me-2" :class="statusCss.icon"></i>
                 {{ getStatusTxt(status) }}

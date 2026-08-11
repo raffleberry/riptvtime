@@ -35,6 +35,9 @@ const Search = {
         }
       },
       (val) => {
+        if (val.q) {
+          document.title = `${val.q} - ${document.title}`
+        }
         if (val.q && val.p) {
           onSearch(val.q, val.p)
         } else if (val.q) {
