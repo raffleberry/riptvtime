@@ -14,6 +14,7 @@ export const useSeriesStore = defineStore("series", () => {
   const loading = ref(false)
   const sd = ref({})
   const watchedEps = ref([])
+  window.we = watchedEps
   const SnWatchedEps = computed(() => {
     let rv = {}
     for (let i = 0; i <= sd.value.NumberOfSeasons; i++) {
@@ -31,28 +32,12 @@ export const useSeriesStore = defineStore("series", () => {
   const { series: tSeries } = storeToRefs(tstore)
   const { addSeries: tAddSeries, remSeries: tRemSeries } = tstore
 
-  const epWatchCnt = computed(() => {
-    let rv = {}
-    for (const ep of watchedEps.value) {
-      if (!rv[ky(ep.S, ep.E)]) {
-        rv[ky(ep.S, ep.E)] = 0
-      }
-      rv[ky(ep.S, ep.E)] += 1
-    }
-    return rv
-  })
-
-  const getWatchedEpsCnt = () => {
-    return Object.keys(epWatchCnt.value).length
-  }
-
   const updateTrackingStore = (mId) => {
     if (!tSeries.value[mId]) return
     if (tSeries.value[mId].TrackingStatus === TvStatus.Stopped) {
       return
     }
-    let cnt = getWatchedEpsCnt()
-    if (cnt === sd.value.EpisodesAired) {
+    if (watchedEps.value.length === sd.value.EpisodesAired) {
       if (sd.value.InProduction) {
         tSeries.value[mId].TrackingStatus = TvStatus.UpToDate
       } else {
@@ -98,7 +83,18 @@ export const useSeriesStore = defineStore("series", () => {
       if (err) {
         throw err
       }
-      watchedEps.value = watchedEps.value.concat(eps)
+      for (const ep of eps) {
+        let idx = watchedEps.value.findIndex((sep) => sep.S === ep.S && sep.E === ep.E)
+        if (idx === -1) {
+          watchedEps.value.push({
+            S: ep.S,
+            E: ep.E,
+            Cnt: 1,
+          })
+        } else {
+          watchedEps.value[idx].Cnt += 1
+        }
+      }
       updateTrackingStore(mId)
     } catch (error) {
       console.error("Error fetching series data:", error)
@@ -116,8 +112,12 @@ export const useSeriesStore = defineStore("series", () => {
 
       const idx = watchedEps.value.findIndex((ep) => ep.S === sNo && ep.E === epNo)
       if (idx !== -1) {
-        watchedEps.value.splice(idx, 1)
-        updateTrackingStore(mId)
+        if (watchedEps.value[idx].Cnt > 1) {
+          watchedEps.value[idx].Cnt -= 1
+        } else {
+          watchedEps.value.splice(idx, 1)
+          updateTrackingStore(mId)
+        }
       } else {
         console.error(watchedEps)
         throw new Error("Episode not found in watched list")
@@ -163,12 +163,11 @@ export const useSeriesStore = defineStore("series", () => {
     loading,
     sd,
     SnWatchedEps,
-    epWatchCnt,
     selectedEp,
+    watchedEps,
 
     // actions
     fetchSeries,
-    getWatchedEpsCnt,
 
     epMarkWatched,
     epUnMarkWatched,

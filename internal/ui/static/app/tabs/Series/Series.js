@@ -27,10 +27,10 @@ export const Series = {
     const r = useRoute()
 
     const seriesStore = useSeriesStore()
-    const { loading, sd, SnWatchedEps, epWatchCnt } = storeToRefs(seriesStore)
+    const { loading, sd, SnWatchedEps, watchedEps } = storeToRefs(seriesStore)
     const Id = computed(() => r.params.id)
 
-    const { epMarkWatched, fetchSeries, getWatchedEpsCnt } = seriesStore
+    const { epMarkWatched, fetchSeries } = seriesStore
 
     const { series } = storeToRefs(useTracked())
 
@@ -60,7 +60,6 @@ export const Series = {
     })
 
     watch(sd, () => {
-      console.log(sd.value)
       if (sd.value?.Name) {
         document.title = `${sd.value.Name} (${sd.value.Year}) - ${document.title}`
       }
@@ -135,7 +134,7 @@ export const Series = {
         if (deno === 0) {
           return 0
         }
-        const num = getWatchedEpsCnt()
+        const num = watchedEps.value.length
         return (num / deno) * 100
       }
 
@@ -160,16 +159,15 @@ export const Series = {
       epOptEl = bootstrap.Offcanvas.getOrCreateInstance(el)
       const elmp = document.getElementById("seriesMarkPrev")
       epMpEl = bootstrap.Offcanvas.getOrCreateInstance(elmp)
-      // el.addEventListener('show.bs.offcanvas', () => {
-      // })
-
-      // el.addEventListener('hidden.bs.offcanvas', () => {
-      // })
     })
 
-    const cnt = (s, e) => {
-      return epWatchCnt.value[ky(s, e)] ?? 0
-    }
+    const cnt = computed(() => {
+      const mp = {}
+      for (const ep of watchedEps.value) {
+        mp[ky(ep.S, ep.E)] = ep.Cnt
+      }
+      return mp
+    })
 
     const cardStyle = computed(() => {
       return {
@@ -190,7 +188,7 @@ export const Series = {
       for (let sNo = s; sNo >= 1; sNo--) {
         for (let eNo = e; eNo >= 1; eNo--) {
           totalEps += 1
-          if (cnt(sNo, eNo) > 0) {
+          if (cnt.value[ky(sNo, eNo)] > 0) {
             foundWatched = true
             watchedCnt += 1
           }
@@ -206,7 +204,8 @@ export const Series = {
     }
 
     const openEpOpts = async (ep) => {
-      if (cnt(ep.SeasonNumber, ep.EpisodeNumber) === 0) {
+      let p = cnt.value[ky(ep.SeasonNumber, ep.EpisodeNumber)]
+      if (!p) {
         const epsPopCount = getPopEpsCnt(ep.SeasonNumber, ep.EpisodeNumber)
         if (epsPopCount.length > 1) {
           eps.value = epsPopCount
@@ -233,7 +232,6 @@ export const Series = {
       loading,
       sd,
       SnWatchedEps,
-      epWatchCnt,
       statusCss,
       status,
       getStatusTxt,
@@ -336,8 +334,8 @@ export const Series = {
                 >
                   <div>{{ ep.SeasonNumber }}x{{ ep.EpisodeNumber }} - {{ ep.Name }}</div>
                   <div>
-                    <span v-if="cnt(ep.SeasonNumber, ep.EpisodeNumber) > 1"
-                      >{{ cnt(ep.SeasonNumber, ep.EpisodeNumber) }}x</span
+                    <span v-if="cnt[ky(ep.SeasonNumber, ep.EpisodeNumber)] > 1"
+                      >{{ cnt[ky(ep.SeasonNumber, ep.EpisodeNumber)] }}x</span
                     >
                     <span v-if="!isAired(ep.AirDate)"
                       >{{ new Date(ep.AirDate).toDateString() }}</span
@@ -350,7 +348,7 @@ export const Series = {
                     >
                       <i
                         class="bi"
-                        :class="cnt(ep.SeasonNumber, ep.EpisodeNumber) > 0 ? 'bi-check-circle-fill text-success' : 'bi-check-circle'"
+                        :class="cnt[ky(ep.SeasonNumber, ep.EpisodeNumber)] > 0 ? 'bi-check-circle-fill text-success' : 'bi-check-circle'"
                       ></i>
                     </button>
                   </div>

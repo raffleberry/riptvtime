@@ -36,12 +36,6 @@ export const SeriesOpts = {
     onMounted(() => {
       const el = document.getElementById("seriesOpts")
       bSelf = new bootstrap.Offcanvas(el)
-
-      // el.addEventListener('show.bs.offcanvas', () => {
-      // })
-
-      // el.addEventListener('hidden.bs.offcanvas', () => {
-      // })
     })
 
     const handleStatusChange = async () => {

@@ -29,7 +29,7 @@ export const EpisodeOpts = {
 
     const { epMarkWatched, epUnMarkWatched } = store
 
-    const { epWatchCnt } = storeToRefs(store)
+    const { watchedEps } = storeToRefs(store)
 
     const handleIncr = async () => {
       try {
@@ -52,9 +52,16 @@ export const EpisodeOpts = {
       }
     }
 
-    const cnt = computed(
-      () => epWatchCnt.value[ky(props.ep.SeasonNumber, props.ep.EpisodeNumber)] ?? 0,
-    )
+    const cnt = computed(() => {
+      let idx = watchedEps.value.findIndex(
+        (sep) => sep.S === props.ep.SeasonNumber && sep.E === props.ep.EpisodeNumber,
+      )
+      if (idx === -1) {
+        return 0
+      } else {
+        return watchedEps.value[idx].Cnt
+      }
+    })
 
     const getIncrTxt = (c) => {
       if (c == 0) {
