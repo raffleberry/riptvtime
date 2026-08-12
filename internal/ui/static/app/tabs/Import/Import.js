@@ -199,7 +199,7 @@ const Import = {
       </div>
       <! -- :::loader -->
       <h4 v-if="unresolved.Series?.length > 0 || unresolved.Episodes?.length > 0" class="mb-3">
-        {{unresolved.Series.length}} Series, {{unresolved.Episodes.length}} Episodes
+        Unresolved - {{unresolved.Series.length}} Series, {{unresolved.Episodes.length}} Episodes
       </h4>
 
       <div v-if="successAlert" class="alert alert-success" role="alert">

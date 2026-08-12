@@ -135,8 +135,8 @@ const Upload = {
           <i class="bi bi-cloud-arrow-up fs-2"></i>
         </div>
 
-        <p class="card-text fw-bold mb-1">Drag and drop your file here</p>
-        <p class="card-text text-muted small mb-3">or click to browse your files</p>
+        <p class="card-text fw-bold mb-1">Drop your 'tvtime-gdpr-data.zip' file here</p>
+        <p class="card-text text-muted small mb-3">or click to browse & select</p>
 
         <!-- Hidden Input -->
         <input

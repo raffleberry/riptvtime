@@ -13,7 +13,7 @@ const Navigation = {
       theme.value = theme.value === "light" ? "dark" : "light"
     }
 
-    const tabs = routes.filter((r) => ![PAGE.SERIES.path].includes(r.path))
+    const tabs = routes.filter((r) => ![PAGE.SERIES.path, PAGE.DISCOVER.path].includes(r.path))
 
     return {
       curPath,
@@ -27,6 +27,7 @@ const Navigation = {
   template: /* HTML */ `
     <div class="mx-2 nav nav-pills py-2 nav-fill d-flex justify-content-between bg-body">
       <div class="d-flex flex-row flex-wrap">
+        <li><h2>🪦riptvtime🥀🕊️</h2></li>
         <li v-for="tab in tabs" :key="tab.path" class="nav-item">
           <router-link class="nav-link" :class="{ active: tab.path === curPath }" :to="tab.path"
             >{{ tab.name }}</router-link

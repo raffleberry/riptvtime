@@ -19,7 +19,11 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  document.title = to.name || "Tv"
+  if (to.name) {
+    document.title = `${to.name} | riptvtime`
+  } else {
+    document.title = "riptvtime"
+  }
   next()
 })
 
