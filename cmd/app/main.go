@@ -10,6 +10,7 @@ import (
 	"github.com/raffleberry/riptvtime/internal/db"
 	"github.com/raffleberry/riptvtime/internal/meta"
 	"github.com/raffleberry/riptvtime/internal/services"
+	"github.com/raffleberry/riptvtime/internal/setup"
 	"github.com/raffleberry/riptvtime/internal/utils"
 )
 
@@ -28,15 +29,26 @@ func main() {
 
 	var cfg *config.Config
 	var err error
+	cfg, err = setup.GetConfigFromUser()
 
-	if isDev {
-		cfg, err = config.LoadFromEnv()
-	} else {
-		cfg, err = config.LoadFromFile(os.Args[1])
-	}
+	// if isDev {
+	// 	cfg, err = config.LoadFromEnv()
+	// } else {
+	// 	if len(os.Args) < 2 {
+	// 		cfg, err = setup.GetConfigFromUser()
+	// 		if cfg == nil {
+	// 			if err != nil {
+	// 				slog.Error("Failed to get config", "err", err)
+	// 			}
+	// 			return
+	// 		}
+	// 	} else {
+	// 		cfg, err = config.LoadFromFile(os.Args[1])
+	// 	}
+	// }
 
 	if err != nil {
-		slog.Error("Failed to load Env", "err", err)
+		slog.Error("Failed to load config", "err", err)
 		panic(err)
 	}
 

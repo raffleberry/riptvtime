@@ -130,3 +130,8 @@ func LoadFromEnv() (*Config, error) {
 
 	return c, nil
 }
+
+func LoadFromUISetup(c *Config) (*Config, error) {
+	setConfigDir(c)
+	return c, nil
+}
