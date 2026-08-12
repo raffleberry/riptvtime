@@ -20,7 +20,6 @@ func TestSeriesService_MakeFeedList(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
 		// Named input parameters for receiver constructor.
-		c    db.Cache
 		db   db.Db
 		meta meta.Meta
 		ipt  *services.ImportSvc
@@ -31,7 +30,8 @@ func TestSeriesService_MakeFeedList(t *testing.T) {
 	}{
 		{
 			"Validations - get only watching",
-			nil, nil, nil, nil, []db.TvSeries{
+			nil, nil, nil,
+			[]db.TvSeries{
 				db.TvSeries{
 					MId:            1,
 					MName:          "TvMetaService",
@@ -104,13 +104,14 @@ func TestSeriesService_MakeFeedList(t *testing.T) {
 					5,
 					[]services.SeriesEpisode{},
 				},
-			}, nil,
+			},
+			nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srv := services.NewTvService(tt.c, tt.db, tt.meta, tt.ipt)
+			srv := services.NewTvService(tt.db, tt.meta, tt.ipt)
 			got := srv.MakeFeedList(tt.series, tt.freshSeriesData)
 			if true {
 				t.Errorf("MakeFeedList() = %v, want %v", got, tt.want)

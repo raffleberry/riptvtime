@@ -27,15 +27,13 @@ var (
 type SeriesService struct {
 	db   db.Db
 	meta meta.Meta
-	c    db.Cache
 	ipt  *ImportSvc
 }
 
-func NewTvService(c db.Cache, db db.Db, meta meta.Meta, ipt *ImportSvc) *SeriesService {
+func NewTvService(db db.Db, meta meta.Meta, ipt *ImportSvc) *SeriesService {
 	return &SeriesService{
 		db:   db,
 		meta: meta,
-		c:    c,
 		ipt:  ipt,
 	}
 }
@@ -102,14 +100,14 @@ func (srv *SeriesService) GetDetails(mId int, withEpsDetails bool) (*SeriesFullI
 			ExpiredAt: expireTime,
 		}
 
-		err = srv.c.Set(rv)
+		err = srv.db.CacheSet(rv)
 		if err != nil {
 			return nil, err
 		}
 		return rv, nil
 	}
 
-	cd, err := srv.c.Get(key)
+	cd, err := srv.db.CacheGet(key)
 
 	if errors.Is(err, db.ErrNotFound) {
 		cd, err = refresh()
@@ -861,7 +859,7 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 func (srv *SeriesService) cGetTVFromTvTimeId(tvTimeId int) (*meta.TvDetails, error) {
 
 	key := fmt.Sprintf("GetFindByID{id:%d}", tvTimeId)
-	cd, err := srv.c.Get(key)
+	cd, err := srv.db.CacheGet(key)
 
 	var refresh = func() (*db.Cached, error) {
 		m, err := srv.meta.GetTVFromTvTimeId(tvTimeId)
@@ -878,7 +876,7 @@ func (srv *SeriesService) cGetTVFromTvTimeId(tvTimeId int) (*meta.TvDetails, err
 			JsonData: string(jsonStr),
 		}
 
-		err = srv.c.Set(rv)
+		err = srv.db.CacheSet(rv)
 		if err != nil {
 			return nil, err
 		}
@@ -917,7 +915,7 @@ func (srv *SeriesService) cGetTVFromTvTimeId(tvTimeId int) (*meta.TvDetails, err
 func (srv *SeriesService) cGetEpisodeFromTvTimeId(tvTimeId int) (*meta.TvEpisode, error) {
 
 	key := fmt.Sprintf("GetFindByID{id:%d}", tvTimeId)
-	cd, err := srv.c.Get(key)
+	cd, err := srv.db.CacheGet(key)
 
 	var refresh = func() (*db.Cached, error) {
 		m, err := srv.meta.GetEpisodeFromTvTimeId(tvTimeId)
@@ -934,7 +932,7 @@ func (srv *SeriesService) cGetEpisodeFromTvTimeId(tvTimeId int) (*meta.TvEpisode
 			JsonData: string(jsonStr),
 		}
 
-		err = srv.c.Set(rv)
+		err = srv.db.CacheSet(rv)
 		if err != nil {
 			return nil, err
 		}

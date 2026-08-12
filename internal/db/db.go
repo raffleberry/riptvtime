@@ -2,6 +2,7 @@ package db
 
 import (
 	"errors"
+	"math/rand"
 	"time"
 
 	"gorm.io/gorm"
@@ -33,6 +34,16 @@ var (
 	ErrNotFound = errors.New("Record Not Found")
 	ErrBadData  = errors.New("Bad Data")
 )
+
+func GetInProdExpireTime() time.Time {
+	Hours := rand.Int63n(60-36+1) + 36
+	return time.Now().Add(time.Duration(Hours) * time.Hour)
+}
+
+func GetNotInProdExpireTime() time.Time {
+	days14_21 := rand.Int63n(21-14+1) + 14
+	return time.Now().Add(time.Duration(days14_21) * time.Hour * 24)
+}
 
 func (s TvStatus) String() string {
 	if s < TvStatusWatching || int(s) >= len(TvStatusVals) {
@@ -118,6 +129,14 @@ type Genres struct {
 	MId  int64
 }
 
+type Cached struct {
+	Key       string `gorm:"primaryKey"`
+	JsonData  string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	ExpiredAt time.Time
+}
+
 type Db interface {
 	SeriesTrackedAll() (*[]TvSeries, error)
 	SeriesFeed() ([]TvSeries, error)
@@ -144,4 +163,7 @@ type Db interface {
 	ImportedTrackedEpsCheck(key string) (bool, error)
 
 	SeriesStatsTotal() (int, error)
+
+	CacheSet(data *Cached) error
+	CacheGet(key string) (*Cached, error)
 }

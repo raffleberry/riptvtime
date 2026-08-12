@@ -80,10 +80,21 @@ func (t *MetaTmdb) Search(query string, page int) (*TvSearchResults, error) {
 
 }
 
-func (t *MetaTmdb) genresToStr(genres []tmdb.Genre) string {
+func (t *MetaTmdb) toGenre(genres []tmdb.Genre) []Genre {
+	var rv []Genre
+	for _, g := range genres {
+		rv = append(rv, Genre{
+			Id:   int(g.ID),
+			Name: g.Name,
+		})
+	}
+	return rv
+}
+
+func (t *MetaTmdb) genresIdsToStr(genres []int64) string {
 	var rv []string
 	for _, g := range genres {
-		rv = append(rv, fmt.Sprintf("%d:%s", g.ID, g.Name))
+		rv = append(rv, fmt.Sprintf("%d", g))
 	}
 	return strings.Join(rv, ",")
 }
@@ -126,7 +137,7 @@ func (t *MetaTmdb) GetTvDetails(tmdbId int) (*TvDetails, error) {
 		Seasons:          seasons,
 		InProduction:     res.InProduction,
 		Tagline:          res.Tagline,
-		Genres:           t.genresToStr(res.Genres),
+		Genres:           t.toGenre(res.Genres),
 		ImgPoster:        res.PosterPath,
 		ImgBackdrop:      res.BackdropPath,
 

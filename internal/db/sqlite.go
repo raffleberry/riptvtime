@@ -34,7 +34,7 @@ func NewDbSqlite(c *config.Config, logger *slog.Logger) *DbSqlite {
 		panic(db.err)
 	}
 
-	err := db.orm.AutoMigrate(&TvSeries{}, &TvTrackedEps{}, &TvSeason{}, &TvEpisode{})
+	err := db.orm.AutoMigrate(&TvSeries{}, &TvTrackedEps{}, &TvSeason{}, &TvEpisode{}, &Cached{})
 
 	if err != nil {
 		slog.Error("Failed to migrate", "err", err)
@@ -209,4 +209,24 @@ func (db *DbSqlite) SeriesStatsTotal() (int, error) {
 	}
 	err := db.orm.Model(&TvTrackedEps{}).Select("sum(runtime) as total").First(&res).Error
 	return res.Total, err
+}
+
+func (db *DbSqlite) CacheSet(data *Cached) error {
+	return db.orm.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "key"}},
+		DoUpdates: clause.AssignmentColumns([]string{"json_data", "updated_at", "expired_at"}),
+	}).Create(data).Error
+}
+
+func (db *DbSqlite) CacheGet(key string) (*Cached, error) {
+	var cached Cached
+	err := db.orm.Where("key = ?", key).First(&cached).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("%w: %w: key=%v", err, ErrNotFound, key)
+		}
+		return nil, err
+	}
+	return &cached, err
+
 }

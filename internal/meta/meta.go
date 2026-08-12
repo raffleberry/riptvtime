@@ -67,9 +67,14 @@ type TvDetails struct {
 	Tagline          string
 	ImgPoster        string
 	ImgBackdrop      string
-	Genres           string
+	Genres           []Genre
 
 	MName string
+}
+
+type Genre struct {
+	Id   int
+	Name string
 }
 
 type Meta interface {

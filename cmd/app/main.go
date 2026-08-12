@@ -43,9 +43,8 @@ func main() {
 	addr := fmt.Sprintf("%v:%v", cfg.Ip, cfg.Port)
 	d := db.NewDbSqlite(cfg, logger)
 	m := meta.NewTmdbMeta(cfg)
-	c := db.NewCacheSqlite(cfg, logger)
 	iptSrv := services.NewImportService(logger, cfg)
-	tvSrv := services.NewTvService(c, d, m, iptSrv)
+	tvSrv := services.NewTvService(d, m, iptSrv)
 
 	a := api.NewApi(d, m, tvSrv, cfg)
 	s := api.NewServer(addr, a.Router)
