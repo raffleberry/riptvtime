@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/glebarez/sqlite"
 	"github.com/raffleberry/riptvtime/internal/config"
 	"github.com/raffleberry/riptvtime/internal/services/state"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	glog "gorm.io/gorm/logger"
 )

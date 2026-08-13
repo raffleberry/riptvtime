@@ -999,7 +999,6 @@ func (srv *SeriesService) Upcoming() ([]*UpcomingItem, error) {
 					epStart = 1 + srs.LastEpisodeToAir.EpisodeNumber
 				}
 				for epNo := epStart; epNo <= sn.EpisodeCount; epNo++ {
-					slog.Info("Upcoming : Last Aired Season", "name", srs.Name, "season", sn.SeasonNumber)
 					ep, err := srv.getEpisodeDetails(srs.Id, sn.SeasonNumber, epNo)
 					if err != nil {
 						slog.Error("Upcoming : Error getting episode details", "name", srs.Name, "season", sn.SeasonNumber, "episode", epNo, "err", err)
