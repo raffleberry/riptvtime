@@ -6,3 +6,6 @@ js_fmt:
 
 dev:
 	go run cmd/app/main.go
+
+test:
+	go test ./...
