@@ -1,24 +1,83 @@
 package setup
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
+	"github.com/glebarez/sqlite"
 	"github.com/raffleberry/riptvtime/internal/api"
 	"github.com/raffleberry/riptvtime/internal/config"
 	"github.com/raffleberry/riptvtime/internal/utils"
+	glog "gorm.io/gorm/logger"
+
+	"gorm.io/gorm"
 )
 
+type Config struct {
+	gorm.Model
+	Data string
+}
+
+var _db *gorm.DB
+
+func conn() *gorm.DB {
+	if _db == nil {
+		osCfgDir, err := os.UserConfigDir()
+		if err != nil {
+			panic(err)
+		}
+		dbPath := filepath.Join(osCfgDir, "riptvtime", "config.db")
+		slog.Debug("Initializing Config Sqlite Database", "path", dbPath)
+
+		_db, err = gorm.Open(sqlite.Open(fmt.Sprintf("%v?", dbPath)), &gorm.Config{
+			Logger: glog.NewSlogLogger(slog.Default(), glog.Config{
+				IgnoreRecordNotFoundError: true,
+			}),
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		err = _db.AutoMigrate(&Config{})
+
+		if err != nil {
+			slog.Error("Failed to migrate", "err", err)
+			panic("Failed to migrate database")
+		}
+	}
+	return _db
+}
+
 func getConfigIfExists() *config.Config {
-	return nil
+	cRow := Config{}
+
+	err := conn().Last(&cRow).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil
+	} else if err != nil {
+		panic(err)
+	}
+	c := config.Config{}
+	err = json.Unmarshal([]byte(cRow.Data), &c)
+	if err != nil {
+		// bad data, but lets get a newer one from the user.
+		slog.Warn("Bad data in config", "err", err, "data", cRow.Data)
+		return nil
+	}
+
+	return &c
 }
 
 func GetConfigFromUser() (*config.Config, error) {
 	rv := getConfigIfExists()
 	if rv != nil {
-		return rv, nil
+		return config.LoadFromUISetup(rv)
 	}
 
 	done := make(chan bool)
@@ -61,6 +120,21 @@ func GetConfigFromUser() (*config.Config, error) {
 			TmdbMaxRetries: maxRetries,
 		}
 
+		json, err := json.Marshal(rv)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = conn().Create(&Config{
+			Data: string(json),
+		}).Error
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		w.WriteHeader(http.StatusOK)
 		_, err = fmt.Fprintf(w, "http://%s:%d/", rv.Ip, rv.Port)
 		if err != nil {
@@ -82,6 +156,10 @@ func GetConfigFromUser() (*config.Config, error) {
 			panic(err)
 		}
 	}()
+
+	fmt.Println("=====================")
+	fmt.Printf("App setup page: %v\n", url)
+	fmt.Println("=====================")
 
 	err = utils.OpenBrowser(url)
 	if err != nil {
