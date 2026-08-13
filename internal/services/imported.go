@@ -465,7 +465,7 @@ func (ipt *ImportSvc) ProcessFavs(lists [][]string) ([]int, error) {
 	wantHi := reflect.ValueOf(hdr).NumField()
 	if len(hi) != wantHi {
 		slog.Error("lists-prod-lists.csv headers", "headers", hi)
-		return nil, errors.Join(ErrBadCsv, fmt.Errorf("lists-prod-lists.csv found %v fields but needed %v fields(%v)", len(hi), wantHi))
+		return nil, errors.Join(ErrBadCsv, fmt.Errorf("lists-prod-lists.csv found fields(%v) but needed fields(%v)", len(hi), wantHi))
 	}
 
 	favs := []int{}
