@@ -89,6 +89,7 @@ TmdbMaxRetries=10
 
 To register for an API key, click the <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener noreferrer">API link</a> from within your account settings page.
 
+![](docs/tmdb.png)
 ---
 
 ## 📥 Importing TV Time Data

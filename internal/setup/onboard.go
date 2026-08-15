@@ -25,6 +25,7 @@ type Config struct {
 }
 
 var _db *gorm.DB
+var BrowserOpened = false
 
 func conn() *gorm.DB {
 	if _db == nil {
@@ -162,6 +163,7 @@ func GetConfigFromUser() (*config.Config, error) {
 	fmt.Println("=====================")
 
 	err = utils.OpenBrowser(url)
+	BrowserOpened = true
 	if err != nil {
 		panic(err)
 	}

@@ -65,8 +65,16 @@ func main() {
 	if err := s.Start(); err != nil {
 		panic(err)
 	}
-
-	fmt.Printf("Address - http://%s/ ...\n", addr)
+	url := fmt.Sprintf("http://%s/", addr)
+	if !setup.BrowserOpened {
+		err = utils.OpenBrowser(url)
+		if err != nil {
+			slog.Error("Failed to open browser", "err", err)
+		} else {
+			setup.BrowserOpened = true
+		}
+	}
+	fmt.Printf("Address - %s ...\n", url)
 	s.WaitSIGINT()
 
 	fmt.Printf("Stopping http://%s/ ...\n", addr)
