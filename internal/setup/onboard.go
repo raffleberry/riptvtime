@@ -33,7 +33,14 @@ func conn() *gorm.DB {
 		if err != nil {
 			panic(err)
 		}
-		dbPath := filepath.Join(osCfgDir, "riptvtime", "config.db")
+		cfgDir := filepath.Join(osCfgDir, "riptvtime")
+
+		err = os.MkdirAll(cfgDir, 0755)
+		if err != nil {
+			panic(err)
+		}
+
+		dbPath := filepath.Join(cfgDir, "config.db")
 		slog.Debug("Initializing Config Sqlite Database", "path", dbPath)
 
 		_db, err = gorm.Open(sqlite.Open(fmt.Sprintf("%v?", dbPath)), &gorm.Config{
