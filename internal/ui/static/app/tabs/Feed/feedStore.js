@@ -38,7 +38,7 @@ export const useFeedStore = defineStore("feed", () => {
       }
 
       // process
-      if (data.S === -1 || data.E === -1) {
+      if (!data) {
         feed.value = feed.value.filter((f) => f.MId !== mId)
       } else {
         feed.value = feed.value.map((f) => {
