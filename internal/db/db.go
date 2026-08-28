@@ -137,6 +137,12 @@ type Cached struct {
 	ExpiredAt time.Time
 }
 
+type Stats struct {
+	TotalHours    float64
+	TotalEpisodes int
+	TotalShows    int
+}
+
 type Db interface {
 	SeriesTrackedAll() (*[]TvSeries, error)
 	SeriesFeed() ([]TvSeries, error)
@@ -162,7 +168,7 @@ type Db interface {
 	ImportedSeriesCheck(key string) (bool, error)
 	ImportedTrackedEpsCheck(key string) (bool, error)
 
-	SeriesStatsTotal() (int, error)
+	SeriesStats() (*Stats, error)
 
 	CacheSet(data *Cached) error
 	CacheGet(key string) (*Cached, error)

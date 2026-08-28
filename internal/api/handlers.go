@@ -323,15 +323,13 @@ func (a *Api) SeriesImportResolve() http.HandlerFunc {
 	})
 }
 
-func (a *Api) SeriesStatsTotal() http.HandlerFunc {
+func (a *Api) SeriesStats() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
-		v, err := a.tv.StatsTotal()
+		v, err := a.tv.Stats()
 		if err != nil {
 			return err
 		}
-		return c.JSON(http.StatusOK, struct {
-			Total int
-		}{v})
+		return c.JSON(http.StatusOK, v)
 	})
 }
 

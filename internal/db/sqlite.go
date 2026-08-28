@@ -203,12 +203,20 @@ func (db *DbSqlite) ImportedTrackedEpsCheck(key string) (bool, error) {
 	return cnt > 0, err
 }
 
-func (db *DbSqlite) SeriesStatsTotal() (int, error) {
-	var res struct {
-		Total int
+func (db *DbSqlite) SeriesStats() (*Stats, error) {
+	s := &Stats{}
+
+	err := db.orm.Model(&TvTrackedEps{}).Select("sum(runtime)/60.0 as total_hours, count(*) as total_episodes").First(s).Error
+	if err != nil {
+		return nil, err
 	}
-	err := db.orm.Model(&TvTrackedEps{}).Select("sum(runtime) as total").First(&res).Error
-	return res.Total, err
+
+	err = db.orm.Model(&TvSeries{}).Select("count(*) as total_shows").First(s).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return s, err
 }
 
 func (db *DbSqlite) CacheSet(data *Cached) error {

@@ -43,8 +43,8 @@ const ENDPOINT = Object.freeze({
   STATE: () => {
     return `/api/state`
   },
-  STATS_TOTAL: () => {
-    return `/api/stats/total`
+  SERIES_STATS: () => {
+    return `/api/series/stats`
   },
 })
 
@@ -399,9 +399,9 @@ export const apiImportMatch = async (TvTimeSId, MId) => {
   return null
 }
 
-export const apiGetStatsTotal = async () => {
+export const apiGetSeriesStats = async () => {
   try {
-    const res = await fetch(ENDPOINT.STATS_TOTAL())
+    const res = await fetch(ENDPOINT.SERIES_STATS())
     if (!res.ok) {
       const errTxt = await res.text()
       return {

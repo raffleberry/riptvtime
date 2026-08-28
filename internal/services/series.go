@@ -980,8 +980,8 @@ func (srv *SeriesService) IptGetUnresolved() (*ImportedData, error) {
 	return srv.ipt.GetUnresolved()
 }
 
-func (srv *SeriesService) StatsTotal() (int, error) {
-	return srv.db.SeriesStatsTotal()
+func (srv *SeriesService) Stats() (*db.Stats, error) {
+	return srv.db.SeriesStats()
 }
 
 func (srv *SeriesService) Upcoming() ([]*UpcomingItem, error) {
