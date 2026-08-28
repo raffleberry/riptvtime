@@ -60,6 +60,7 @@ type TvDetails struct {
 	Overview         string
 	Year             int
 	LastEpisodeToAir TvEpisode
+	NextEpisodeToAir TvEpisode
 	NumberOfSeasons  int
 	NumberOfEpisodes int
 	Seasons          []TvSeason

@@ -70,6 +70,14 @@ func (srv *SeriesService) Search(searchTerm string, page int) (*SeriesSearchResu
 	return &rv, nil
 }
 
+func (srv *SeriesService) GetTvCacheExpireTime(res *meta.TvDetails) time.Time {
+	rv := db.GetInProdExpireTime()
+	if !res.NextEpisodeToAir.AirDate.IsZero() && res.NextEpisodeToAir.AirDate.Before(rv) {
+		rv = res.NextEpisodeToAir.AirDate
+	}
+	return rv
+}
+
 // Get Fresh Tv Show Details (Fresh enough)
 func (srv *SeriesService) GetDetails(mId int, withEpsDetails bool) (*SeriesFullItem, error) {
 	key := fmt.Sprintf("TvDetails{MId:%d}", mId)
@@ -89,7 +97,7 @@ func (srv *SeriesService) GetDetails(mId int, withEpsDetails bool) (*SeriesFullI
 
 		expireTime := time.Now()
 		if res.InProduction {
-			expireTime = db.GetInProdExpireTime()
+			expireTime = srv.GetTvCacheExpireTime(res)
 		} else {
 			expireTime = db.GetNotInProdExpireTime()
 		}
@@ -119,7 +127,7 @@ func (srv *SeriesService) GetDetails(mId int, withEpsDetails bool) (*SeriesFullI
 	}
 
 	if cd.ExpiredAt.IsZero() {
-		// old transitional logic after migration
+		// 1. old transitional logic after migration
 		cd.ExpiredAt = cd.UpdatedAt.Add(48 * time.Hour)
 	}
 

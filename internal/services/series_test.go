@@ -223,3 +223,32 @@ func TestSeriesService_MakeFeedList(t *testing.T) {
 		})
 	}
 }
+
+func TestSeriesService_GetTvCacheExpireTime(t *testing.T) {
+	m := &meta.TvDetails{}
+
+	maxt := time.Now().Add(time.Hour * 61)
+	mint := time.Now().Add(time.Hour * 35)
+	srv := services.NewTvService(nil, nil, nil)
+	got := srv.GetTvCacheExpireTime(m)
+	if !(got.After(mint) && got.Before(maxt)) {
+		t.Errorf("GetTvCacheExpireTime() - want [Random Time Between 36 to 60 hours] got:[%v]", got)
+	}
+
+	// got < airdate
+	airDate := time.Now().Add(time.Hour * 24 * 7)
+	m.NextEpisodeToAir.AirDate = airDate
+	got = srv.GetTvCacheExpireTime(m)
+	if !got.Before(airDate) {
+		t.Errorf("GetTvCacheExpireTime() - want [%v] got:[%v]", airDate, got)
+	}
+
+	// airdate == airdate
+	airDate = time.Now().Add(time.Hour * 24 * 1)
+	m.NextEpisodeToAir.AirDate = airDate
+	got = srv.GetTvCacheExpireTime(m)
+	if !got.Equal(airDate) {
+		t.Errorf("GetTvCacheExpireTime() - want [%v] got:[%v]", airDate, got)
+	}
+
+}
