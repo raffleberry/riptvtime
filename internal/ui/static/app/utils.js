@@ -1,7 +1,6 @@
 import { Discover } from "./tabs/Discover.js"
 import { Feed } from "./tabs/Feed/Feed.js"
 import { Import } from "./tabs/Import/Import.js"
-import { My } from "./tabs/My.js"
 import { Search } from "./tabs/Search/Search.js"
 import { Series } from "./tabs/Series/Series.js"
 import { Stats } from "./tabs/Stats.js"
