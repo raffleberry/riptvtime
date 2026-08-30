@@ -5,9 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -80,7 +80,8 @@ func (srv *SeriesService) GetTvCacheExpireTime(res *meta.TvDetails) time.Time {
 
 // Cached
 func (srv *SeriesService) GetTvMeta(mId int) (*meta.TvDetails, error) {
-	key := fmt.Sprintf("TvDetails{MId:%d}", mId)
+	what := "TvDetails"
+	key := strconv.Itoa(mId)
 	var rv *meta.TvDetails
 
 	var refresh = func() (*db.Cached, error) {
@@ -102,6 +103,7 @@ func (srv *SeriesService) GetTvMeta(mId int) (*meta.TvDetails, error) {
 		}
 
 		rv := &db.Cached{
+			What:      what,
 			Key:       key,
 			JsonData:  string(jsonStr),
 			ExpiredAt: expireTime,
@@ -114,7 +116,7 @@ func (srv *SeriesService) GetTvMeta(mId int) (*meta.TvDetails, error) {
 		return rv, nil
 	}
 
-	cd, err := srv.db.CacheGet(key)
+	cd, err := srv.db.CacheGet(what, key)
 
 	if errors.Is(err, db.ErrNotFound) {
 		cd, err = refresh()
@@ -876,9 +878,9 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 }
 
 func (srv *SeriesService) cGetTVFromTvTimeId(tvTimeId int) (*meta.TvDetails, error) {
-
-	key := fmt.Sprintf("GetFindByID{id:%d}", tvTimeId)
-	cd, err := srv.db.CacheGet(key)
+	what := "TvTimeId"
+	key := strconv.Itoa(tvTimeId)
+	cd, err := srv.db.CacheGet(what, key)
 
 	var refresh = func() (*db.Cached, error) {
 		m, err := srv.meta.GetTVFromTvTimeId(tvTimeId)
@@ -891,6 +893,7 @@ func (srv *SeriesService) cGetTVFromTvTimeId(tvTimeId int) (*meta.TvDetails, err
 		}
 
 		rv := &db.Cached{
+			What:     what,
 			Key:      key,
 			JsonData: string(jsonStr),
 		}
@@ -932,9 +935,9 @@ func (srv *SeriesService) cGetTVFromTvTimeId(tvTimeId int) (*meta.TvDetails, err
 }
 
 func (srv *SeriesService) cGetEpisodeFromTvTimeId(tvTimeId int) (*meta.TvEpisode, error) {
-
-	key := fmt.Sprintf("GetFindByID{id:%d}", tvTimeId)
-	cd, err := srv.db.CacheGet(key)
+	what := "TvTimeEId"
+	key := strconv.Itoa(tvTimeId)
+	cd, err := srv.db.CacheGet(what, key)
 
 	var refresh = func() (*db.Cached, error) {
 		m, err := srv.meta.GetEpisodeFromTvTimeId(tvTimeId)
@@ -947,6 +950,7 @@ func (srv *SeriesService) cGetEpisodeFromTvTimeId(tvTimeId int) (*meta.TvEpisode
 		}
 
 		rv := &db.Cached{
+			What:     what,
 			Key:      key,
 			JsonData: string(jsonStr),
 		}

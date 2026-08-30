@@ -130,7 +130,8 @@ type Genres struct {
 }
 
 type Cached struct {
-	Key       string `gorm:"primaryKey"`
+	What      string `gorm:"primaryKey;index:idx_what_key,unique"`
+	Key       string `gorm:"primaryKey;index:idx_what_key,unique"`
 	JsonData  string
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -182,5 +183,5 @@ type Db interface {
 	SeriesStatsMyShows(limit int) ([]StatsShow, error)
 
 	CacheSet(data *Cached) error
-	CacheGet(key string) (*Cached, error)
+	CacheGet(what, key string) (*Cached, error)
 }

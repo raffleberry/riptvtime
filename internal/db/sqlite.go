@@ -252,14 +252,13 @@ func (db *DbSqlite) SeriesStatsMyShows(limit int) ([]StatsShow, error) {
 
 func (db *DbSqlite) CacheSet(data *Cached) error {
 	return db.orm.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "key"}},
 		DoUpdates: clause.AssignmentColumns([]string{"json_data", "updated_at", "expired_at"}),
 	}).Create(data).Error
 }
 
-func (db *DbSqlite) CacheGet(key string) (*Cached, error) {
+func (db *DbSqlite) CacheGet(what, key string) (*Cached, error) {
 	var cached Cached
-	err := db.orm.Where("key = ?", key).First(&cached).Error
+	err := db.orm.Where("what = ?", what).Where("key = ?", key).First(&cached).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("%w: %w: key=%v", err, ErrNotFound, key)
