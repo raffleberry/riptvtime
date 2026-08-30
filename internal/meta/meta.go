@@ -32,7 +32,6 @@ type TvEpisode struct {
 	ShowId        int
 	Name          string
 	Overview      string
-	Year          int
 	SeasonNumber  int
 	EpisodeNumber int
 	AirDate       time.Time

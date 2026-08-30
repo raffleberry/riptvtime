@@ -129,7 +129,6 @@ func (t *MetaTmdb) GetTvDetails(tmdbId int) (*TvDetails, error) {
 			SeasonNumber:  res.LastEpisodeToAir.SeasonNumber,
 			EpisodeNumber: res.LastEpisodeToAir.EpisodeNumber,
 			AirDate:       parseAirDate(res.LastEpisodeToAir.AirDate),
-			Year:          parseYear(res.LastEpisodeToAir.AirDate),
 			MName:         t.Name(),
 		},
 		NextEpisodeToAir: TvEpisode{
@@ -139,7 +138,6 @@ func (t *MetaTmdb) GetTvDetails(tmdbId int) (*TvDetails, error) {
 			SeasonNumber:  res.NextEpisodeToAir.SeasonNumber,
 			EpisodeNumber: res.NextEpisodeToAir.EpisodeNumber,
 			AirDate:       parseAirDate(res.NextEpisodeToAir.AirDate),
-			Year:          parseYear(res.NextEpisodeToAir.AirDate),
 			MName:         t.Name(),
 		},
 		NumberOfSeasons:  res.NumberOfSeasons,
@@ -182,6 +180,8 @@ func (t *MetaTmdb) GetTVSeasonDetails(tmdbId int, season int) (*TvSeason, error)
 	for _, e := range res.Episodes {
 		tvSeason.Episodes = append(tvSeason.Episodes, TvEpisode{
 			Id:            int(e.ID),
+			MName:         t.Name(),
+			ShowId:        int(e.ShowID),
 			Name:          e.Name,
 			Overview:      e.Overview,
 			SeasonNumber:  e.SeasonNumber,
@@ -268,7 +268,6 @@ func (t *MetaTmdb) GetEpisodeFromTvTimeId(tvTimeEId int) (*TvEpisode, error) {
 			SeasonNumber:  ep.SeasonNumber,
 			EpisodeNumber: ep.EpisodeNumber,
 			AirDate:       parseAirDate(ep.AirDate),
-			Year:          parseYear(ep.AirDate),
 			MName:         t.Name(),
 		}
 	} else {

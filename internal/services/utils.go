@@ -7,31 +7,33 @@ import (
 	"github.com/raffleberry/riptvtime/internal/meta"
 )
 
-func MetaToDbSeason(mId int, mSd *meta.TvSeason) *db.TvSeason {
+func MetaToDbSeason(srs *meta.TvDetails, mSd *meta.TvSeason) *db.TvSeason {
 	dbEps := []db.TvEpisode{}
 	for _, e := range mSd.Episodes {
 		dbEps = append(dbEps, db.TvEpisode{
-			MId:       int64(e.Id),
-			MName:     e.MName,
-			Name:      e.Name,
-			SeriesMId: int64(mId),
-			Overview:  e.Overview,
-			Season:    e.SeasonNumber,
-			Episode:   e.EpisodeNumber,
-			Runtime:   e.Runtime,
-			AirDate:   e.AirDate,
+			MId:        int64(e.Id),
+			MName:      mSd.MName,
+			Name:       e.Name,
+			SeriesMId:  int64(srs.Id),
+			SeriesName: srs.Name,
+			Overview:   e.Overview,
+			Season:     e.SeasonNumber,
+			Episode:    e.EpisodeNumber,
+			Runtime:    e.Runtime,
+			AirDate:    e.AirDate,
 		})
 	}
 
 	dbSd := db.TvSeason{
-		MId:       int64(mSd.Id),
-		MName:     mSd.MName,
-		AirDate:   mSd.AirDate,
-		SeriesMId: int64(mId),
-		Season:    mSd.SeasonNumber,
-		Name:      mSd.Name,
-		Overview:  mSd.Overview,
-		Episodes:  dbEps,
+		MId:        int64(mSd.Id),
+		MName:      mSd.MName,
+		AirDate:    mSd.AirDate,
+		SeriesMId:  int64(srs.Id),
+		SeriesName: srs.Name,
+		Season:     mSd.SeasonNumber,
+		Name:       mSd.Name,
+		Overview:   mSd.Overview,
+		Episodes:   dbEps,
 	}
 	return &dbSd
 }
@@ -56,7 +58,6 @@ func DbToMetaSeason(dbSd *db.TvSeason) *meta.TvSeason {
 			Runtime:       e.Runtime,
 			AirDate:       e.AirDate,
 			MName:         e.MName,
-			Year:          e.AirDate.Year(),
 		})
 	}
 

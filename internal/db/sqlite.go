@@ -252,6 +252,10 @@ func (db *DbSqlite) SeriesStatsMyShows(limit int) ([]StatsShow, error) {
 
 func (db *DbSqlite) CacheSet(data *Cached) error {
 	return db.orm.Clauses(clause.OnConflict{
+		Columns: []clause.Column{
+			{Name: "what"},
+			{Name: "key"},
+		},
 		DoUpdates: clause.AssignmentColumns([]string{"json_data", "updated_at", "expired_at"}),
 	}).Create(data).Error
 }

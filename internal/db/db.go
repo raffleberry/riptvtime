@@ -79,6 +79,7 @@ type TvTrackedEps struct {
 	MName      string
 	EpisodeMId int64
 	SeriesMId  int64
+	SeriesName string
 	Name       string
 	Overview   string
 	Season     int
@@ -91,27 +92,29 @@ type TvTrackedEps struct {
 
 type TvEpisode struct {
 	gorm.Model
-	MName     string `gorm:"uniqueIndex:idx_episode_mname_mid"`
-	MId       int64  `gorm:"uniqueIndex:idx_episode_mname_mid"`
-	SeriesMId int64
-	Name      string
-	Overview  string
-	Season    int
-	Episode   int
-	Runtime   int
-	AirDate   time.Time
+	MName      string `gorm:"uniqueIndex:idx_episode_mname_mid"`
+	MId        int64  `gorm:"uniqueIndex:idx_episode_mname_mid"`
+	SeriesMId  int64
+	SeriesName string
+	Name       string
+	Overview   string
+	Season     int
+	Episode    int
+	Runtime    int
+	AirDate    time.Time
 }
 
 type TvSeason struct {
 	gorm.Model
-	MName     string `gorm:"uniqueIndex:idx_season_mname_mid"`
-	MId       int64  `gorm:"uniqueIndex:idx_season_mname_mid"`
-	SeriesMId int64
-	AirDate   time.Time
-	Season    int
-	Name      string
-	Overview  string
-	Episodes  []TvEpisode `gorm:"foreignKey:SeriesMId,Season;references:SeriesMId,Season"`
+	MName      string `gorm:"uniqueIndex:idx_season_mname_mid"`
+	MId        int64  `gorm:"uniqueIndex:idx_season_mname_mid"`
+	SeriesMId  int64
+	SeriesName string
+	AirDate    time.Time
+	Season     int
+	Name       string
+	Overview   string
+	Episodes   []TvEpisode `gorm:"foreignKey:SeriesMId,Season;references:SeriesMId,Season"`
 }
 
 type TvSeriesDetails struct {

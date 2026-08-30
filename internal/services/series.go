@@ -186,7 +186,6 @@ func (srv *SeriesService) GetDetails(mId int, withEpsDetails bool) (*SeriesFullI
 					Id:            int(ep.MId),
 					Name:          ep.Name,
 					Overview:      ep.Overview,
-					Year:          ep.AirDate.Year(),
 					SeasonNumber:  ep.Season,
 					EpisodeNumber: ep.Episode,
 					AirDate:       ep.AirDate,
@@ -454,7 +453,7 @@ func (srv *SeriesService) MakeUpNext(mId int, fd *SeriesFullItem) (*SeriesEpisod
 
 // Returns insertModel from db
 func (srv *SeriesService) Add(mId int, source string) (*db.TvSeries, error) {
-	tvM, err := srv.GetDetails(mId, false)
+	tvM, err := srv.GetTvMeta(mId)
 	if err != nil {
 		return nil, err
 	}
@@ -502,6 +501,7 @@ func (srv *SeriesService) AddImportedEpisode(iep *ImportedTrackedEps) (int, erro
 		MName:      ep.MName,
 		EpisodeMId: int64(ep.MId),
 		SeriesMId:  int64(iep.MId),
+		SeriesName: iep.SeriesName,
 		Name:       ep.Name,
 		Overview:   ep.Overview,
 		Season:     ep.Season,
@@ -580,6 +580,7 @@ func (srv *SeriesService) SetEpisodeWatched(mId int, sNo int, eNo int, source st
 		MName:      ep.MName,
 		EpisodeMId: int64(ep.MId),
 		SeriesMId:  int64(mId),
+		SeriesName: ep.SeriesName,
 		Name:       ep.Name,
 		Overview:   ep.Overview,
 		Season:     ep.Season,
@@ -608,7 +609,12 @@ func (srv *SeriesService) cacheSeasonInDb(mId int, season int, forceRefresh bool
 			return nil, err
 		}
 
-		sn = MetaToDbSeason(mId, mSd)
+		srs, err := srv.GetTvMeta(mId)
+		if err != nil {
+			return nil, err
+		}
+
+		sn = MetaToDbSeason(srs, mSd)
 		err = srv.db.SeriesSeasonAdd(sn)
 	} else if err != nil {
 		return nil, err
@@ -617,15 +623,15 @@ func (srv *SeriesService) cacheSeasonInDb(mId int, season int, forceRefresh bool
 	return sn, nil
 }
 
-func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int) (*db.TvEpisode, error) {
+func (srv *SeriesService) getEpisodeDetails(mId int, season int, episode int) (*db.TvEpisode, error) {
 
-	ep, err := srv.db.SeriesEpisodeGet(id, season, episode)
+	ep, err := srv.db.SeriesEpisodeGet(mId, season, episode)
 
 	forceRefresh := false
 	if ep != nil {
 		if ep.UpdatedAt.Before(ep.AirDate) && time.Now().After(ep.AirDate) {
 			forceRefresh = true
-			slog.Debug("getEpisodeDetails", "force refresh", forceRefresh, "id", id, "season", season, "episode", episode)
+			slog.Debug("getEpisodeDetails", "force refresh", forceRefresh, "id", mId, "season", season, "episode", episode)
 		}
 
 	}
@@ -635,11 +641,11 @@ func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int) (*d
 	}
 
 	if !errors.Is(err, db.ErrNotFound) {
-		slog.Error("err while getting ep details", "id", id, "season", season, "episode", episode)
+		slog.Error("err while getting ep details", "id", mId, "season", season, "episode", episode)
 		return nil, err
 	}
 
-	sn, err := srv.cacheSeasonInDb(id, season, forceRefresh)
+	sn, err := srv.cacheSeasonInDb(mId, season, forceRefresh)
 
 	if err != nil {
 		slog.Error("Coudn't cache season", "season", season, "error", err)
@@ -650,7 +656,7 @@ func (srv *SeriesService) getEpisodeDetails(id int, season int, episode int) (*d
 	})
 
 	if idx == -1 {
-		slog.Error("Episode not found in season", "mId", id, "season", season, "episode", episode)
+		slog.Error("Episode not found in season", "mId", mId, "season", season, "episode", episode)
 		return nil, ErrNotFound
 	}
 
@@ -724,7 +730,7 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 			continue
 		}
 
-		tvd, err := srv.meta.GetTvDetails(ttd.Id)
+		tvd, err := srv.GetTvMeta(ttd.Id)
 		if err != nil {
 			slog.Error("Error getting tv details", "series", srs.Name, "tvTimeId", srs.TvTimeId, "error", err)
 			err1 := srv.ipt.SetSeriesUnresolved(srs.Key, err.Error())
@@ -780,6 +786,7 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 			MName:      srv.meta.Name(),
 			EpisodeMId: int64(epd.MId),
 			SeriesMId:  int64(epd.SeriesMId),
+			SeriesName: epd.SeriesName,
 			Name:       epd.Name,
 			Overview:   epd.Overview,
 			Season:     epd.Season,
@@ -858,14 +865,15 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 		}
 
 		epd = &db.TvEpisode{
-			MName:     srv.meta.Name(),
-			MId:       int64(epm.Id),
-			SeriesMId: int64(epm.ShowId),
-			Name:      epm.Name,
-			Overview:  epm.Overview,
-			Season:    epm.SeasonNumber,
-			Episode:   epm.EpisodeNumber,
-			Runtime:   epm.Runtime,
+			MName:      srv.meta.Name(),
+			MId:        int64(epm.Id),
+			SeriesMId:  int64(epm.ShowId),
+			SeriesName: tvm.Name,
+			Name:       epm.Name,
+			Overview:   epm.Overview,
+			Season:     epm.SeasonNumber,
+			Episode:    epm.EpisodeNumber,
+			Runtime:    epm.Runtime,
 		}
 
 		err = insertEpisode(epd, iep)
