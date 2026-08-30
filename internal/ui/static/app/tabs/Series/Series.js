@@ -1,6 +1,6 @@
 import { MsgType, notify } from "../../components/Notify/Notify.js"
 import { useTracked } from "../../stores/tracked.js"
-import { imgBackdropUrl, imgPosterUrl, ky, TvStatus } from "../../utils.js"
+import { imgBackdropUrl, imgPosterUrl, isDateTimeZero, ky, TvStatus } from "../../utils.js"
 import {
   computed,
   nextTick,
@@ -219,7 +219,13 @@ export const Series = {
       }
     }
 
+    const isSeen = (s, e) => {
+      return cnt.value[ky(s, e)] > 0
+    }
+
     const isAired = (dStr) => {
+      if (isDateTimeZero(dStr)) return false
+
       return new Date() >= new Date(dStr)
     }
 
@@ -245,6 +251,8 @@ export const Series = {
       imgPosterUrl,
       cardStyle,
       onClickAccordian,
+      isDateTimeZero,
+      isSeen,
     }
   },
   template: /* HTML */ `
@@ -334,11 +342,18 @@ export const Series = {
                 >
                   <div>{{ ep.SeasonNumber }}x{{ ep.EpisodeNumber }} - {{ ep.Name }}</div>
                   <div>
-                    <span v-if="cnt[ky(ep.SeasonNumber, ep.EpisodeNumber)] > 1"
-                      >{{ cnt[ky(ep.SeasonNumber, ep.EpisodeNumber)] }}x</span
+                    <span
+                      class="fst-italic"
+                      :class="{
+                      'text-success': isSeen(ep.SeasonNumber, ep.EpisodeNumber),
+                      'text-warning': isAired(ep.AirDate) && !isSeen(ep.SeasonNumber, ep.EpisodeNumber),
+                      'text-secondary' : !isAired(ep.AirDate)
+                     }"
                     >
-                    <span v-if="!isAired(ep.AirDate)"
-                      >{{ new Date(ep.AirDate).toDateString() }}</span
+                      {{ isDateTimeZero(ep.AirDate) ? "soon" : new Date(ep.AirDate).toDateString()}}
+                    </span>
+                    <span class="ms-2" v-if="cnt[ky(ep.SeasonNumber, ep.EpisodeNumber)] > 1"
+                      >{{ cnt[ky(ep.SeasonNumber, ep.EpisodeNumber)] }}x</span
                     >
                     <button
                       :disabled="!isAired(ep.AirDate)"
@@ -348,7 +363,7 @@ export const Series = {
                     >
                       <i
                         class="bi"
-                        :class="cnt[ky(ep.SeasonNumber, ep.EpisodeNumber)] > 0 ? 'bi-check-circle-fill text-success' : 'bi-check-circle'"
+                        :class="isSeen(ep.SeasonNumber, ep.EpisodeNumber) ? 'bi-check-circle-fill text-success' : 'bi-check-circle'"
                       ></i>
                     </button>
                   </div>

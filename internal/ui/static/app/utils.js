@@ -91,3 +91,10 @@ export function generateRandomString(length) {
 }
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+export const isDateTimeZero = (dateTimeStr) => {
+  if (dateTimeStr === "0001-01-01T00:00:00Z") {
+    return true
+  }
+  return false
+}
