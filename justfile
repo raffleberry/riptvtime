@@ -32,5 +32,9 @@ build-linux: ensure-dist
 
 build-all: build-windows build-linux
 
+install:
+    mkdir -p ~/Apps/bin/
+    go build -o ~/Apps/bin/rtt ./cmd/app/main.go
+
 clean:
     rm -rf {{dist_dir}}

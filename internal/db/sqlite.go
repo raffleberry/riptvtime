@@ -219,6 +219,37 @@ func (db *DbSqlite) SeriesStats() (*Stats, error) {
 	return s, err
 }
 
+// limit = -1 for all
+func (db *DbSqlite) SeriesStatsMyShows(limit int) ([]StatsShow, error) {
+	var results []StatsShow
+
+	trackedSubQuery := db.orm.Model(&TvTrackedEps{}).
+		Select("series_m_id, MAX(created_at) AS last_tracked").
+		Group("series_m_id")
+
+	selectClause := `
+		tv_series.m_id,
+		tv_series.name,
+		tv_series.year,
+		fresh_data.json_data ->> '$.LastEpisodeToAir' ->> '$.AirDate' AS last_air_date,
+		fresh_data.json_data ->> '$.ImgPoster' AS image,
+		max(
+			ifnull(tv_series.created_at, '1970-01-01 00:00:00+00:00'),
+			ifnull(tracked.last_tracked, '1970-01-01 00:00:00+00:00')
+		) as last_activity
+	`
+
+	err := db.orm.Model(&TvSeries{}).
+		Select(selectClause).
+		Joins("LEFT JOIN (?) AS tracked ON tv_series.m_id = tracked.series_m_id", trackedSubQuery).
+		Joins("LEFT JOIN cacheds AS fresh_data ON tv_series.m_id = (fresh_data.json_data ->> '$.Id')").
+		Order("last_activity DESC").
+		Limit(limit).
+		Scan(&results).Error
+
+	return results, err
+}
+
 func (db *DbSqlite) CacheSet(data *Cached) error {
 	return db.orm.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "key"}},

@@ -78,26 +78,25 @@ func (srv *SeriesService) GetTvCacheExpireTime(res *meta.TvDetails) time.Time {
 	return rv
 }
 
-// Get Fresh Tv Show Details (Fresh enough)
-func (srv *SeriesService) GetDetails(mId int, withEpsDetails bool) (*SeriesFullItem, error) {
+// Cached
+func (srv *SeriesService) GetTvMeta(mId int) (*meta.TvDetails, error) {
 	key := fmt.Sprintf("TvDetails{MId:%d}", mId)
-
-	var res *meta.TvDetails
+	var rv *meta.TvDetails
 
 	var refresh = func() (*db.Cached, error) {
 		var err error
-		res, err = srv.meta.GetTvDetails(mId)
+		rv, err = srv.meta.GetTvDetails(mId)
 		if err != nil {
 			return nil, err
 		}
-		jsonStr, err := json.Marshal(res)
+		jsonStr, err := json.Marshal(rv)
 		if err != nil {
 			return nil, err
 		}
 
 		expireTime := time.Now()
-		if res.InProduction {
-			expireTime = srv.GetTvCacheExpireTime(res)
+		if rv.InProduction {
+			expireTime = srv.GetTvCacheExpireTime(rv)
 		} else {
 			expireTime = db.GetNotInProdExpireTime()
 		}
@@ -139,11 +138,23 @@ func (srv *SeriesService) GetDetails(mId int, withEpsDetails bool) (*SeriesFullI
 		}
 	}
 
-	if res == nil {
-		err = json.Unmarshal([]byte(cd.JsonData), &res)
+	if rv == nil {
+		err = json.Unmarshal([]byte(cd.JsonData), &rv)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	return rv, nil
+
+}
+
+// Get Fresh Tv Show Details (Fresh enough)
+func (srv *SeriesService) GetDetails(mId int, withEpsDetails bool) (*SeriesFullItem, error) {
+
+	res, err := srv.GetTvMeta(mId)
+	if err != nil {
+		return nil, err
 	}
 
 	epsAired := 0
@@ -984,6 +995,10 @@ func (srv *SeriesService) Stats() (*db.Stats, error) {
 	return srv.db.SeriesStats()
 }
 
+func (srv *SeriesService) StatsMyShows(limit int) ([]db.StatsShow, error) {
+	return srv.db.SeriesStatsMyShows(limit)
+}
+
 func (srv *SeriesService) Upcoming() ([]*UpcomingItem, error) {
 	series, err := srv.db.SeriesWatchingInProdAll()
 	if err != nil {
@@ -1038,4 +1053,13 @@ func (srv *SeriesService) Upcoming() ([]*UpcomingItem, error) {
 
 	return rv, nil
 
+}
+
+func (srv *SeriesService) GetPoster(mId int) string {
+	m, err := srv.GetTvMeta(mId)
+	if err != nil {
+		slog.Error("GetPoster", "err", err)
+		return ""
+	}
+	return m.ImgPoster
 }

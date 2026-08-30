@@ -143,6 +143,16 @@ type Stats struct {
 	TotalShows    int
 }
 
+type StatsShow struct {
+	MId  int
+	Name string
+	Year int
+
+	Image string
+
+	LastActivity string
+}
+
 type Db interface {
 	SeriesTrackedAll() (*[]TvSeries, error)
 	SeriesFeed() ([]TvSeries, error)
@@ -169,6 +179,7 @@ type Db interface {
 	ImportedTrackedEpsCheck(key string) (bool, error)
 
 	SeriesStats() (*Stats, error)
+	SeriesStatsMyShows(limit int) ([]StatsShow, error)
 
 	CacheSet(data *Cached) error
 	CacheGet(key string) (*Cached, error)

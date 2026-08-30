@@ -57,6 +57,11 @@ func Jn(args ...any) string {
 }
 
 func OpenBrowser(url string) error {
+
+	if IsGoRun() {
+		return nil
+	}
+
 	var cmd string
 	var args []string
 

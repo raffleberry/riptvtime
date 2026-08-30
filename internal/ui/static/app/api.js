@@ -46,6 +46,9 @@ const ENDPOINT = Object.freeze({
   SERIES_STATS: () => {
     return `/api/series/stats`
   },
+  SERIES_STATS_MY_SHOWS: (limit) => {
+    return `/api/series/stats/my?limit=${limit}`
+  },
 })
 
 export const apiSearchTv = async (search, page) => {
@@ -402,6 +405,27 @@ export const apiImportMatch = async (TvTimeSId, MId) => {
 export const apiGetSeriesStats = async () => {
   try {
     const res = await fetch(ENDPOINT.SERIES_STATS())
+    if (!res.ok) {
+      const errTxt = await res.text()
+      return {
+        err: new Error(`Error, response from server: ${res.status} - ${errTxt}`),
+      }
+    }
+    const data = await res.json()
+    return {
+      data: data,
+    }
+  } catch (error) {
+    console.error(error)
+    return error
+  }
+  return null
+}
+
+export const apiGetSeriesStatsMyShows = async (limit) => {
+  try {
+    if (!limit) limit = -1
+    const res = await fetch(ENDPOINT.SERIES_STATS_MY_SHOWS(limit))
     if (!res.ok) {
       const errTxt = await res.text()
       return {

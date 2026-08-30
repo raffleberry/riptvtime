@@ -43,16 +43,18 @@ func NewApi(db db.Db, meta meta.Meta, tv *services.SeriesService, cfg *config.Co
 	mux.HandleFunc("DELETE /api/series/{mId}", a.SeriesRem())
 
 	mux.HandleFunc("PUT /api/series/{mId}/status", a.SeriesUpdateStatus())
+	mux.HandleFunc("GET /api/series/{mId}/poster", a.SeriesPoster())
 
 	mux.HandleFunc("POST /api/series/episode", a.SeriesEpisodeWatch())
 	mux.HandleFunc("PUT /api/series/episode", a.SeriesEpisodeUnWatch())
+	mux.HandleFunc("GET /api/series/stats", a.SeriesStats())
+	mux.HandleFunc("GET /api/series/stats/my", a.SeriesStatsMy())
 
 	mux.HandleFunc("GET /api/series/upcoming", a.SeriesUpcoming())
 
 	mux.HandleFunc("POST /api/import/upload", a.SeriesImportUpload())
 	mux.HandleFunc("GET /api/import/unresolved", a.SeriesImportUnresolved())
 	mux.HandleFunc("PUT /api/import/resolve", a.SeriesImportResolve())
-	mux.HandleFunc("GET /api/series/stats", a.SeriesStats())
 
 	mux.HandleFunc("GET /api/state", a.GetState())
 	// mux.HandleFunc("POST /api/state", a.SetState()) // dev

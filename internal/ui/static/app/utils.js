@@ -55,6 +55,10 @@ export const imgPosterUrl = (id) => {
   return `https://image.tmdb.org/t/p/w185/${id}`
 }
 
+export const imgPosterUrlFromMId = (mId) => {
+  return `/api/series/${mId}/poster`
+}
+
 export const imgBackdropUrl = (id) => {
   if (!id) return "/poster.png"
   return `https://image.tmdb.org/t/p/w780/${id}`
@@ -86,3 +90,5 @@ export function generateRandomString(length) {
   }
   return result
 }
+
+export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))

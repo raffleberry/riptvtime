@@ -4,6 +4,7 @@
 
 	// List of extensions which should be recommended for users of this workspace.
 	"recommendations": [
+		"golang.go",
 		"esbenp.prettier-vscode",
 		"CodeByTimo.template-literals",
 		"yy0931.vscode-sqlite3-editor",

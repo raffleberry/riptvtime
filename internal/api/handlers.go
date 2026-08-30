@@ -48,6 +48,29 @@ func (a *Api) SeriesSearch() http.HandlerFunc {
 	})
 }
 
+func (a *Api) SeriesPoster() func(http.ResponseWriter, *http.Request) {
+	return WithCtx(func(c *Context) error {
+
+		mIdStr := c.R.PathValue("mId")
+
+		mId, err := strconv.Atoi(mIdStr)
+
+		if err != nil {
+			return c.Error(http.StatusBadRequest, err.Error())
+		}
+
+		imageId := a.tv.GetPoster(mId)
+		if imageId == "" {
+			http.Redirect(c.W, c.R, "/poster.png", http.StatusMovedPermanently)
+			return nil
+		}
+		imgUrl := fmt.Sprintf("https://image.tmdb.org/t/p/w185%s", imageId)
+
+		http.Redirect(c.W, c.R, imgUrl, http.StatusSeeOther)
+		return nil
+	})
+}
+
 func (a *Api) SeriesAdd() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
 		var payload struct {
@@ -326,6 +349,27 @@ func (a *Api) SeriesImportResolve() http.HandlerFunc {
 func (a *Api) SeriesStats() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
 		v, err := a.tv.Stats()
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, v)
+	})
+}
+
+func (a *Api) SeriesStatsMy() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		limitStr := c.R.URL.Query().Get("limit")
+		var err error
+		limit := -1
+		if limitStr != "" {
+			limit, err = strconv.Atoi(limitStr)
+		}
+
+		if err != nil {
+			return c.Error(http.StatusBadRequest, err.Error())
+		}
+
+		v, err := a.tv.StatsMyShows(limit)
 		if err != nil {
 			return err
 		}
