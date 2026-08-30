@@ -316,6 +316,7 @@ export const Series = {
           <div v-for="sn in sd.Seasons" class="accordion-item">
             <h2 class="accordion-header">
               <button
+                :class="[SnWatchedEps[sn.SeasonNumber]?.length === sn.EpisodeCount || sn.SeasonNumber == 0 ? 'bg-success-subtle' : 'bg-warning-subtle']"
                 class="accordion-button"
                 type="button"
                 data-bs-toggle="collapse"
