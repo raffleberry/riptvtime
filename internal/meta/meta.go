@@ -73,7 +73,7 @@ type TvDetails struct {
 }
 
 type Genre struct {
-	Id   int
+	Id   int64
 	Name string
 }
 
@@ -85,6 +85,8 @@ type Meta interface {
 	GetTVEpisodeDetails(mId int, season int, episode int) (*TvEpisode, error)
 	GetTVFromTvTimeId(tvTimeId int) (*TvDetails, error)
 	GetEpisodeFromTvTimeId(tvTimeEId int) (*TvEpisode, error)
+	GetGenresTv() ([]Genre, error)
+	GetImdbId(mId int) (string, error)
 }
 
 // func GetEpisodeDetails(seriesTmdbId int64, sNo int, epNo int) (*TvEpisode, error) {

@@ -34,7 +34,7 @@ func NewDbSqlite(c *config.Config, logger *slog.Logger) *DbSqlite {
 		panic(db.err)
 	}
 
-	err := db.orm.AutoMigrate(&TvSeries{}, &TvTrackedEps{}, &TvSeason{}, &TvEpisode{}, &Cached{})
+	err := db.orm.AutoMigrate(&TvSeries{}, &TvTrackedEps{}, &TvSeason{}, &TvEpisode{}, &Cached{}, &Genres{})
 
 	if err != nil {
 		slog.Error("Failed to migrate", "err", err)
@@ -271,4 +271,37 @@ func (db *DbSqlite) CacheGet(what, key string) (*Cached, error) {
 	}
 	return &cached, err
 
+}
+
+func (db *DbSqlite) SeriesGenreGet() (*Genres, error) {
+	var rv Genres
+	err := db.orm.Model(&Genres{}).Where("type = ?", GenreType.Series).First(&rv).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.Join(err, ErrNotFound, fmt.Errorf("Genres not found"))
+		}
+
+		return nil, err
+	}
+
+	err = rv.Unmarshal()
+	if err != nil {
+		return nil, err
+	}
+
+	return &rv, nil
+}
+
+func (db *DbSqlite) SeriesGenreSet(g Genres) error {
+	err := g.Marshal()
+	if err != nil {
+		return err
+	}
+
+	g.Type = GenreType.Series
+	err = db.orm.Create(&g).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }

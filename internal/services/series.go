@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"slices"
 	"strconv"
@@ -942,6 +943,78 @@ func (srv *SeriesService) cGetTVFromTvTimeId(tvTimeId int) (*meta.TvDetails, err
 
 }
 
+func (srv *SeriesService) GetGenres() (*db.Genres, error) {
+
+	var refresh = func() (*db.Genres, error) {
+		m, err := srv.meta.GetGenresTv()
+		if err != nil {
+			return nil, err
+		}
+		var g db.Genres
+		for i := range m {
+			g.Genres = append(g.Genres, db.Genre{
+				Id:   m[i].Id,
+				Name: m[i].Name,
+			})
+		}
+		g.Type = db.GenreType.Series
+		g.ExpiredAt = time.Now().Add(time.Hour * 24 * 7)
+		err = srv.db.SeriesGenreSet(g)
+		if err != nil {
+			return nil, err
+		}
+		return &g, nil
+	}
+
+	g, err := srv.db.SeriesGenreGet()
+	if errors.Is(err, db.ErrNotFound) || err == nil && g.ExpiredAt.Before(time.Now()) {
+		g, err = refresh()
+		if err != nil {
+			return nil, fmt.Errorf("failed to update genres, err: %v", err)
+		}
+	} else if err != nil {
+		return nil, err
+	}
+
+	return g, nil
+}
+
+func (srv *SeriesService) GetUserTvGenres() (*db.Genres, error) {
+
+	var refresh = func() (*db.Genres, error) {
+		m, err := srv.meta.GetGenresTv()
+		if err != nil {
+			return nil, err
+		}
+		var g db.Genres
+		for i := range m {
+			g.Genres = append(g.Genres, db.Genre{
+				Id:   m[i].Id,
+				Name: m[i].Name,
+			})
+		}
+		g.Type = db.GenreType.Series
+		g.ExpiredAt = time.Now().Add(time.Hour * 24 * 7)
+		err = srv.db.SeriesGenreSet(g)
+		if err != nil {
+			return nil, err
+		}
+		return &g, nil
+	}
+
+	g, err := srv.db.SeriesGenreGet()
+	if errors.Is(err, db.ErrNotFound) || err == nil && g.ExpiredAt.Before(time.Now()) {
+		g, err = refresh()
+		if err != nil {
+			return nil, fmt.Errorf("failed to update genres, err: %v", err)
+		}
+	} else if err != nil {
+		return nil, err
+	}
+
+	return g, nil
+}
+
 func (srv *SeriesService) cGetEpisodeFromTvTimeId(tvTimeId int) (*meta.TvEpisode, error) {
 	what := "TvTimeEId"
 	key := strconv.Itoa(tvTimeId)
@@ -1074,4 +1147,41 @@ func (srv *SeriesService) GetPoster(mId int) string {
 		return ""
 	}
 	return m.ImgPoster
+}
+
+// Cached
+func (srv *SeriesService) GetImdbId(mId int) string {
+	what := "ImdbId"
+	key := fmt.Sprintf("%d", mId)
+
+	var refresh = func() (*db.Cached, error) {
+		imdbId, err := srv.meta.GetImdbId(mId)
+		if err != nil {
+			return nil, err
+		}
+		c := db.Cached{
+			ExpiredAt: time.Now().Add(time.Hour * 100 * 365 * 24),
+			What:      what,
+			Key:       key,
+			JsonData:  imdbId,
+		}
+
+		err = srv.db.CacheSet(&c)
+		return &c, err
+	}
+
+	c, err := srv.db.CacheGet(what, key)
+	if errors.Is(err, db.ErrNotFound) || err == nil && c.ExpiredAt.Before(time.Now()) {
+		c, err = refresh()
+		if err != nil {
+			slog.Error("GetImdbId: failed to refresh cache", "err", err, "mId", mId)
+			return ""
+		}
+	} else if err != nil {
+		slog.Error("GetImdbId: failed to get cache", "err", err, "mId", mId)
+		return ""
+	}
+
+	return c.JsonData
+
 }

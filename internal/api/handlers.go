@@ -386,3 +386,29 @@ func (a *Api) SeriesUpcoming() http.HandlerFunc {
 		return c.JSON(http.StatusOK, v)
 	})
 }
+
+func (a *Api) GetGenres() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		v, err := a.tv.GetGenres()
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, v)
+	})
+}
+
+func (a *Api) GetImdbFromMId() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		mIdStr := c.R.PathValue("mId")
+		mId, err := strconv.Atoi(mIdStr)
+		if err != nil {
+			return c.Error(http.StatusBadRequest, err.Error())
+		}
+		v := a.tv.GetImdbId(mId)
+		return c.JSON(http.StatusOK, struct {
+			ImdbId string
+		}{
+			ImdbId: v,
+		})
+	})
+}

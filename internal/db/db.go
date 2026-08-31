@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"errors"
 	"math/rand"
 	"time"
@@ -126,15 +127,43 @@ type TvSeriesDetails struct {
 	AirDate  time.Time
 }
 
-type Genres struct {
-	gorm.Model
+var GenreType = struct {
+	Series string
+	Movie  string
+}{
+	Series: "series",
+	Movie:  "movie",
+}
+
+type Genre struct {
+	Id   int64
 	Name string
-	MId  int64
+}
+
+type Genres struct {
+	Type      string  `gorm:"primaryKey"`
+	JsonData  string  `json:"-"`
+	Genres    []Genre `gorm:"-"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	ExpiredAt time.Time
+}
+
+// str -> genre
+func (g *Genres) Unmarshal() error {
+	return json.Unmarshal([]byte(g.JsonData), &(g.Genres))
+}
+
+// genre -> str
+func (g *Genres) Marshal() error {
+	d, err := json.Marshal(g.Genres)
+	g.JsonData = string(d)
+	return err
 }
 
 type Cached struct {
-	What      string `gorm:"primaryKey;index:idx_what_key,unique"`
-	Key       string `gorm:"primaryKey;index:idx_what_key,unique"`
+	What      string `gorm:"primaryKey"`
+	Key       string `gorm:"primaryKey"`
 	JsonData  string
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -184,6 +213,9 @@ type Db interface {
 
 	SeriesStats() (*Stats, error)
 	SeriesStatsMyShows(limit int) ([]StatsShow, error)
+
+	SeriesGenreGet() (*Genres, error)
+	SeriesGenreSet(g Genres) error
 
 	CacheSet(data *Cached) error
 	CacheGet(what, key string) (*Cached, error)

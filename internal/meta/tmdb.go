@@ -84,7 +84,7 @@ func (t *MetaTmdb) toGenre(genres []tmdb.Genre) []Genre {
 	var rv []Genre
 	for _, g := range genres {
 		rv = append(rv, Genre{
-			Id:   int(g.ID),
+			Id:   g.ID,
 			Name: g.Name,
 		})
 	}
@@ -275,6 +275,22 @@ func (t *MetaTmdb) GetEpisodeFromTvTimeId(tvTimeEId int) (*TvEpisode, error) {
 	}
 
 	return &rv, nil
+}
+
+func (t *MetaTmdb) GetGenresTv() ([]Genre, error) {
+	res, err := t.c.GetGenreTVList(nil)
+	if err != nil {
+		return nil, err
+	}
+	return t.toGenre(res.Genres), nil
+}
+
+func (t *MetaTmdb) GetImdbId(mId int) (string, error) {
+	res, err := t.c.GetTVExternalIDs(mId, nil)
+	if err != nil {
+		return "", err
+	}
+	return res.IMDbID, nil
 }
 
 func NewTmdbMeta(c *config.Config) *MetaTmdb {
