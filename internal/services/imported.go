@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +19,7 @@ import (
 	"github.com/raffleberry/riptvtime/internal/config"
 	"github.com/raffleberry/riptvtime/internal/services/state"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	glog "gorm.io/gorm/logger"
 )
 
@@ -36,8 +36,6 @@ type ImportedSeries struct {
 	MId      int
 
 	IsStopped bool
-
-	IsFavourite bool
 
 	Imported      bool `gorm:"default:false"`
 	Ignored       bool `gorm:"default:false"`
@@ -68,6 +66,29 @@ type ImportedTrackedEps struct {
 
 	UpdatedAt time.Time
 	CreatedAt time.Time
+}
+
+type ImportedFavSeries struct {
+	TvTimeId  int `gorm:"primaryKey"`
+	CreatedAt time.Time
+}
+
+type ImportedFavMovies struct {
+	Uuid      string `gorm:"primaryKey"`
+	CreatedAt time.Time
+}
+
+type ImportFavsData struct {
+	Series []ImportedFavSeries
+	Movies []ImportedFavMovies
+}
+
+type ImportDumpResult struct {
+	SeriesCnt    int
+	MoviesCnt    int
+	EpisodesCnt  int
+	FavMoviesCnt int
+	FavSeriesCnt int
 }
 
 // tracking-prod-records.csv
@@ -125,7 +146,7 @@ func NewImportService(logger *slog.Logger, cfg *config.Config) *ImportSvc {
 		panic(err)
 	}
 
-	err = idb.AutoMigrate(&ImportedSeries{}, &ImportedTrackedEps{})
+	err = idb.AutoMigrate(&ImportedSeries{}, &ImportedTrackedEps{}, &ImportedFavSeries{}, &ImportedFavMovies{})
 
 	if err != nil {
 		panic(err)
@@ -160,24 +181,6 @@ func (ipt *ImportSvc) SetEpisodeUnresolved(key string, reason string) error {
 	return err
 }
 
-func (ipt *ImportSvc) isDumped(key string) bool {
-	var err error
-
-	if ipt.isSeries(key) {
-		err = ipt.idb.First(&ImportedSeries{}, "key = ?", key).Error
-	} else if ipt.isEpisode(key) {
-		err = ipt.idb.First(&ImportedTrackedEps{}, "key = ?", key).Error
-	} else {
-		return false
-	}
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return false
-	}
-
-	return err == nil
-}
-
 func (ipt *ImportSvc) IsImported(key string) bool {
 	var err error
 	var rv bool
@@ -202,9 +205,15 @@ func (ipt *ImportSvc) IsImported(key string) bool {
 	return rv
 }
 
-func (ipt *ImportSvc) GetImportedFavs() ([]ImportedSeries, error) {
-	rv := []ImportedSeries{}
-	err := ipt.idb.Model(&ImportedSeries{}).Where("is_favourite = ?", true).Find(&rv).Error
+func (ipt *ImportSvc) GetImportedFavSrs() ([]ImportedFavSeries, error) {
+	rv := []ImportedFavSeries{}
+	err := ipt.idb.Find(&rv).Error
+	return rv, err
+}
+
+func (ipt *ImportSvc) GetImportedFavMovs() ([]ImportedFavMovies, error) {
+	rv := []ImportedFavMovies{}
+	err := ipt.idb.Find(&rv).Error
 	return rv, err
 }
 
@@ -218,7 +227,8 @@ func (ipt *ImportSvc) SetImported(key string) error {
 	}
 }
 
-func (ipt *ImportSvc) DumpTvTimeGdprData(zipPath string) (int, int, error) {
+func (ipt *ImportSvc) DumpTvTimeGdprData(zipPath string) (ImportDumpResult, error) {
+	var rv ImportDumpResult
 	var allowedFiles = struct {
 		SeriesTrackingDataFile string
 		FavouriteSeriesFile    string
@@ -229,14 +239,14 @@ func (ipt *ImportSvc) DumpTvTimeGdprData(zipPath string) (int, int, error) {
 
 	stat, err := os.Stat(zipPath)
 	if err != nil {
-		return 0, 0, err
+		return rv, err
 	}
 
 	zf, err := os.OpenFile(zipPath, os.O_RDONLY, stat.Mode())
 
 	zr, err := zip.NewReader(zf, stat.Size())
 	if err != nil {
-		return 0, 0, ErrBadZip
+		return rv, ErrBadZip
 	}
 
 	defer zf.Close()
@@ -258,7 +268,7 @@ func (ipt *ImportSvc) DumpTvTimeGdprData(zipPath string) (int, int, error) {
 
 	var isrs []*ImportedSeries
 	var iteps []*ImportedTrackedEps
-	var favs []int
+	var favsData ImportFavsData
 
 	csvErr := func(fn string, err error) error {
 		return errors.Join(ErrBadZip, fmt.Errorf("Error processing CSV target file %s: %v", fn, err))
@@ -270,22 +280,22 @@ func (ipt *ImportSvc) DumpTvTimeGdprData(zipPath string) (int, int, error) {
 		case allowedFiles.SeriesTrackingDataFile:
 			recs, err := getRecsFromZf(f)
 			if err != nil {
-				return 0, 0, csvErr(fname, err)
+				return rv, csvErr(fname, err)
 			}
 			isrs, iteps, err = ipt.ProcessRecsV2(recs)
 			if err != nil {
-				return 0, 0, csvErr(fname, err)
+				return rv, csvErr(fname, err)
 			}
 			processedCnt++
 		case allowedFiles.FavouriteSeriesFile:
 			recs, err := getRecsFromZf(f)
 			if err != nil {
-				return 0, 0, csvErr(fname, err)
+				return rv, csvErr(fname, err)
 			}
 
-			favs, err = ipt.ProcessFavs(recs)
+			favsData, err = ipt.ProcessFavs(recs)
 			if err != nil {
-				return 0, 0, csvErr(fname, err)
+				return rv, csvErr(fname, err)
 			}
 			processedCnt++
 		}
@@ -294,44 +304,60 @@ func (ipt *ImportSvc) DumpTvTimeGdprData(zipPath string) (int, int, error) {
 	allowedFilesCnt := reflect.ValueOf(allowedFiles).NumField()
 	if processedCnt != allowedFilesCnt {
 		err := errors.Join(ErrBadZip, fmt.Errorf("(Expected %d files but processed %d files) in zip archive", allowedFilesCnt, processedCnt))
-		return 0, 0, err
+		return rv, err
 	}
-
-	for _, s := range isrs {
-		s.IsFavourite = slices.Contains(favs, s.TvTimeId)
-	}
-
-	newSeriesCnt := 0
-	newTrackedEpsCnt := 0
 
 	state.Import.UploadingSrsCntTotal = len(isrs)
 	state.Import.UploadingEpsCntTotal = len(iteps)
 
 	for _, s := range isrs {
 		state.Import.UploadingSrsCnt += 1
-		if ipt.isDumped(s.Key) {
-			continue
-		}
-		tx := ipt.idb.Save(s)
-		newSeriesCnt += int(tx.RowsAffected)
+		tx := ipt.idb.Clauses(clause.OnConflict{
+			DoNothing: true,
+		}).Create(s)
+		rv.SeriesCnt += int(tx.RowsAffected)
 		if tx.Error != nil {
-			return 0, 0, tx.Error
+			return rv, tx.Error
 		}
 	}
 
 	for _, e := range iteps {
 		state.Import.UploadingEpsCnt += 1
-		if ipt.isDumped(e.Key) {
-			continue
-		}
-		tx := ipt.idb.Save(e)
-		newTrackedEpsCnt += int(tx.RowsAffected)
+		tx := ipt.idb.Clauses(clause.OnConflict{
+			DoNothing: true,
+		}).Create(e)
+		rv.EpisodesCnt += int(tx.RowsAffected)
 		if tx.Error != nil {
-			return 0, 0, tx.Error
+			return rv, tx.Error
 		}
 	}
 
-	return newSeriesCnt, newTrackedEpsCnt, nil
+	for i := range favsData.Series {
+		tx := ipt.idb.Clauses(clause.OnConflict{
+			DoNothing: true,
+		}).Create(&favsData.Series[i])
+
+		if tx.Error != nil {
+			slog.Error("Failed to save imported Fav Series data", "MId", favsData.Series[i].TvTimeId, "err", err)
+			return rv, err
+		}
+
+		rv.FavSeriesCnt += int(tx.RowsAffected)
+	}
+
+	for i := range favsData.Movies {
+		tx := ipt.idb.Clauses(clause.OnConflict{
+			DoNothing: true,
+		}).Create(&favsData.Movies[i])
+		if tx.Error != nil {
+			slog.Error("Failed to save imported Fav Series data", "Uuid", favsData.Movies[i].Uuid, "err", err)
+			return rv, err
+		}
+
+		rv.FavMoviesCnt += int(tx.RowsAffected)
+	}
+
+	return rv, nil
 }
 
 func (ipt *ImportSvc) GetUnmatched() (*ImportedData, error) {
@@ -429,8 +455,108 @@ func (ipt *ImportSvc) UpdateMeta(mId int, tvTimeSId int) (int, error) {
 	return updatedEntriesCnt, err
 }
 
+func (ipt *ImportSvc) ParseFavMovies(data string) ([]ImportedFavMovies, error) {
+
+	mapEntryRe := regexp.MustCompile(`map\[[^\]]+\]`)
+
+	createdAtRe := regexp.MustCompile(`created_at:([0-9e.+\-]+)`)
+	uuidRe := regexp.MustCompile(`uuid:([a-f0-9\-]+)`)
+
+	var favs []ImportedFavMovies
+
+	entries := mapEntryRe.FindAllString(data, -1)
+
+	for _, entry := range entries {
+
+		createdAtMatch := createdAtRe.FindStringSubmatch(entry)
+		if len(createdAtMatch) < 2 {
+			slog.Warn("Missing created_at field in block", "entry", entry)
+			continue
+		}
+		rawCreatedAt := createdAtMatch[1]
+
+		var uuidStr string
+		uuidMatch := uuidRe.FindStringSubmatch(entry)
+		if len(uuidMatch) >= 2 {
+			uuidStr = uuidMatch[1]
+		} else {
+			slog.Debug("Item has no UUID, skipping", "entry", entry)
+			continue
+		}
+
+		parsedFloat, err := strconv.ParseFloat(rawCreatedAt, 64)
+
+		if err != nil {
+			slog.Warn("Bad created_at format", "createdAtStr", rawCreatedAt, "err", err)
+			continue
+		}
+		createdAt := time.Unix(int64(parsedFloat), 0)
+
+		favs = append(favs, ImportedFavMovies{
+			Uuid:      uuidStr,
+			CreatedAt: createdAt,
+		})
+	}
+
+	return favs, nil
+}
+
+func (ipt *ImportSvc) ParseFavSrs(data string) ([]ImportedFavSeries, error) {
+
+	mapEntryRe := regexp.MustCompile(`map\[[^\]]+\]`)
+
+	createdAtRe := regexp.MustCompile(`created_at:([0-9e.+\-]+)`)
+	idRe := regexp.MustCompile(`id:(\d+)`)
+
+	var favs []ImportedFavSeries
+
+	entries := mapEntryRe.FindAllString(data, -1)
+
+	for _, entry := range entries {
+
+		createdAtMatch := createdAtRe.FindStringSubmatch(entry)
+		if len(createdAtMatch) < 2 {
+			slog.Warn("Missing created_at field in block", "entry", entry)
+			continue
+		}
+		rawCreatedAt := createdAtMatch[1]
+
+		var idStr string
+		idMatch := idRe.FindStringSubmatch(entry)
+		if len(idMatch) >= 2 {
+			idStr = idMatch[1]
+		} else {
+			slog.Debug("Item has no UUID, skipping", "entry", entry)
+			continue
+		}
+		mId, err := strconv.Atoi(idStr)
+
+		if err != nil {
+			slog.Warn("Bad Id format", "idStr", idStr, "err", err)
+			continue
+		}
+
+		parsedFloat, err := strconv.ParseFloat(rawCreatedAt, 64)
+
+		if err != nil {
+			slog.Warn("Bad created_at format", "createdAtStr", rawCreatedAt, "err", err)
+			continue
+		}
+		createdAt := time.Unix(int64(parsedFloat), 0)
+
+		favs = append(favs, ImportedFavSeries{
+			TvTimeId:  mId,
+			CreatedAt: createdAt,
+		})
+	}
+
+	return favs, nil
+}
+
 // lists-prod-lists.csv
-func (ipt *ImportSvc) ProcessFavs(lists [][]string) ([]int, error) {
+func (ipt *ImportSvc) ProcessFavs(lists [][]string) (ImportFavsData, error) {
+
+	var rv ImportFavsData
 
 	hdr := struct {
 		SKey      string
@@ -447,7 +573,7 @@ func (ipt *ImportSvc) ProcessFavs(lists [][]string) ([]int, error) {
 	}
 
 	if len(lists) < 1 {
-		return nil, errors.Join(ErrBadCsv, fmt.Errorf("Empty lists-prod-lists.csv file length(%v)", len(lists)))
+		return rv, errors.Join(ErrBadCsv, fmt.Errorf("Empty lists-prod-lists.csv file length(%v)", len(lists)))
 	}
 
 	h := lists[0]
@@ -471,38 +597,37 @@ func (ipt *ImportSvc) ProcessFavs(lists [][]string) ([]int, error) {
 	wantHi := reflect.ValueOf(hdr).NumField()
 	if len(hi) != wantHi {
 		slog.Error("lists-prod-lists.csv headers", "headers", hi)
-		return nil, errors.Join(ErrBadCsv, fmt.Errorf("lists-prod-lists.csv found fields(%v) but needed fields(%v)", len(hi), wantHi))
+		return rv, errors.Join(ErrBadCsv, fmt.Errorf("lists-prod-lists.csv found fields(%v) but needed fields(%v)", len(hi), wantHi))
 	}
-
-	favs := []int{}
 
 	for i := 1; i < len(lists); i++ {
 		rec := lists[i]
 		if len(rec) < len(h) {
-			return nil, errors.Join(ErrBadCsv, fmt.Errorf("lists-prod-lists.csv[%v] length(%v)", i, len(rec)))
+			return rv, errors.Join(ErrBadCsv, fmt.Errorf("lists-prod-lists.csv[%v] length(%v)", i, len(rec)))
 		}
 
 		sKey := strings.TrimSpace(rec[hi[hdr.SKey]])
 
 		if sKey == "favorite-series" {
 			obj := strings.TrimSpace(rec[hi[hdr.Objects]])
-			re := regexp.MustCompile(`\s(id\:\d+)`)
-			matches := re.FindAllString(obj, -1)
-			for _, m := range matches {
-				idStr := strings.TrimPrefix(strings.TrimSpace(m), "id:")
-
-				id, err := strconv.Atoi(idStr)
-				if err != nil {
-					slog.Warn("Bad Match", "m", m, "idStr", idStr, "err", err)
-					continue
-				}
-				favs = append(favs, id)
+			srs, err := ipt.ParseFavSrs(obj)
+			if err != nil {
+				slog.Warn("Failed to parse favorite series", "err", err)
+				return rv, err
 			}
-			break
+			rv.Series = srs
+		} else if sKey == "favorite-movies" {
+			obj := strings.TrimSpace(rec[hi[hdr.Objects]])
+			mvs, err := ipt.ParseFavMovies(obj)
+			if err != nil {
+				slog.Warn("Failed to parse favorite movies", "err", err)
+				return rv, err
+			}
+			rv.Movies = mvs
 		}
 	}
 
-	return favs, nil
+	return rv, nil
 }
 
 // tracking-prod-records-v2.csv

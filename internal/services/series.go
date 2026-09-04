@@ -701,11 +701,11 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 	state.Import.StageCnt = 2
 	state.Import.Stage = 1
 	if zipPath != "" {
-		spc, epc, err := srv.ipt.DumpTvTimeGdprData(zipPath)
+		res, err := srv.ipt.DumpTvTimeGdprData(zipPath)
 		if err != nil {
 			return err
 		}
-		slog.Info("IMPORTED COUNT", "series_processed_count", spc, "episodes_processed_count", epc)
+		slog.Info("IMPORTED COUNT", "series_processed_count", res.SeriesCnt, "episodes_processed_count", res.EpisodesCnt)
 	}
 
 	ids, err := srv.ipt.GetUnmatched()
@@ -896,7 +896,7 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 		}
 	}
 
-	favs, err := srv.ipt.GetImportedFavs()
+	favs, err := srv.ipt.GetImportedFavSrs()
 
 	if err != nil {
 		slog.Error("Error getting imported favs", "error", err)
@@ -904,15 +904,14 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 	}
 
 	for _, srs := range favs {
-
 		ttd, err := srv.cGetTVFromTvTimeId(srs.TvTimeId)
 		if err != nil {
-			slog.Error("Error getting meta", "series", srs.Name, "tvTimeId", srs.TvTimeId, "error", err)
+			slog.Error("Error getting meta", "tvTimeId", srs.TvTimeId, "error", err)
 			continue
 		}
-		err = srv.addFav(ttd)
+		err = srv.addFavSeries(ttd)
 		if err != nil {
-			slog.Error("Error adding favourite", "series", srs.Name, "tvTimeId", srs.TvTimeId, "error", err)
+			slog.Error("Error adding favourite", "series", ttd.Name, "seriesMId", ttd.Id, "tvTimeId", srs.TvTimeId, "error", err)
 			continue
 		}
 	}
@@ -933,7 +932,7 @@ func (srv *SeriesService) Favs(limit int) ([]SeriesFavs, error) {
 	return rv, nil
 }
 
-func (srv *SeriesService) addFav(srs *meta.TvDetails) error {
+func (srv *SeriesService) addFavSeries(srs *meta.TvDetails) error {
 	fav := db.TvSeriesFav{
 		MName: srs.MName,
 		MId:   int64(srs.Id),
