@@ -92,7 +92,7 @@ func (db *DbSqlite) SeriesFavs(limit int) ([]TvSeriesFav, error) {
 
 func (db *DbSqlite) SeriesFavAdd(f *TvSeriesFav) error {
 	return db.orm.Clauses(clause.OnConflict{
-		DoNothing: true,
+		DoUpdates: clause.AssignmentColumns([]string{"created_at"}),
 	}).Create(f).Error
 }
 

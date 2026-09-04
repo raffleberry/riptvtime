@@ -909,7 +909,14 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 			slog.Error("Error getting meta", "tvTimeId", srs.TvTimeId, "error", err)
 			continue
 		}
-		err = srv.addFavSeries(ttd)
+		fav := db.TvSeriesFav{
+			MName:     ttd.MName,
+			MId:       int64(ttd.Id),
+			Name:      ttd.Name,
+			Year:      ttd.Year,
+			CreatedAt: srs.CreatedAt,
+		}
+		err = srv.db.SeriesFavAdd(&fav)
 		if err != nil {
 			slog.Error("Error adding favourite", "series", ttd.Name, "seriesMId", ttd.Id, "tvTimeId", srs.TvTimeId, "error", err)
 			continue

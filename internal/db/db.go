@@ -77,8 +77,8 @@ type TvSeries struct {
 
 type TvSeriesFav struct {
 	gorm.Model
-	MName string
-	MId   int64
+	MName string `gorm:"uniqueIndex:idx_series_fav"`
+	MId   int64  `gorm:"uniqueIndex:idx_series_fav"`
 	Name  string
 	Year  int
 }
