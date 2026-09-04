@@ -86,7 +86,7 @@ func (db *DbSqlite) SeriesAdd(t *TvSeries) (int, error) {
 func (db *DbSqlite) SeriesFavs(limit int) ([]TvSeriesFav, error) {
 	var rv []TvSeriesFav
 	slog.Info("hello", "limit", limit)
-	err := db.orm.Limit(limit).Find(&rv).Error
+	err := db.orm.Limit(limit).Order("created_at DESC").Find(&rv).Error
 	return rv, err
 }
 
