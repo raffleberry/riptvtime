@@ -1,17 +1,8 @@
-import { PageRouter } from "./components/PageRouter.js"
 import { Confirm } from "./components/Confirm/Confirm.js"
-import { PAGE, routes } from "./utils.js"
-import {
-  computed,
-  createApp,
-  createPinia,
-  createRouter,
-  createWebHistory,
-  onMounted,
-  ref,
-  watch,
-} from "./vue.js"
 import { Notify } from "./components/Notify/Notify.js"
+import { PageRouter } from "./components/PageRouter.js"
+import { routes } from "./utils.js"
+import { createApp, createPinia, createRouter, createWebHistory, onMounted } from "./vue.js"
 
 const router = createRouter({
   history: createWebHistory(),

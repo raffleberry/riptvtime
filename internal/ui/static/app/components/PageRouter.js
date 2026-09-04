@@ -1,6 +1,5 @@
+import { RouterView } from "../vue.js"
 import { Navigation } from "./Navigation.js"
-import { computed, RouterView, storeToRefs, useRoute } from "../vue.js"
-import { PAGE } from "../utils.js"
 
 const PageRouter = {
   components: {

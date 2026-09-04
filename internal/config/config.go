@@ -25,7 +25,14 @@ type Config struct {
 	ConfigDir    string
 	ImportTmpDir string
 
+	ImdbDataUrl string
+	ImdbTmpDir  string
+
+	EnableImdb bool
+
 	TmdbMaxRetries int
+
+	DateTimeLayout string
 }
 
 func setConfigDir(c *Config) {
@@ -37,6 +44,13 @@ func setConfigDir(c *Config) {
 
 	c.ImportTmpDir = filepath.Join(os.TempDir(), "riptvtime_import_tmp")
 
+	c.ImdbDataUrl = "https://datasets.imdbws.com"
+	c.ImdbTmpDir = filepath.Join(os.TempDir(), "riptvtime_imdb_tmp")
+
+	c.DateTimeLayout = "2006-01-02 15:04:05"
+
+	c.EnableImdb = true
+
 	err = os.MkdirAll(c.ConfigDir, 0755)
 	if err != nil {
 		log.Fatalf("Error creating user config dir: %v - %v\n", conf, err)
@@ -45,6 +59,11 @@ func setConfigDir(c *Config) {
 	if err != nil {
 		log.Fatalf("Error creating user config dir: %v - %v\n", conf, err)
 	}
+	err = os.MkdirAll(c.ImdbTmpDir, 0755)
+	if err != nil {
+		log.Fatalf("Error creating user config dir: %v - %v\n", conf, err)
+	}
+
 }
 
 func LoadFromFile(path string) (*Config, error) {

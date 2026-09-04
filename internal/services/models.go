@@ -19,6 +19,8 @@ type SeriesFeedItem struct {
 	LastEpisodeAirDate   time.Time
 	LastEpisodeWatchDate time.Time
 	ShowAddDate          time.Time
+
+	ImdbRating *meta.ImdbRating
 }
 
 type SeriesSearchItem struct {
@@ -41,6 +43,7 @@ type SeriesEpisode struct {
 
 type SeriesFullItem struct {
 	*meta.TvDetails
+	ImdbRating    *meta.ImdbRating
 	EpisodesAired int
 	EpsWatched    []SeriesEpisode
 }
@@ -55,9 +58,20 @@ type ImportedData struct {
 	Episodes []*ImportedTrackedEps
 }
 
+type SeriesFavs struct {
+	db.TvSeriesFav
+	ImgPoster string
+}
+
 type UpcomingItem struct {
 	SeriesName string
 	Year       int
 	ImgPoster  string
 	Episode    *db.TvEpisode
+	ImdbRating *meta.ImdbRating
+}
+
+type Genre struct {
+	meta.Genre
+	Cnt int
 }

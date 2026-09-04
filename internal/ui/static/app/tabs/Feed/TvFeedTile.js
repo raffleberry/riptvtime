@@ -1,10 +1,5 @@
-import { notify } from "../../components/Notify/Notify.js"
-import { Navigation } from "../../components/Navigation.js"
-import { imgPosterUrl, ky } from "../../utils.js"
-import { computed, onMounted, ref, RouterView, storeToRefs } from "../../vue.js"
-import { useSeriesStore } from "../Series/seriesStore.js"
-import { ConfirmOpts } from "./ConfirmOpts.js"
-import { useFeedStore } from "./feedStore.js"
+import { fmtRating, imgPosterUrl, ky } from "../../utils.js"
+import { computed } from "../../vue.js"
 
 const TvFeedTile = {
   components: {},
@@ -36,6 +31,7 @@ const TvFeedTile = {
       watchProgress,
       markUpNext,
       imgPosterUrl,
+      fmtRating,
     }
   },
 
@@ -45,18 +41,19 @@ const TvFeedTile = {
         <div class="col-2" style="width: 180px">
           <img
             :src="imgPosterUrl(tv.Image)"
-            class="img-fluid object-fit-cover rounded-start"
+            class="img-fluid object-fit-cover rounded-top rounded-end-0"
             alt="..."
           />
         </div>
 
         <div class="d-flex flex-column card-body justify-content-between">
           <div>
-            <h5 class="card-title">
+            <h5 class="card-title d-flex justify-content-between">
               <router-link :to="'/series/' + tv.MId + '#season' + tv.UpNext.S">
                 {{ tv.Name }} <span class="text-muted">({{ tv.Year }})</span>
                 <span class="badge bg-secondary" v-if="tv.RecentlyAired">New</span>
               </router-link>
+              <span v-if="tv.ImdbRating">IMDb: {{ fmtRating(tv.ImdbRating) }}</span>
             </h5>
             <p class="card-text">{{ tv.Overview }}</p>
           </div>
@@ -81,19 +78,16 @@ const TvFeedTile = {
             </button>
           </p>
         </div>
-        <div class=""></div>
-        <div>
-          <div
-            class="progress rounded-top-0"
-            role="progressbar"
-            aria-label="Tv show progress"
-            :aria-valuenow="watchProgress"
-            aria-valuemin="0"
-            aria-valuemax="100"
-          >
-            <div class="progress-bar" :style="{width: watchProgress + '%'}"></div>
-          </div>
-        </div>
+      </div>
+      <div
+        class="progress rounded-top-0"
+        role="progressbar"
+        aria-label="Tv show progress"
+        :aria-valuenow="watchProgress"
+        aria-valuemin="0"
+        aria-valuemax="100"
+      >
+        <div class="progress-bar" :style="{width: watchProgress + '%'}"></div>
       </div>
     </div>
   `,

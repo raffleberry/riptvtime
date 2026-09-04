@@ -1,5 +1,5 @@
-import { isMobile, PAGE, theme, routes } from "../utils.js"
-import { computed, ref, useRoute } from "../vue.js"
+import { isMobile, PAGE, routes, theme } from "../utils.js"
+import { computed, useRoute } from "../vue.js"
 
 const Navigation = {
   props: {},

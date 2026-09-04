@@ -11,6 +11,7 @@ export const {
   toRef,
   useTemplateRef,
   nextTick,
+  reactive,
 } = Vue
 export const {
   createRouter,

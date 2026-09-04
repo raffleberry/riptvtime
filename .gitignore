@@ -1,2 +1,5 @@
 config.cfg
 dist/
+cpu.prof
+mem.prof
+*.test

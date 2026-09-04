@@ -1,4 +1,4 @@
-import { isMobile, PAGE, theme, routes } from "../../utils.js"
+import { isMobile, PAGE, routes, theme } from "../../utils.js"
 import { computed, ref, useRoute } from "../../vue.js"
 import { Toast } from "./Toast.js"
 
@@ -17,7 +17,6 @@ export const MsgType = {
 const notifications = ref([])
 
 /**
- *
  * @param {MsgType} type
  * @param {string} message
  */

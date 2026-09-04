@@ -1,8 +1,4 @@
-import { ky, TvStatus } from "../../utils.js"
-import { computed, onMounted, ref, storeToRefs, watch } from "../../vue.js"
-import { notify } from "../../components/Notify/Notify.js"
-import { useTracked } from "../../stores/tracked.js"
-import { useFeedStore } from "./feedStore.js"
+import { onMounted, ref, watch } from "../../vue.js"
 
 const show = ref(false)
 var resolver = null

@@ -1,6 +1,6 @@
 import { apiAddSeries, apiRemSeries, apiSeriesTracked, apiSetStatus } from "../api.js"
 import { MsgType, notify } from "../components/Notify/Notify.js"
-import { defineStore, ref, watch } from "../vue.js"
+import { defineStore, ref } from "../vue.js"
 
 export const useTracked = defineStore("trackedSeries", () => {
   const loading = ref(false)

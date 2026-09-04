@@ -1,6 +1,6 @@
 import { useTracked } from "../../stores/tracked.js"
 import { imgPosterUrl, TvStatus } from "../../utils.js"
-import { computed, ref, storeToRefs, watch } from "../../vue.js"
+import { computed, ref, storeToRefs } from "../../vue.js"
 import { selected } from "./SearchTileOpts.js"
 
 const SearchTile = {
@@ -72,30 +72,39 @@ const SearchTile = {
 
   template: /* HTML */ `
     <div :class="statusCss.card">
-        <div class="row">
-            <div class="col-2" style="width: 180px">
-            <img :src="imgPosterUrl(tv.Image)" class="img-fluid object-fit-cover rounded-start" alt="..."> 
-            </div>
-            <div class="col">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <h5 class="card-title">
-                            <router-link :to="'/series/' + tv.Id">
-                            {{ tv.Name }} <span class="text-muted">({{ tv.Year }})</span> <span class="badge bg-secondary" </span>
-                            </router-link>
-                        </h5>
-                        <button @click="openSeriesOptions" 
-                            data-bs-toggle="offcanvas" data-bs-target="#searchTileOpts"
-                            type="button" class="btn p-2 d-inline-flex align-items-center justify-content-center">
-                                <i :class="statusCss.icon"></i>
-                        </button>
-                    </div>
-                    <p class="card-text">{{ tv.Overview }}</p>
-                </div>
-            </div>
+      <div class="row">
+        <div class="col-2" style="width: 180px">
+          <img
+            :src="imgPosterUrl(tv.Image)"
+            class="img-fluid object-fit-cover rounded-start"
+            alt="..."
+          />
         </div>
+        <div class="col">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <h5 class="card-title">
+                <router-link :to="'/series/' + tv.Id">
+                  {{ tv.Name }} <span class="text-muted">({{ tv.Year }})</span>
+                  <span class="badge bg-secondary"> </span>
+                </router-link>
+              </h5>
+              <button
+                @click="openSeriesOptions"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#searchTileOpts"
+                type="button"
+                class="btn p-2 d-inline-flex align-items-center justify-content-center"
+              >
+                <i :class="statusCss.icon"></i>
+              </button>
+            </div>
+            <p class="card-text">{{ tv.Overview }}</p>
+          </div>
+        </div>
+      </div>
     </div>
-`,
+  `,
 }
 
 export { SearchTile }

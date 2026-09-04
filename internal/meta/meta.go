@@ -8,6 +8,7 @@ import (
 var (
 	ErrNotFound = errors.New("meta not found")
 	ErrConfused = errors.New("got more than expected")
+	ErrBadGZip  = errors.New("Invalid or corrupt gz file")
 )
 
 type TvSearchResult struct {
@@ -77,6 +78,12 @@ type Genre struct {
 	Name string
 }
 
+type ImdbRating struct {
+	Id     string
+	Rating float32
+	Votes  int
+}
+
 type Meta interface {
 	Name() string
 	Search(query string, page int) (*TvSearchResults, error)
@@ -87,6 +94,7 @@ type Meta interface {
 	GetEpisodeFromTvTimeId(tvTimeEId int) (*TvEpisode, error)
 	GetGenresTv() ([]Genre, error)
 	GetImdbId(mId int) (string, error)
+	GetImdbRating(imdbId string) (*ImdbRating, error)
 }
 
 // func GetEpisodeDetails(seriesTmdbId int64, sNo int, epNo int) (*TvEpisode, error) {

@@ -1,14 +1,8 @@
-import {
-  apiAddSeries,
-  apiEpUnWatch,
-  apiEpWatch,
-  apiGetSeriesDetails,
-  apiRemSeries,
-} from "../../api.js"
+import { apiEpUnWatch, apiEpWatch, apiGetSeriesDetails } from "../../api.js"
 import { MsgType, notify } from "../../components/Notify/Notify.js"
 import { useTracked } from "../../stores/tracked.js"
-import { ky, TvStatus } from "../../utils.js"
-import { computed, defineStore, ref, storeToRefs, watch } from "../../vue.js"
+import { TvStatus } from "../../utils.js"
+import { computed, defineStore, ref, storeToRefs } from "../../vue.js"
 
 export const useSeriesStore = defineStore("series", () => {
   const loading = ref(false)

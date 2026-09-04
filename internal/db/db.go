@@ -75,11 +75,19 @@ type TvSeries struct {
 	SourceKey string
 }
 
+type TvSeriesFav struct {
+	gorm.Model
+	MName string
+	MId   int64
+	Name  string
+	Year  int
+}
+
 type TvTrackedEps struct {
 	gorm.Model
 	MName      string
 	EpisodeMId int64
-	SeriesMId  int64
+	SeriesMId  int64 `gorm:"index"`
 	SeriesName string
 	Name       string
 	Overview   string
@@ -176,7 +184,7 @@ type Stats struct {
 	TotalShows    int
 }
 
-type StatsShow struct {
+type MySeries struct {
 	MId  int
 	Name string
 	Year int
@@ -192,6 +200,8 @@ type Db interface {
 	SeriesWatchingInProdAll() ([]TvSeries, error)
 	SeriesAdd(t *TvSeries) (int, error)
 	SeriesRem(mId int) error
+	SeriesFavs(limit int) ([]TvSeriesFav, error)
+	SeriesFavAdd(f *TvSeriesFav) error
 
 	// 0 if series doesn't exist
 	SeriesStatusGet(mId int) (TvStatus, error)
@@ -212,7 +222,8 @@ type Db interface {
 	ImportedTrackedEpsCheck(key string) (bool, error)
 
 	SeriesStats() (*Stats, error)
-	SeriesStatsMyShows(limit int) ([]StatsShow, error)
+	// -1 for all
+	SeriesMy(limit int) ([]MySeries, error)
 
 	SeriesGenreGet() (*Genres, error)
 	SeriesGenreSet(g Genres) error

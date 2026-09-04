@@ -1,7 +1,4 @@
-import { ky, TvStatus } from "../../utils.js"
-import { computed, onMounted, ref, storeToRefs, watch } from "../../vue.js"
-import { notify } from "../../components/Notify/Notify.js"
-import { useTracked } from "../../stores/tracked.js"
+import { computed, onMounted, ref, storeToRefs } from "../../vue.js"
 import { useSeriesStore } from "./seriesStore.js"
 
 export const EpisodeOpts = {
@@ -34,7 +31,12 @@ export const EpisodeOpts = {
     const handleIncr = async () => {
       try {
         loading.value = true
-        await epMarkWatched(props.mid, [{ S: props.ep.SeasonNumber, E: props.ep.EpisodeNumber }])
+        await epMarkWatched(props.mid, [
+          {
+            S: props.ep.SeasonNumber,
+            E: props.ep.EpisodeNumber,
+          },
+        ])
       } catch (e) {
       } finally {
         bSelf.hide()

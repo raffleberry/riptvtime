@@ -1,16 +1,13 @@
-import { MsgType, notify } from "../../components/Notify/Notify.js"
 import { useTracked } from "../../stores/tracked.js"
-import { imgBackdropUrl, imgPosterUrl, isDateTimeZero, ky, TvStatus } from "../../utils.js"
 import {
-  computed,
-  nextTick,
-  onMounted,
-  ref,
-  storeToRefs,
-  useRoute,
-  useTemplateRef,
-  watch,
-} from "../../vue.js"
+  fmtRating,
+  imgBackdropUrl,
+  imgPosterUrl,
+  isDateTimeZero,
+  ky,
+  TvStatus,
+} from "../../utils.js"
+import { computed, nextTick, onMounted, ref, storeToRefs, useRoute, watch } from "../../vue.js"
 import { EpisodeOpts } from "./EpisodeOpts.js"
 import { SeriesMarkPrev } from "./SeriesMarkPrev.js"
 import { SeriesOpts } from "./SeriesOpts.js"
@@ -253,6 +250,7 @@ export const Series = {
       onClickAccordian,
       isDateTimeZero,
       isSeen,
+      fmtRating,
     }
   },
   template: /* HTML */ `
@@ -271,14 +269,21 @@ export const Series = {
       </div>
       <div v-else>
         <div :class="statusCss.card" style="z-index: 5;">
-          <div class="card-body d-flex flex-column justify-content-between p-0" :style="cardStyle">
-            <div class="align-self-end">
+          <div
+            class="card-body d-flex flex-column justify-content-between p-0 rounded"
+            :style="cardStyle"
+          >
+            <div class="d-flex justify-content-between">
+              <div class="align-self-start txt-bg-blur rounded-top rounded-end-0">
+                {{ fmtRating(sd.ImdbRating) }}
+              </div>
+
               <button
                 :class="statusCss.btn"
                 data-bs-toggle="offcanvas"
                 data-bs-target="#seriesOpts"
                 type="button"
-                class="btn btn-sm p-2 d-inline-flex align-items-center justify-content-center rounded-top-0 rounded-end-0"
+                class="btn btn-sm p-2 d-inline-flex align-items-center justify-content-center  rounded-bottom-0 rounded-start-0"
               >
                 <i class="bi me-2" :class="statusCss.icon"></i>
                 {{ getStatusTxt(status) }}

@@ -202,6 +202,12 @@ func (ipt *ImportSvc) IsImported(key string) bool {
 	return rv
 }
 
+func (ipt *ImportSvc) GetImportedFavs() ([]ImportedSeries, error) {
+	rv := []ImportedSeries{}
+	err := ipt.idb.Model(&ImportedSeries{}).Where("is_favourite = ?", true).Find(&rv).Error
+	return rv, err
+}
+
 func (ipt *ImportSvc) SetImported(key string) error {
 	if ipt.isSeries(key) {
 		return ipt.idb.Model(&ImportedSeries{}).Where("key = ?", key).Update("imported", true).Error

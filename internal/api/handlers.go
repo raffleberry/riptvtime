@@ -255,6 +255,25 @@ func (a *Api) SeriesAll() http.HandlerFunc {
 		return c.JSON(http.StatusOK, respItem)
 	})
 }
+
+func (a *Api) SeriesFavs() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+
+		limitStr := c.R.URL.Query().Get("limit")
+		var err error
+		limit := -1
+		if limitStr != "" {
+			limit, err = strconv.Atoi(limitStr)
+		}
+
+		rv, err := a.tv.Favs(limit)
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, rv)
+	})
+}
+
 func (a *Api) SeriesImportUpload() http.HandlerFunc {
 	return WithCtx(func(ctx *Context) error {
 		if state.Import.GetUploadActive() {
@@ -387,9 +406,16 @@ func (a *Api) SeriesUpcoming() http.HandlerFunc {
 	})
 }
 
-func (a *Api) GetGenres() http.HandlerFunc {
+func (a *Api) GetGenresTvRecents() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
-		v, err := a.tv.GetGenres()
+		limStr := c.R.URL.Query().Get("limit")
+		limit, err := strconv.Atoi(limStr)
+		if err != nil {
+			slog.Debug("Bad Limit in request", "limStr", limStr, "err", err)
+			limit = 10
+		}
+
+		v, err := a.tv.GetGenresTvRecents(limit)
 		if err != nil {
 			return err
 		}
@@ -397,18 +423,47 @@ func (a *Api) GetGenres() http.HandlerFunc {
 	})
 }
 
-func (a *Api) GetImdbFromMId() http.HandlerFunc {
+func (a *Api) GetImdbRatingFromMid() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
 		mIdStr := c.R.PathValue("mId")
 		mId, err := strconv.Atoi(mIdStr)
 		if err != nil {
 			return c.Error(http.StatusBadRequest, err.Error())
 		}
-		v := a.tv.GetImdbId(mId)
-		return c.JSON(http.StatusOK, struct {
-			ImdbId string
-		}{
-			ImdbId: v,
-		})
+		v, err := a.tv.GetImdbRating(mId)
+		if errors.Is(err, services.ErrNotFound) {
+			c.W.WriteHeader(http.StatusNotFound)
+			return err
+
+		} else if errors.Is(err, services.ErrNotAvailable) {
+			c.W.WriteHeader(http.StatusServiceUnavailable)
+			return err
+
+		} else if err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, v)
+	})
+}
+
+func (a *Api) FeatureImdb() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		if c.R.Method == http.MethodGet {
+			return c.JSON(http.StatusOK, map[string]bool{
+				"Enabled": a.cfg.EnableImdb,
+			})
+		}
+		if c.R.Method == http.MethodPost {
+			var payload struct {
+				Enable bool
+			}
+			if err := json.NewDecoder(c.R.Body).Decode(&payload); err != nil {
+				return err
+			}
+			a.cfg.EnableImdb = payload.Enable
+			return nil
+		}
+		return nil
 	})
 }

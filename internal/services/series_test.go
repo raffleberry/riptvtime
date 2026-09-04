@@ -93,6 +93,7 @@ func TestSeriesService_MakeFeedList(t *testing.T) {
 				InProduction:     true,
 				NumberOfEpisodes: 26,
 			},
+			nil,
 			20,
 			getMockEpsWatched(13, 2, 1, atime.Add((1+21)*24*time.Hour)),
 		},
@@ -120,6 +121,7 @@ func TestSeriesService_MakeFeedList(t *testing.T) {
 				InProduction:     true,
 				NumberOfEpisodes: 13,
 			},
+			nil,
 			5,
 			getMockEpsWatched(13, 1, 2, btime.Add((1+6)*24*time.Hour)),
 		},
@@ -145,6 +147,7 @@ func TestSeriesService_MakeFeedList(t *testing.T) {
 			btime.Add(6 * 24 * time.Hour),
 			btime.Add(168 * time.Hour),
 			btime,
+			&meta.ImdbRating{Id: "id1", Rating: 9.8, Votes: 1},
 		},
 		&services.SeriesFeedItem{
 			db.TvSeries{
@@ -164,6 +167,7 @@ func TestSeriesService_MakeFeedList(t *testing.T) {
 			atime.Add(21 * 24 * time.Hour),
 			atime.Add(528 * time.Hour),
 			atime,
+			nil,
 		},
 	}
 
@@ -189,7 +193,7 @@ func TestSeriesService_MakeFeedList(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srv := services.NewTvService(tt.db, tt.meta, tt.ipt)
+			srv := services.NewTvService(nil, tt.db, tt.meta, tt.ipt)
 			got := srv.MakeFeedList(tt.series, tt.freshSeriesData)
 			if len(tt.want) != len(got) {
 				t.Errorf("MakeFeedList() = got len(%v) != want len(%v)", len(got), len(tt.want))
@@ -229,7 +233,7 @@ func TestSeriesService_GetTvCacheExpireTime(t *testing.T) {
 
 	maxt := time.Now().Add(time.Hour * 61)
 	mint := time.Now().Add(time.Hour * 35)
-	srv := services.NewTvService(nil, nil, nil)
+	srv := services.NewTvService(nil, nil, nil, nil)
 	got := srv.GetTvCacheExpireTime(m)
 	if !(got.After(mint) && got.Before(maxt)) {
 		t.Errorf("GetTvCacheExpireTime() - want [Random Time Between 36 to 60 hours] got:[%v]", got)

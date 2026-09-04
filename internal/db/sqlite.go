@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -15,6 +16,7 @@ import (
 
 type DbSqlite struct {
 	orm *gorm.DB
+	con *sql.DB
 	err error
 }
 
@@ -34,7 +36,9 @@ func NewDbSqlite(c *config.Config, logger *slog.Logger) *DbSqlite {
 		panic(db.err)
 	}
 
-	err := db.orm.AutoMigrate(&TvSeries{}, &TvTrackedEps{}, &TvSeason{}, &TvEpisode{}, &Cached{}, &Genres{})
+	err := db.orm.AutoMigrate(&TvSeries{},
+		&TvTrackedEps{}, &TvSeason{}, &TvEpisode{},
+		&Cached{}, &Genres{}, &TvSeriesFav{})
 
 	if err != nil {
 		slog.Error("Failed to migrate", "err", err)
@@ -76,6 +80,20 @@ func (db *DbSqlite) SeriesAdd(t *TvSeries) (int, error) {
 	err := db.orm.Create(t).Error
 
 	return int(t.ID), err
+}
+
+// -1 for all
+func (db *DbSqlite) SeriesFavs(limit int) ([]TvSeriesFav, error) {
+	var rv []TvSeriesFav
+	slog.Info("hello", "limit", limit)
+	err := db.orm.Limit(limit).Find(&rv).Error
+	return rv, err
+}
+
+func (db *DbSqlite) SeriesFavAdd(f *TvSeriesFav) error {
+	return db.orm.Clauses(clause.OnConflict{
+		DoNothing: true,
+	}).Create(f).Error
 }
 
 func (db *DbSqlite) SeriesRem(id int) error {
@@ -220,12 +238,16 @@ func (db *DbSqlite) SeriesStats() (*Stats, error) {
 }
 
 // limit = -1 for all
-func (db *DbSqlite) SeriesStatsMyShows(limit int) ([]StatsShow, error) {
-	var results []StatsShow
+func (db *DbSqlite) SeriesMy(limit int) ([]MySeries, error) {
+	var results []MySeries
 
 	trackedSubQuery := db.orm.Model(&TvTrackedEps{}).
 		Select("series_m_id, MAX(created_at) AS last_tracked").
 		Group("series_m_id")
+
+	cachedSubQuery := db.orm.Model(&Cached{}).
+		Select("json_data").
+		Where("what = ?", "TvDetails")
 
 	selectClause := `
 		tv_series.m_id,
@@ -242,7 +264,7 @@ func (db *DbSqlite) SeriesStatsMyShows(limit int) ([]StatsShow, error) {
 	err := db.orm.Model(&TvSeries{}).
 		Select(selectClause).
 		Joins("LEFT JOIN (?) AS tracked ON tv_series.m_id = tracked.series_m_id", trackedSubQuery).
-		Joins("LEFT JOIN cacheds AS fresh_data ON tv_series.m_id = (fresh_data.json_data ->> '$.Id')").
+		Joins("LEFT JOIN (?) AS fresh_data ON tv_series.m_id = (fresh_data.json_data ->> '$.Id')", cachedSubQuery).
 		Order("last_activity DESC").
 		Limit(limit).
 		Scan(&results).Error

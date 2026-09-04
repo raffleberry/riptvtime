@@ -1,8 +1,8 @@
+import { ky } from "../../utils.js"
+import { onMounted, storeToRefs } from "../../vue.js"
+import { ConfirmOpts, openConfirm } from "./ConfirmOpts.js"
 import { TvFeedTile } from "./TvFeedTile.js"
 import { useFeedStore } from "./feedStore.js"
-import { onMounted, ref, storeToRefs } from "../../vue.js"
-import { ConfirmOpts, openConfirm } from "./ConfirmOpts.js"
-import { ky } from "../../utils.js"
 
 const Feed = {
   props: {},

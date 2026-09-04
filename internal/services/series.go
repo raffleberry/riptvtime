@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/raffleberry/riptvtime/internal/config"
 	"github.com/raffleberry/riptvtime/internal/db"
 	"github.com/raffleberry/riptvtime/internal/meta"
 	"github.com/raffleberry/riptvtime/internal/services/state"
@@ -20,19 +21,22 @@ import (
 )
 
 var (
-	ErrInvalidData = errors.New("Invalid Data")
-	ErrNotFound    = errors.New("Not Found")
-	ErrDuplicate   = errors.New("Duplicate already in database")
+	ErrInvalidData  = errors.New("Invalid Data")
+	ErrNotFound     = errors.New("Not Found")
+	ErrDuplicate    = errors.New("Duplicate already in database")
+	ErrNotAvailable = errors.New("Not Available")
 )
 
 type SeriesService struct {
+	cfg  *config.Config
 	db   db.Db
 	meta meta.Meta
 	ipt  *ImportSvc
 }
 
-func NewTvService(db db.Db, meta meta.Meta, ipt *ImportSvc) *SeriesService {
+func NewTvService(cfg *config.Config, db db.Db, meta meta.Meta, ipt *ImportSvc) *SeriesService {
 	return &SeriesService{
+		cfg:  cfg,
 		db:   db,
 		meta: meta,
 		ipt:  ipt,
@@ -80,7 +84,7 @@ func (srv *SeriesService) GetTvCacheExpireTime(res *meta.TvDetails) time.Time {
 }
 
 // Cached
-func (srv *SeriesService) GetTvMeta(mId int) (*meta.TvDetails, error) {
+func (srv *SeriesService) cGetTvMeta(mId int) (*meta.TvDetails, error) {
 	what := "TvDetails"
 	key := strconv.Itoa(mId)
 	var rv *meta.TvDetails
@@ -155,7 +159,7 @@ func (srv *SeriesService) GetTvMeta(mId int) (*meta.TvDetails, error) {
 // Get Fresh Tv Show Details (Fresh enough)
 func (srv *SeriesService) GetDetails(mId int, withEpsDetails bool) (*SeriesFullItem, error) {
 
-	res, err := srv.GetTvMeta(mId)
+	res, err := srv.cGetTvMeta(mId)
 	if err != nil {
 		return nil, err
 	}
@@ -219,9 +223,17 @@ func (srv *SeriesService) GetDetails(mId int, withEpsDetails bool) (*SeriesFullI
 			epsWatched[idx].Cnt += 1
 		}
 	}
+	var ibr *meta.ImdbRating
+	if srv.cfg.EnableImdb {
+		ibr, err = srv.GetImdbRating(mId)
+		if err != nil {
+			slog.Error("Failed to get imdb rating", "err", err, "mId", mId, "Name", res.Name)
+		}
+	}
 
 	return &SeriesFullItem{
 		res,
+		ibr,
 		epsAired,
 		epsWatched,
 	}, nil
@@ -352,6 +364,7 @@ func (srv *SeriesService) MakeFeedList(series []db.TvSeries, freshSeriesData []*
 			Image:                fd.ImgPoster,
 			ShowAddDate:          srs.CreatedAt,
 			LastEpisodeWatchDate: lastEpisodeWatchDate,
+			ImdbRating:           fd.ImdbRating,
 		})
 
 		latest := func(a, b, c time.Time) time.Time {
@@ -454,7 +467,7 @@ func (srv *SeriesService) MakeUpNext(mId int, fd *SeriesFullItem) (*SeriesEpisod
 
 // Returns insertModel from db
 func (srv *SeriesService) Add(mId int, source string) (*db.TvSeries, error) {
-	tvM, err := srv.GetTvMeta(mId)
+	tvM, err := srv.cGetTvMeta(mId)
 	if err != nil {
 		return nil, err
 	}
@@ -610,7 +623,7 @@ func (srv *SeriesService) cacheSeasonInDb(mId int, season int, forceRefresh bool
 			return nil, err
 		}
 
-		srs, err := srv.GetTvMeta(mId)
+		srs, err := srv.cGetTvMeta(mId)
 		if err != nil {
 			return nil, err
 		}
@@ -731,7 +744,7 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 			continue
 		}
 
-		tvd, err := srv.GetTvMeta(ttd.Id)
+		tvd, err := srv.cGetTvMeta(ttd.Id)
 		if err != nil {
 			slog.Error("Error getting tv details", "series", srs.Name, "tvTimeId", srs.TvTimeId, "error", err)
 			err1 := srv.ipt.SetSeriesUnresolved(srs.Key, err.Error())
@@ -883,7 +896,51 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 		}
 	}
 
+	favs, err := srv.ipt.GetImportedFavs()
+
+	if err != nil {
+		slog.Error("Error getting imported favs", "error", err)
+		return err
+	}
+
+	for _, srs := range favs {
+
+		ttd, err := srv.cGetTVFromTvTimeId(srs.TvTimeId)
+		if err != nil {
+			slog.Error("Error getting meta", "series", srs.Name, "tvTimeId", srs.TvTimeId, "error", err)
+			continue
+		}
+		err = srv.addFav(ttd)
+		if err != nil {
+			slog.Error("Error adding favourite", "series", srs.Name, "tvTimeId", srs.TvTimeId, "error", err)
+			continue
+		}
+	}
+
 	return err
+}
+
+func (srv *SeriesService) Favs(limit int) ([]SeriesFavs, error) {
+	favs, err := srv.db.SeriesFavs(limit)
+	if err != nil {
+		return nil, err
+	}
+	rv := make([]SeriesFavs, len(favs))
+	for i := range favs {
+		rv[i].TvSeriesFav = favs[i]
+		rv[i].ImgPoster = srv.GetPoster(int(favs[i].MId))
+	}
+	return rv, nil
+}
+
+func (srv *SeriesService) addFav(srs *meta.TvDetails) error {
+	fav := db.TvSeriesFav{
+		MName: srs.MName,
+		MId:   int64(srs.Id),
+		Name:  srs.Name,
+		Year:  srs.Year,
+	}
+	return srv.db.SeriesFavAdd(&fav)
 }
 
 func (srv *SeriesService) cGetTVFromTvTimeId(tvTimeId int) (*meta.TvDetails, error) {
@@ -943,76 +1000,35 @@ func (srv *SeriesService) cGetTVFromTvTimeId(tvTimeId int) (*meta.TvDetails, err
 
 }
 
-func (srv *SeriesService) GetGenres() (*db.Genres, error) {
-
-	var refresh = func() (*db.Genres, error) {
-		m, err := srv.meta.GetGenresTv()
-		if err != nil {
-			return nil, err
-		}
-		var g db.Genres
-		for i := range m {
-			g.Genres = append(g.Genres, db.Genre{
-				Id:   m[i].Id,
-				Name: m[i].Name,
-			})
-		}
-		g.Type = db.GenreType.Series
-		g.ExpiredAt = time.Now().Add(time.Hour * 24 * 7)
-		err = srv.db.SeriesGenreSet(g)
-		if err != nil {
-			return nil, err
-		}
-		return &g, nil
-	}
-
-	g, err := srv.db.SeriesGenreGet()
-	if errors.Is(err, db.ErrNotFound) || err == nil && g.ExpiredAt.Before(time.Now()) {
-		g, err = refresh()
-		if err != nil {
-			return nil, fmt.Errorf("failed to update genres, err: %v", err)
-		}
-	} else if err != nil {
+// -1 for all
+func (srv *SeriesService) GetGenresTvRecents(limit int) (map[int64]*Genre, error) {
+	genres := make(map[int64]*Genre)
+	srs, err := srv.db.SeriesMy(limit)
+	if err != nil {
+		slog.Error("GetGenresTvTop: Failed to get list of series from db", "err", err)
 		return nil, err
 	}
-
-	return g, nil
-}
-
-func (srv *SeriesService) GetUserTvGenres() (*db.Genres, error) {
-
-	var refresh = func() (*db.Genres, error) {
-		m, err := srv.meta.GetGenresTv()
+	slog.Debug("Series Fetched from Db", "Cnt", len(srs))
+	for i := range srs {
+		m, err := srv.cGetTvMeta(srs[i].MId)
 		if err != nil {
-			return nil, err
+			slog.Warn("cGetSeriesGenre: failed to get tv meta.. Skipping", "err", err, "mId", srs[i].MId)
+			continue
 		}
-		var g db.Genres
-		for i := range m {
-			g.Genres = append(g.Genres, db.Genre{
-				Id:   m[i].Id,
-				Name: m[i].Name,
-			})
+		for i := range m.Genres {
+			id := m.Genres[i].Id
+			g, ok := genres[id]
+			if ok {
+				g.Cnt += 1
+			} else {
+				genres[id] = &Genre{
+					m.Genres[i],
+					1,
+				}
+			}
 		}
-		g.Type = db.GenreType.Series
-		g.ExpiredAt = time.Now().Add(time.Hour * 24 * 7)
-		err = srv.db.SeriesGenreSet(g)
-		if err != nil {
-			return nil, err
-		}
-		return &g, nil
 	}
-
-	g, err := srv.db.SeriesGenreGet()
-	if errors.Is(err, db.ErrNotFound) || err == nil && g.ExpiredAt.Before(time.Now()) {
-		g, err = refresh()
-		if err != nil {
-			return nil, fmt.Errorf("failed to update genres, err: %v", err)
-		}
-	} else if err != nil {
-		return nil, err
-	}
-
-	return g, nil
+	return genres, nil
 }
 
 func (srv *SeriesService) cGetEpisodeFromTvTimeId(tvTimeId int) (*meta.TvEpisode, error) {
@@ -1080,8 +1096,8 @@ func (srv *SeriesService) Stats() (*db.Stats, error) {
 	return srv.db.SeriesStats()
 }
 
-func (srv *SeriesService) StatsMyShows(limit int) ([]db.StatsShow, error) {
-	return srv.db.SeriesStatsMyShows(limit)
+func (srv *SeriesService) StatsMyShows(limit int) ([]db.MySeries, error) {
+	return srv.db.SeriesMy(limit)
 }
 
 func (srv *SeriesService) Upcoming() ([]*UpcomingItem, error) {
@@ -1115,12 +1131,23 @@ func (srv *SeriesService) Upcoming() ([]*UpcomingItem, error) {
 					if ep.AirDate.Before(now) {
 						continue
 					}
-					rv = append(rv, &UpcomingItem{
+
+					cv := &UpcomingItem{
 						SeriesName: srs.Name,
 						Year:       srs.Year,
 						ImgPoster:  srs.ImgPoster,
 						Episode:    ep,
-					})
+					}
+
+					if srv.cfg.EnableImdb {
+						ibr, err := srv.GetImdbRating(srs.Id)
+						if err != nil {
+							slog.Error("Failed to get imdb rating", "err", err, "mId", srs.Id, "Name", srs.Name)
+						}
+						cv.ImdbRating = ibr
+					}
+
+					rv = append(rv, cv)
 				}
 			}
 		}
@@ -1141,7 +1168,7 @@ func (srv *SeriesService) Upcoming() ([]*UpcomingItem, error) {
 }
 
 func (srv *SeriesService) GetPoster(mId int) string {
-	m, err := srv.GetTvMeta(mId)
+	m, err := srv.cGetTvMeta(mId)
 	if err != nil {
 		slog.Error("GetPoster", "err", err)
 		return ""
@@ -1150,7 +1177,7 @@ func (srv *SeriesService) GetPoster(mId int) string {
 }
 
 // Cached
-func (srv *SeriesService) GetImdbId(mId int) string {
+func (srv *SeriesService) cGetImdbId(mId int) (string, error) {
 	what := "ImdbId"
 	key := fmt.Sprintf("%d", mId)
 
@@ -1175,13 +1202,32 @@ func (srv *SeriesService) GetImdbId(mId int) string {
 		c, err = refresh()
 		if err != nil {
 			slog.Error("GetImdbId: failed to refresh cache", "err", err, "mId", mId)
-			return ""
+			return "", err
 		}
 	} else if err != nil {
 		slog.Error("GetImdbId: failed to get cache", "err", err, "mId", mId)
-		return ""
+		return "", err
 	}
 
-	return c.JsonData
+	return c.JsonData, nil
+}
 
+func (srv *SeriesService) GetImdbRating(mId int) (*meta.ImdbRating, error) {
+
+	if !srv.cfg.EnableImdb {
+		return nil, ErrNotAvailable
+	}
+	imdbId, err := srv.cGetImdbId(mId)
+	if err != nil {
+		slog.Error("MetaTmdb: Failed to get External ID", "err", err, "mId", mId)
+		return nil, err
+	}
+
+	rv, err := srv.meta.GetImdbRating(imdbId)
+	if err != nil {
+		slog.Error("SeriesService: Error while getting imdb rating", "err", err, "mId", mId)
+		return nil, err
+	}
+
+	return rv, nil
 }

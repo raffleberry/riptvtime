@@ -81,7 +81,8 @@ type Server struct {
 	done  chan bool
 
 	addr string
-	mux  http.Handler
+
+	mux http.Handler
 }
 
 func NewServer(addr string, mux http.Handler) *Server {
@@ -101,6 +102,8 @@ func (s *Server) Start() error {
 	if err != nil {
 		return err
 	}
+
+	s.addr = listener.Addr().String()
 
 	go func() {
 		defer close(s.ready)
@@ -165,6 +168,7 @@ func (s *Server) Addr() string {
 	if s.isHttps {
 		proto = "https"
 	}
+
 	return fmt.Sprintf("%s://%s/", proto, s.addr)
 }
 

@@ -1,5 +1,5 @@
-import { apiGetSeriesStats, apiGetSeriesStatsMyShows } from "../api.js"
-import { notify } from "../components/Notify/Notify.js"
+import { apiGetSeriesFavs, apiGetSeriesStats, apiGetSeriesStatsMyShows } from "../api.js"
+import { MsgType, notify } from "../components/Notify/Notify.js"
 import { imgPosterUrl, imgPosterUrlFromMId } from "../utils.js"
 import { onMounted, ref, watch } from "../vue.js"
 
@@ -8,13 +8,6 @@ const Stats = {
   components: {},
   setup: (props) => {
     const stats = ref({})
-    const shows = ref([])
-    const showAll = ref(false)
-
-    const toggleShowAll = () => {
-      showAll.value = !showAll.value
-    }
-
     const fetchStats = async () => {
       const { data, err } = await apiGetSeriesStats()
       if (err) {
@@ -25,7 +18,13 @@ const Stats = {
       stats.value = data
     }
 
+    const shows = ref([])
+    const showsAll = ref(false)
     const showsLoading = ref(false)
+
+    const ShowsAllTogl = () => {
+      showsAll.value = !showsAll.value
+    }
 
     const fetchShows = async (limit) => {
       showsLoading.value = true
@@ -33,6 +32,7 @@ const Stats = {
       if (err) {
         console.log(err)
         notify(MsgType.Error, "Stats", err)
+        showsLoading.value = false
         return
       }
       shows.value = data
@@ -40,7 +40,7 @@ const Stats = {
     }
 
     watch(
-      showAll,
+      showsAll,
       (v) => {
         if (v) {
           fetchShows(-1)
@@ -51,10 +51,6 @@ const Stats = {
       { immediate: true },
     )
 
-    onMounted(() => {
-      fetchStats()
-    })
-
     const imgUrl = (id, mId) => {
       if (id) {
         return imgPosterUrl(id)
@@ -62,13 +58,55 @@ const Stats = {
       return imgPosterUrlFromMId(mId)
     }
 
+    const favs = ref([])
+    const favsLoading = ref(false)
+    const favsAll = ref(false)
+
+    const favsAllTogl = () => {
+      favsAll.value = !favsAll.value
+    }
+
+    const fetchFavs = async (limit) => {
+      favsLoading.value = true
+      const { data, err } = await apiGetSeriesFavs(limit)
+      if (err) {
+        console.log(err)
+        notify(MsgType.Error, "Stats", err)
+        favsLoading.value = false
+        return
+      }
+      favs.value = data
+      favsLoading.value = false
+    }
+
+    watch(
+      favsAll,
+      (v) => {
+        if (v) {
+          fetchFavs(-1)
+        } else {
+          fetchFavs(8)
+        }
+      },
+      { immediate: true },
+    )
+
+    onMounted(() => {
+      fetchStats()
+    })
     return {
       stats,
+
       shows,
-      imgUrl,
-      showAll,
-      toggleShowAll,
       showsLoading,
+      showsAll,
+      ShowsAllTogl,
+      imgUrl,
+
+      favs,
+      favsLoading,
+      favsAll,
+      favsAllTogl,
     }
   },
   template: /* HTML */ `
@@ -97,11 +135,11 @@ const Stats = {
         <span class="mt-2 me-2">My Shows </span>
         <button
           type="button"
-          @click="toggleShowAll"
-          :class="!showAll ? 'text-bg-primary' : 'text-bg-secondary' "
+          @click="ShowsAllTogl"
+          :class="!showsAll ? 'text-bg-primary' : 'text-bg-secondary' "
           class="btn btn-link"
         >
-          {{ showAll ? "hide":"all" }}
+          {{ showsAll ? "hide":"all" }}
         </button>
       </div>
       <div v-if="!showsLoading" class="d-flex mt-2 flex-wrap justify-content-center">
@@ -115,6 +153,37 @@ const Stats = {
           <span>
             <router-link :to="'/series/' + show.MId"> {{show.Name}} </router-link>
             <span class="text-muted"> ({{show.Year}})</span>
+          </span>
+        </div>
+      </div>
+      <div v-else class="d-flex mt-5 justify-content-center">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+
+      <div class="mt-2 d-flex w-100 justify-content-center">
+        <span class="mt-2 me-2">Favourites</span>
+        <button
+          type="button"
+          @click="favsAllTogl"
+          :class="!favsAll ? 'text-bg-primary' : 'text-bg-secondary' "
+          class="btn btn-link"
+        >
+          {{ favsAll ? "hide":"all" }}
+        </button>
+      </div>
+      <div v-if="!favsLoading" class="d-flex mt-2 flex-wrap justify-content-center">
+        <div class="mx-2 my-1" v-for="fav in favs" class="col-2" style="width: 180px">
+          <img
+            :src="imgUrl(fav.ImgPoster, fav.MId)"
+            class="img-fluid object-fit-cover rounded-start"
+            :alt="fav.Name"
+            loading="lazy"
+          />
+          <span>
+            <router-link :to="'/series/' + fav.MId"> {{fav.Name}} </router-link>
+            <span class="text-muted"> ({{fav.Year}})</span>
           </span>
         </div>
       </div>

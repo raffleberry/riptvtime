@@ -51,6 +51,7 @@ export const formatDuration = (seconds) => {
 
 export const imgPosterUrl = (id) => {
   if (!id) return "/poster.png"
+  if (String(id).startsWith("/")) id = id.slice(1)
   return `https://image.tmdb.org/t/p/w185/${id}`
 }
 
@@ -60,6 +61,7 @@ export const imgPosterUrlFromMId = (mId) => {
 
 export const imgBackdropUrl = (id) => {
   if (!id) return "/poster.png"
+  if (String(id).startsWith("/")) id = id.slice(1)
   return `https://image.tmdb.org/t/p/w780/${id}`
 }
 
@@ -97,4 +99,19 @@ export const isDateTimeZero = (dateTimeStr) => {
     return true
   }
   return false
+}
+
+export const fmtRating = (r) => {
+  if (!r) {
+    return ""
+  }
+  let v = `${r.Rating}/10 `
+  if (r.Votes < 1000) {
+    v += ` (${r.Votes})`
+  } else if (r.Votes < 1000000) {
+    v += ` (${Math.ceil(r.Votes / 1000)}k)`
+  } else {
+    v += ` (${Math.ceil(r.Votes / 1000000)}M)`
+  }
+  return v
 }

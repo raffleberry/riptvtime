@@ -36,5 +36,9 @@ install:
     mkdir -p ~/Apps/bin/
     go build -o ~/Apps/bin/rtt ./cmd/app/main.go
 
+test_imdb:
+    go test -v -test.fullpath=true -run ^Test_ImdbSvc$ github.com/raffleberry/riptvtime/internal/services
+    # go tool pprof -http=:8080 mem.prof
+
 clean:
     rm -rf {{dist_dir}}

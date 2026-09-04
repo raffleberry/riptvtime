@@ -41,6 +41,7 @@ func NewApi(db db.Db, meta meta.Meta, tv *services.SeriesService, cfg *config.Co
 	mux.HandleFunc("GET /api/series/{mId}/upnext", a.SeriesUpNext())
 	mux.HandleFunc("POST /api/series", a.SeriesAdd())
 	mux.HandleFunc("DELETE /api/series/{mId}", a.SeriesRem())
+	mux.HandleFunc("GET /api/series/favs", a.SeriesFavs())
 
 	mux.HandleFunc("PUT /api/series/{mId}/status", a.SeriesUpdateStatus())
 	mux.HandleFunc("GET /api/series/{mId}/poster", a.SeriesPoster())
@@ -61,8 +62,11 @@ func NewApi(db db.Db, meta meta.Meta, tv *services.SeriesService, cfg *config.Co
 	mux.HandleFunc("DELETE /api/state", a.ResetState())
 	// mux.HandleFunc("GET /api/series/{tmdbId}/{episode}", a.SeriesEpisodeGet())
 
-	mux.HandleFunc("GET /api/genres", a.GetGenres())
-	mux.HandleFunc("GET /api/imdb/{mId}", a.GetImdbFromMId())
+	mux.HandleFunc("GET /api/genres/tv/recent", a.GetGenresTvRecents())
+
+	mux.HandleFunc("GET /api/imdb/{mId}", a.GetImdbRatingFromMid())
+
+	mux.HandleFunc("GET /api/features/imdb", a.FeatureImdb())
 
 	mux.Handle("GET /", ui.NewSpaHandler("internal/ui/static"))
 	return a

@@ -3,10 +3,7 @@
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "editor.formatOnSave": true,
-    // "prettier.printWidth": 100,
-    // "prettier.tabWidth": 2,
-    // "prettier.useTabs": false,
-    // "prettier.embeddedLanguageFormatting": "auto",
-    // "prettier.semi": false
-    
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "always"
+    },
 }

@@ -13,7 +13,8 @@ import (
 )
 
 type MetaTmdb struct {
-	c *tmdb.Client
+	c  *tmdb.Client
+	im *ImdbMeta
 }
 
 func (t *MetaTmdb) Name() string {
@@ -288,12 +289,22 @@ func (t *MetaTmdb) GetGenresTv() ([]Genre, error) {
 func (t *MetaTmdb) GetImdbId(mId int) (string, error) {
 	res, err := t.c.GetTVExternalIDs(mId, nil)
 	if err != nil {
+		slog.Error("MetaTmdb: Failed to get Imdb ID", "err", err, "mId", mId)
 		return "", err
 	}
 	return res.IMDbID, nil
 }
 
-func NewTmdbMeta(c *config.Config) *MetaTmdb {
+func (t *MetaTmdb) GetImdbRating(imdbId string) (*ImdbRating, error) {
+	rv, err := t.im.GetRating(imdbId)
+	if err != nil {
+		slog.Error("MetaTmdb: Failed to get ImdbRating", "err", err, "imdbId", imdbId)
+		return nil, err
+	}
+	return &rv, nil
+}
+
+func NewTmdbMeta(c *config.Config, im *ImdbMeta) *MetaTmdb {
 	m := &MetaTmdb{}
 	var err error
 	m.c, err = tmdb.Init(c.TmdbApiKey)
@@ -307,6 +318,10 @@ func NewTmdbMeta(c *config.Config) *MetaTmdb {
 
 	if err != nil {
 		panic(err)
+	}
+
+	if c.EnableImdb && im != nil {
+		m.im = im
 	}
 
 	return m

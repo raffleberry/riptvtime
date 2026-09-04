@@ -1,5 +1,3 @@
-import { notify } from "./components/Notify/Notify.js"
-
 const ENDPOINT = Object.freeze({
   FEED: () => {
     return "/api/series/feed"
@@ -30,6 +28,9 @@ const ENDPOINT = Object.freeze({
   },
   SERIES_UPCOMING: () => {
     return `/api/series/upcoming`
+  },
+  SERIES_FAVS: (limit) => {
+    return `/api/series/favs?limit=${limit}`
   },
   IMPORT_UPLOAD: () => {
     return `/api/import/upload`
@@ -162,6 +163,28 @@ export const apiRemSeries = async (Id) => {
     return {
       err: error,
     }
+  }
+
+  return {}
+}
+
+export const apiGetSeriesFavs = async (limit) => {
+  try {
+    if (!limit) limit = -1
+    const res = await fetch(ENDPOINT.SERIES_FAVS(limit))
+    if (!res.ok) {
+      const errTxt = await res.text()
+      return {
+        err: new Error(`Error, response from server: ${res.status} - ${errTxt}`),
+      }
+    }
+    const data = await res.json()
+    return {
+      data: data,
+    }
+  } catch (error) {
+    console.error(error)
+    return error
   }
 
   return {}
