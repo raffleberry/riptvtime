@@ -103,8 +103,11 @@ func (t *MetaTmdb) genresIdsToStr(genres []int64) string {
 func (t *MetaTmdb) GetTvDetails(tmdbId int) (*TvDetails, error) {
 	res, err := t.c.GetTVDetails(tmdbId, nil)
 
-	seasons := []TvSeason{}
+	if err != nil {
+		return nil, err
+	}
 
+	seasons := []TvSeason{}
 	for _, s := range res.Seasons {
 		seasons = append(seasons, TvSeason{
 			Id:           int(s.ID),
@@ -151,10 +154,6 @@ func (t *MetaTmdb) GetTvDetails(tmdbId int) (*TvDetails, error) {
 		ImgBackdrop:      res.BackdropPath,
 
 		MName: t.Name(),
-	}
-
-	if err != nil {
-		return nil, err
 	}
 
 	return &tvDetails, nil
