@@ -251,7 +251,7 @@ func (db *DbSqlite) SeriesMy(limit int) ([]MySeries, error) {
 		Group("series_m_id")
 
 	cachedSubQuery := db.orm.Model(&Cached{}).
-		Select("json_data").
+		Select("json_data, key as m_id").
 		Where("what = ?", "TvDetails")
 
 	selectClause := `
@@ -269,7 +269,7 @@ func (db *DbSqlite) SeriesMy(limit int) ([]MySeries, error) {
 	err := db.orm.Model(&TvSeries{}).
 		Select(selectClause).
 		Joins("LEFT JOIN (?) AS tracked ON tv_series.m_id = tracked.series_m_id", trackedSubQuery).
-		Joins("LEFT JOIN (?) AS fresh_data ON tv_series.m_id = (fresh_data.json_data ->> '$.Id')", cachedSubQuery).
+		Joins("LEFT JOIN (?) AS fresh_data ON tv_series.m_id = fresh_data.m_id", cachedSubQuery).
 		Order("last_activity DESC").
 		Limit(limit).
 		Scan(&results).Error
