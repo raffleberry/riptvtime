@@ -406,6 +406,16 @@ func (a *Api) SeriesUpcoming() http.HandlerFunc {
 	})
 }
 
+func (a *Api) GetGenresAll() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		v, err := a.tv.GetGenresAll()
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, v)
+	})
+}
+
 func (a *Api) GetGenresTvRecents() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
 		limStr := c.R.URL.Query().Get("limit")

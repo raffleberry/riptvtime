@@ -34,6 +34,7 @@ const (
 var (
 	ErrNotFound = errors.New("Record Not Found")
 	ErrBadData  = errors.New("Bad Data")
+	ErrExpired  = errors.New("Expired")
 )
 
 func GetInProdExpireTime() time.Time {
@@ -139,8 +140,8 @@ var GenreType = struct {
 	Series string
 	Movie  string
 }{
-	Series: "series",
-	Movie:  "movie",
+	Series: "genres_series",
+	Movie:  "genres_movies",
 }
 
 type Genre struct {
@@ -148,23 +149,38 @@ type Genre struct {
 	Name string
 }
 
-type Genres struct {
-	Type      string  `gorm:"primaryKey"`
-	JsonData  string  `json:"-"`
-	Genres    []Genre `gorm:"-"`
+type Misc[T any] struct {
+	Type      string `gorm:"primaryKey"`
+	JsonData  string `json:"-"`
+	Data      T      `gorm:"-"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	ExpiredAt time.Time
 }
 
-// str -> genre
-func (g *Genres) Unmarshal() error {
-	return json.Unmarshal([]byte(g.JsonData), &(g.Genres))
+func (Misc[T]) TableName() string {
+	return "misc"
 }
 
-// genre -> str
-func (g *Genres) Marshal() error {
-	d, err := json.Marshal(g.Genres)
+func (m *Misc[T]) BeforeSave(tx *gorm.DB) error {
+	dataStr, err := json.Marshal(&m.Data)
+	if err != nil {
+		return err
+	}
+	m.JsonData = string(dataStr)
+	return nil
+}
+
+func (g *Misc[T]) AfterFind(tx *gorm.DB) error {
+	return g.Unmarshal(&g.Data)
+}
+
+func (g *Misc[T]) Unmarshal(v *T) error {
+	return json.Unmarshal([]byte(g.JsonData), v)
+}
+
+func (g *Misc[T]) Marshal(v *T) error {
+	d, err := json.Marshal(v)
 	g.JsonData = string(d)
 	return err
 }
@@ -226,8 +242,8 @@ type Db interface {
 	// -1 for all
 	SeriesMy(limit int) ([]MySeries, error)
 
-	SeriesGenreGet() (*Genres, error)
-	SeriesGenreSet(g Genres) error
+	SeriesGenreGet() (Misc[[]Genre], error)
+	SeriesGenreSet(g Misc[[]Genre]) error
 
 	CacheSet(data *Cached) error
 	CacheGet(what, key string) (*Cached, error)

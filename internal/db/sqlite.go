@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
+	"time"
 
 	"github.com/glebarez/sqlite"
 	"github.com/raffleberry/riptvtime/internal/config"
@@ -38,7 +39,7 @@ func NewDbSqlite(c *config.Config, logger *slog.Logger) *DbSqlite {
 
 	err := db.orm.AutoMigrate(&TvSeries{},
 		&TvTrackedEps{}, &TvSeason{}, &TvEpisode{},
-		&Cached{}, &Genres{}, &TvSeriesFav{})
+		&Cached{}, &Misc[int]{}, &TvSeriesFav{})
 
 	if err != nil {
 		slog.Error("Failed to migrate", "err", err)
@@ -300,33 +301,25 @@ func (db *DbSqlite) CacheGet(what, key string) (*Cached, error) {
 
 }
 
-func (db *DbSqlite) SeriesGenreGet() (*Genres, error) {
-	var rv Genres
-	err := db.orm.Model(&Genres{}).Where("type = ?", GenreType.Series).First(&rv).Error
+func (db *DbSqlite) SeriesGenreGet() (Misc[[]Genre], error) {
+	var rv Misc[[]Genre]
+	err := db.orm.Model(&Misc[[]Genre]{}).Where("type = ?", GenreType.Series).First(&rv).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.Join(err, ErrNotFound, fmt.Errorf("Genres not found"))
+			return rv, errors.Join(err, ErrNotFound, fmt.Errorf("Genres not found"))
 		}
-
-		return nil, err
+		return rv, err
 	}
 
-	err = rv.Unmarshal()
-	if err != nil {
-		return nil, err
+	if rv.ExpiredAt.Before(time.Now()) {
+		return rv, errors.Join(err, ErrExpired, fmt.Errorf("Genres expired"))
 	}
 
-	return &rv, nil
+	return rv, nil
 }
 
-func (db *DbSqlite) SeriesGenreSet(g Genres) error {
-	err := g.Marshal()
-	if err != nil {
-		return err
-	}
-
-	g.Type = GenreType.Series
-	err = db.orm.Create(&g).Error
+func (db *DbSqlite) SeriesGenreSet(g Misc[[]Genre]) error {
+	err := db.orm.Create(&g).Error
 	if err != nil {
 		return err
 	}

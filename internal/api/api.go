@@ -62,6 +62,7 @@ func NewApi(db db.Db, meta meta.Meta, tv *services.SeriesService, cfg *config.Co
 	mux.HandleFunc("DELETE /api/state", a.ResetState())
 	// mux.HandleFunc("GET /api/series/{tmdbId}/{episode}", a.SeriesEpisodeGet())
 
+	mux.HandleFunc("GET /api/genres/tv/all", a.GetGenresAll())
 	mux.HandleFunc("GET /api/genres/tv/recent", a.GetGenresTvRecents())
 
 	mux.HandleFunc("GET /api/imdb/{mId}", a.GetImdbRatingFromMid())

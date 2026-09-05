@@ -1007,8 +1007,9 @@ func (srv *SeriesService) cGetTVFromTvTimeId(tvTimeId int) (*meta.TvDetails, err
 }
 
 // -1 for all
-func (srv *SeriesService) GetGenresTvRecents(limit int) (map[int64]*Genre, error) {
-	genres := make(map[int64]*Genre)
+func (srv *SeriesService) GetGenresTvRecents(limit int) ([]Genre, error) {
+	var rv []Genre
+	mp := make(map[int64]int)
 	srs, err := srv.db.SeriesMy(limit)
 	if err != nil {
 		slog.Error("GetGenresTvTop: Failed to get list of series from db", "err", err)
@@ -1023,18 +1024,71 @@ func (srv *SeriesService) GetGenresTvRecents(limit int) (map[int64]*Genre, error
 		}
 		for i := range m.Genres {
 			id := m.Genres[i].Id
-			g, ok := genres[id]
+			idx, ok := mp[id]
 			if ok {
-				g.Cnt += 1
+				rv[idx].Cnt += 1
 			} else {
-				genres[id] = &Genre{
+				rv = append(rv, Genre{
 					m.Genres[i],
 					1,
-				}
+				})
+				mp[id] = len(rv) - 1
 			}
 		}
 	}
-	return genres, nil
+	slices.SortFunc(rv, func(a Genre, b Genre) int {
+		return cmp.Compare(b.Cnt, a.Cnt)
+	})
+	return rv, nil
+}
+
+func (srv *SeriesService) GetGenresAll() ([]Genre, error) {
+	dg, err := srv.db.SeriesGenreGet()
+
+	var refresh = func() error {
+		mg, err := srv.meta.GetGenresTv()
+		if err != nil {
+			return err
+		}
+
+		dg = db.Misc[[]db.Genre]{
+			Type:      db.GenreType.Series,
+			ExpiredAt: time.Now().Add(30 * 24 * time.Hour),
+		}
+		for i := range mg {
+			dg.Data = append(dg.Data, db.Genre{
+				Id:   mg[i].Id,
+				Name: mg[i].Name,
+			})
+		}
+
+		err = srv.db.SeriesGenreSet(dg)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if errors.Is(err, db.ErrNotFound) || err == nil && dg.ExpiredAt.Before(time.Now()) {
+		err = refresh()
+		if err != nil {
+			return nil, err
+		}
+	} else if err != nil {
+		return nil, err
+	}
+
+	var rv []Genre
+
+	for i := range dg.Data {
+		rv = append(rv, Genre{
+			Id:   dg.Data[i].Id,
+			Name: dg.Data[i].Name,
+		})
+	}
+
+	return rv, nil
+
 }
 
 func (srv *SeriesService) cGetEpisodeFromTvTimeId(tvTimeId int) (*meta.TvEpisode, error) {
