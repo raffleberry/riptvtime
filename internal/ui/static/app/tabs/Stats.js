@@ -94,6 +94,7 @@ const Stats = {
     onMounted(() => {
       fetchStats()
     })
+
     return {
       stats,
 
@@ -130,6 +131,12 @@ const Stats = {
             <p class="card-text">Shows Tracked</p>
           </div>
         </div>
+        <div class="card text-center me-2">
+          <div class="card-body">
+            <h5 class="card-title">{{ Math.ceil(stats.FavShows) }}</h5>
+            <p class="card-text">Favourite Shows</p>
+          </div>
+        </div>
       </div>
       <div class="mt-2 d-flex w-100 justify-content-center">
         <span class="mt-2 me-2">My Shows </span>
@@ -142,7 +149,11 @@ const Stats = {
           {{ showsAll ? "hide":"all" }}
         </button>
       </div>
-      <div v-if="!showsLoading" class="d-flex mt-2 flex-wrap justify-content-center">
+      <div
+        v-if="!showsLoading"
+        class="d-flex mt-2 flex-wrap justify-content-center"
+        style="min-height: 330px;"
+      >
         <div class="mx-2 my-1" v-for="show in shows" class="col-2" style="width: 180px">
           <img
             :src="imgUrl(show.Image, show.MId)"
@@ -156,9 +167,13 @@ const Stats = {
           </span>
         </div>
       </div>
-      <div v-else class="d-flex mt-5 justify-content-center">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
+      <div
+        v-else
+        class="row w-100 mt-2 justify-content-center align-items-center"
+        style="min-height: 330px;"
+      >
+        <div class="placeholder-glow h-100" role="status">
+          <div class="placeholder col-12 h-100 bg-secondary rounded"></div>
         </div>
       </div>
 
@@ -173,7 +188,11 @@ const Stats = {
           {{ favsAll ? "hide":"all" }}
         </button>
       </div>
-      <div v-if="!favsLoading" class="d-flex mt-2 flex-wrap justify-content-center">
+      <div
+        v-if="!favsLoading"
+        class="d-flex mt-2 flex-wrap justify-content-center "
+        style="min-height: 330px;"
+      >
         <div class="mx-2 my-1" v-for="fav in favs" class="col-2" style="width: 180px">
           <img
             :src="imgUrl(fav.ImgPoster, fav.MId)"
@@ -187,9 +206,13 @@ const Stats = {
           </span>
         </div>
       </div>
-      <div v-else class="d-flex mt-5 justify-content-center">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
+      <div
+        v-else
+        class="row w-100 mt-2 justify-content-center align-items-center"
+        style="min-height: 330px;"
+      >
+        <div class="placeholder-glow h-100" role="status">
+          <div class="placeholder col-12 h-100 bg-secondary rounded"></div>
         </div>
       </div>
     </div>

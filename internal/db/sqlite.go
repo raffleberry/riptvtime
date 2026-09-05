@@ -234,6 +234,11 @@ func (db *DbSqlite) SeriesStats() (*Stats, error) {
 		return nil, err
 	}
 
+	err = db.orm.Model(&TvSeriesFav{}).Select("count(*) as fav_shows").First(s).Error
+	if err != nil {
+		return nil, err
+	}
+
 	return s, err
 }
 

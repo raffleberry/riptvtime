@@ -182,6 +182,7 @@ type Stats struct {
 	TotalHours    float64
 	TotalEpisodes int
 	TotalShows    int
+	FavShows      int
 }
 
 type MySeries struct {
