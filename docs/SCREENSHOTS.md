@@ -1,13 +1,35 @@
 # Screenshots
 
-## ![](Screenshot_20260813_175151.png)
+Series Page #1
 
-## ![](Screenshot_20260813_175219.png)
+## ![](SeriesPage.png)
 
-## ![](Screenshot_20260813_180142.png)
+---
 
-## ![](Screenshot_20260813_175342.png)
+Series Page #2
 
-## ![](Screenshot%202026-08-30%20at%2006-26-16%20Stats%20riptvtime.png)
+## ![](SeriesPage2.png)
 
-![](Screenshot_20260813_175655.png)
+---
+
+Feed
+
+## ![](Feed.png)
+
+---
+
+Upcoming
+
+## ![](Upcoming.png)
+
+---
+
+Search
+
+## ![](Search.png)
+
+---
+
+Stats
+
+## ![](Stats.png)
