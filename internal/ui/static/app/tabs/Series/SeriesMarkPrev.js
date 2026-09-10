@@ -1,7 +1,6 @@
 import { MsgType, notify } from "../../components/Notify/Notify.js"
-import { useTracked } from "../../stores/tracked.js"
 import { ky } from "../../utils.js"
-import { onMounted, storeToRefs, watch } from "../../vue.js"
+import { onMounted, ref, watch } from "../../vue.js"
 import { useSeriesStore } from "./seriesStore.js"
 
 export const SeriesMarkPrev = {
@@ -14,11 +13,9 @@ export const SeriesMarkPrev = {
     show: Boolean,
   },
   setup(props) {
-    const trackedStore = useTracked()
+    const { epMarkWatched } = useSeriesStore()
 
-    const { series } = storeToRefs(trackedStore)
-
-    const { remSeries, addSeries, epMarkWatched } = useSeriesStore()
+    const showEpsList = ref(false)
 
     var bSelf = null
 
@@ -30,6 +27,7 @@ export const SeriesMarkPrev = {
       () => props.show,
       (val) => {
         bSelf.toggle()
+        showEpsList.value = false
       },
     )
 
@@ -62,6 +60,7 @@ export const SeriesMarkPrev = {
       handleMarkAll,
       handleCancel,
       ky,
+      showEpsList,
     }
   },
 
@@ -78,6 +77,37 @@ export const SeriesMarkPrev = {
       </div>
       <div class="offcanvas-body p-0">
         <div class="list-group list-group-flush">
+          <!--  -->
+          <div class="accordion" id="accordianEps">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button
+                  class="accordion-button collapsed"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-parent="#accordianEps"
+                  data-bs-target="#accordianEpsList"
+                  aria-expanded="false"
+                >
+                  Show {{eps.length}} episodes list
+                </button>
+              </h2>
+              <div
+                id="accordianEpsList"
+                class="accordion-collapse collapse"
+                :class="{ 'show': showEpsList }"
+                data-bs-parent="#accordianEps"
+              >
+                <div class="accordion-body">
+                  <ul>
+                    <li v-for="ep in eps">{{ky(ep.S, ep.E)}}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!--  -->
+
           <button
             class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-primary"
             class="btn btn-primary"

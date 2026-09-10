@@ -176,14 +176,27 @@ export const Series = {
       }
     })
 
-    const getPopEpsCnt = (s, e) => {
+    const getEpsPopCnt = (s, e) => {
       let episodes = []
       let foundWatched = false
       let watchedCnt = 0
       let totalEps = 0
 
       for (let sNo = s; sNo >= 1; sNo--) {
-        for (let eNo = e; eNo >= 1; eNo--) {
+        let eSt = 1
+        let eEn = e
+        if (sNo !== s) {
+          if (sd.value.Seasons) {
+            let sObj = sd.value.Seasons.find((s) => s.SeasonNumber === sNo)
+            if (sObj) {
+              eEn = sObj.EpisodeCount
+            }
+          } else {
+            console.warn("No Seasons found (Skipping) for seasonNo..", sNo, sd.value)
+            continue
+          }
+        }
+        for (let eNo = eEn; eNo >= eSt; eNo--) {
           totalEps += 1
           if (cnt.value[ky(sNo, eNo)] > 0) {
             foundWatched = true
@@ -203,7 +216,7 @@ export const Series = {
     const openEpOpts = async (ep) => {
       let p = cnt.value[ky(ep.SeasonNumber, ep.EpisodeNumber)]
       if (!p) {
-        const epsPopCount = getPopEpsCnt(ep.SeasonNumber, ep.EpisodeNumber)
+        const epsPopCount = getEpsPopCnt(ep.SeasonNumber, ep.EpisodeNumber)
         if (epsPopCount.length > 1) {
           eps.value = epsPopCount
           epMpEl.show()
