@@ -128,11 +128,11 @@ The core functionality is already implemented, but there's plenty of room to imp
 
 Possible future improvements:
 
+* ✅ Better statistics
 * [ ] Genres
-* [ ] Movie Tracking
-* [ ] Better statistics
 * [ ] Discover/Recommendations based on Genres
 * [ ] UI to resolve unimported series/episodes
+* [ ] Movie Tracking
 
 ---
 
