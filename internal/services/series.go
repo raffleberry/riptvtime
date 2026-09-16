@@ -173,6 +173,15 @@ func (srv *SeriesService) GetDetails(mId int, withEpsDetails bool) (*SeriesFullI
 
 	epsAired := 0
 
+	// edge case. New episode today. But it's not yet updated in the remote meta service
+	if res.NextEpisodeToAir.Id != 0 {
+		if res.LastEpisodeToAir.EpisodeNumber != res.NextEpisodeToAir.EpisodeNumber {
+			if IsSameDate(res.NextEpisodeToAir.AirDate, time.Now()) {
+				res.LastEpisodeToAir = res.NextEpisodeToAir
+			}
+		}
+	}
+
 	for i, s := range res.Seasons {
 
 		if isLegitSeason(s.Name, s.SeasonNumber, res.NumberOfSeasons) {
