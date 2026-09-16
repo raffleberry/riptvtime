@@ -303,14 +303,16 @@ func (t *MetaTmdb) GetImdbRating(imdbId string) (*ImdbRating, error) {
 	return &rv, nil
 }
 
-func NewTmdbMeta(c *config.Config, im *ImdbMeta) *MetaTmdb {
+func NewTmdbMeta(c *config.Config, im *ImdbMeta, l *slog.Logger) *MetaTmdb {
 	m := &MetaTmdb{}
 	var err error
 	m.c, err = tmdb.Init(c.TmdbApiKey)
 
 	m.c.SetClientAutoRetry()
-
 	retryClient := retryablehttp.NewClient()
+
+	retryClient.Logger = l
+
 	retryClient.RetryMax = c.TmdbMaxRetries
 
 	m.c.SetClientConfig(*retryClient.StandardClient())

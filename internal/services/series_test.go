@@ -229,29 +229,43 @@ func TestSeriesService_MakeFeedList(t *testing.T) {
 }
 
 func TestSeriesService_GetTvCacheExpireTime(t *testing.T) {
-	m := &meta.TvDetails{}
+	inProdSrs := &meta.TvDetails{
+		InProduction: true,
+	}
 
 	maxt := time.Now().Add(time.Hour * 61)
 	mint := time.Now().Add(time.Hour * 35)
 	srv := services.NewTvService(nil, nil, nil, nil)
-	got := srv.GetTvCacheExpireTime(m)
+	got := srv.GetTvCacheExpireTime(inProdSrs)
 	if !(got.After(mint) && got.Before(maxt)) {
 		t.Errorf("GetTvCacheExpireTime() - want [Random Time Between 36 to 60 hours] got:[%v]", got)
 	}
 
 	// got < airdate
 	airDate := time.Now().Add(time.Hour * 24 * 7)
-	m.NextEpisodeToAir.AirDate = airDate
-	got = srv.GetTvCacheExpireTime(m)
+	inProdSrs.NextEpisodeToAir.AirDate = airDate
+	got = srv.GetTvCacheExpireTime(inProdSrs)
 	if !got.Before(airDate) {
 		t.Errorf("GetTvCacheExpireTime() - want [%v] got:[%v]", airDate, got)
 	}
 
-	// airdate == airdate
-	airDate = time.Now().Add(time.Hour * 24 * 1)
-	m.NextEpisodeToAir.AirDate = airDate
-	got = srv.GetTvCacheExpireTime(m)
-	if !got.Equal(airDate) {
+	// < 24 hours before release
+	now := time.Now().UTC()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	nextDay := today.Add(24 * time.Hour)
+	inProdSrs.NextEpisodeToAir.AirDate = nextDay
+	got = srv.GetTvCacheExpireTime(inProdSrs)
+	if !services.IsSameDate(got, nextDay) {
+		t.Errorf("GetTvCacheExpireTime() - want [%v] got:[%v]", airDate, got)
+	}
+
+	// airdate == now
+	// assuming it's now is airdate & Next episode to air is not updated in meta service
+	// asuming GetTvCacheExpireTime is called right after FRESH data is fetched from the meta service
+	airDate = time.Now().UTC()
+	inProdSrs.NextEpisodeToAir.AirDate = airDate
+	got = srv.GetTvCacheExpireTime(inProdSrs)
+	if !got.After(airDate) {
 		t.Errorf("GetTvCacheExpireTime() - want [%v] got:[%v]", airDate, got)
 	}
 

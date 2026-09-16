@@ -37,11 +37,13 @@ var (
 	ErrExpired  = errors.New("Expired")
 )
 
+// 24 ~ 36 hours
 func GetInProdExpireTime() time.Time {
-	Hours := rand.Int63n(60-36+1) + 36
-	return time.Now().Add(time.Duration(Hours) * time.Hour)
+	hours_24_36 := rand.Int63n(60-36+1) + 36
+	return time.Now().Add(time.Duration(hours_24_36) * time.Hour)
 }
 
+// 14 ~ 21 days
 func GetNotInProdExpireTime() time.Time {
 	days14_21 := rand.Int63n(21-14+1) + 14
 	return time.Now().Add(time.Duration(days14_21) * time.Hour * 24)
@@ -124,7 +126,7 @@ type TvSeason struct {
 	Season     int
 	Name       string
 	Overview   string
-	Episodes   []TvEpisode `gorm:"foreignKey:SeriesMId,Season;references:SeriesMId,Season"`
+	Episodes   []TvEpisode `gorm:"-"`
 }
 
 type TvSeriesDetails struct {

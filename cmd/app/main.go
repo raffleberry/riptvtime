@@ -54,7 +54,7 @@ func main() {
 	addr := fmt.Sprintf("%v:%v", cfg.Ip, cfg.Port)
 	d := db.NewDbSqlite(cfg, logger)
 	im, err := meta.NewImdbService(logger, cfg)
-	m := meta.NewTmdbMeta(cfg, im)
+	m := meta.NewTmdbMeta(cfg, im, logger)
 	iptSrv := services.NewImportService(logger, cfg)
 	if err != nil {
 		slog.Error("Failed to start imdb service. Disabling Imdb")

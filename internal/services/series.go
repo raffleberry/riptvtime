@@ -76,9 +76,18 @@ func (srv *SeriesService) Search(searchTerm string, page int) (*SeriesSearchResu
 }
 
 func (srv *SeriesService) GetTvCacheExpireTime(res *meta.TvDetails) time.Time {
+
+	if !res.InProduction {
+		return db.GetNotInProdExpireTime()
+	}
+
 	rv := db.GetInProdExpireTime()
-	if !res.NextEpisodeToAir.AirDate.IsZero() && res.NextEpisodeToAir.AirDate.Before(rv) {
-		rv = res.NextEpisodeToAir.AirDate
+	airDate := res.NextEpisodeToAir.AirDate
+	if !airDate.IsZero() {
+		now := time.Now().UTC()
+		if !IsSameDate(airDate, now) && airDate.Before(rv) {
+			rv = airDate
+		}
 	}
 	return rv
 }
@@ -103,8 +112,6 @@ func (srv *SeriesService) cGetTvMeta(mId int) (*meta.TvDetails, error) {
 		expireTime := time.Now()
 		if rv.InProduction {
 			expireTime = srv.GetTvCacheExpireTime(rv)
-		} else {
-			expireTime = db.GetNotInProdExpireTime()
 		}
 
 		rv := &db.Cached{
@@ -138,7 +145,7 @@ func (srv *SeriesService) cGetTvMeta(mId int) (*meta.TvDetails, error) {
 	}
 
 	if time.Now().After(cd.ExpiredAt) {
-		slog.Debug("Cache expired, refreshing", "expiredAt", cd.ExpiredAt, "UpdatedAt", cd.UpdatedAt)
+		slog.Debug("Cache expired, refreshing", "mId", mId, "expiredAt", cd.ExpiredAt, "UpdatedAt", cd.UpdatedAt)
 		cd, err = refresh()
 		if err != nil {
 			return nil, err
@@ -607,33 +614,22 @@ func (srv *SeriesService) SetEpisodeWatched(mId int, sNo int, eNo int, source st
 
 }
 
-// returns with all episode details in that season
-func (srv *SeriesService) cacheSeasonInDb(mId int, season int, forceRefresh bool) (*db.TvSeason, error) {
+// refreshes season data(including all eps from remote meta service into db)
+func (srv *SeriesService) cacheSeasonInDb(mId int, season int) (*db.TvSeason, error) {
 
-	sn, err := srv.db.SeriesSeasonGet(mId, season)
-
-	if err == nil && forceRefresh {
-		err = db.ErrNotFound
-	}
-
-	if errors.Is(err, db.ErrNotFound) {
-		slog.Debug("Caching Tv Season in Db", "mId", mId, "season", season)
-		mSd, err := srv.meta.GetTVSeasonDetails(mId, season)
-		if err != nil {
-			return nil, err
-		}
-
-		srs, err := srv.cGetTvMeta(mId)
-		if err != nil {
-			return nil, err
-		}
-
-		sn = MetaToDbSeason(srs, mSd)
-		err = srv.db.SeriesSeasonAdd(sn)
-	} else if err != nil {
+	slog.Debug("Caching Tv Season in Db", "mId", mId, "season", season)
+	mSd, err := srv.meta.GetTVSeasonDetails(mId, season)
+	if err != nil {
 		return nil, err
 	}
 
+	srs, err := srv.cGetTvMeta(mId)
+	if err != nil {
+		return nil, err
+	}
+
+	sn := MetaToDbSeason(srs, mSd)
+	err = srv.db.SeriesSeasonAdd(sn)
 	return sn, nil
 }
 
@@ -641,11 +637,10 @@ func (srv *SeriesService) getEpisodeDetails(mId int, season int, episode int) (*
 
 	ep, err := srv.db.SeriesEpisodeGet(mId, season, episode)
 
-	forceRefresh := false
 	if ep != nil {
 		if ep.UpdatedAt.Before(ep.AirDate) && time.Now().After(ep.AirDate) {
-			forceRefresh = true
-			slog.Debug("getEpisodeDetails", "force refresh", forceRefresh, "id", mId, "season", season, "episode", episode)
+			err = db.ErrNotFound
+			slog.Debug("getEpisodeDetails: episode has aired, refreshing", "mId", mId, "season", season, "episode", episode, "updatedAt", ep.UpdatedAt)
 		}
 
 	}
@@ -659,7 +654,7 @@ func (srv *SeriesService) getEpisodeDetails(mId int, season int, episode int) (*
 		return nil, err
 	}
 
-	sn, err := srv.cacheSeasonInDb(mId, season, forceRefresh)
+	sn, err := srv.cacheSeasonInDb(mId, season)
 
 	if err != nil {
 		slog.Error("Coudn't cache season", "season", season, "error", err)

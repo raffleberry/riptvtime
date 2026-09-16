@@ -28,7 +28,7 @@ func NewDbSqlite(c *config.Config, logger *slog.Logger) *DbSqlite {
 	slog.Debug("Initializing Sqlite Database", "path", sqliteDbPath)
 
 	db.orm, db.err = gorm.Open(sqlite.Open(fmt.Sprintf("%v?", sqliteDbPath)), &gorm.Config{
-		DisableForeignKeyConstraintWhenMigrating: true,
+		// DisableForeignKeyConstraintWhenMigrating: true,
 		Logger: glog.NewSlogLogger(logger, glog.Config{
 			IgnoreRecordNotFoundError: true,
 		}),
@@ -123,16 +123,24 @@ func (db *DbSqlite) SeriesSeasonAdd(t *TvSeason) error {
 			return err
 		}
 
-		for _, episode := range t.Episodes {
-			// episode.SeriesMId = t.SeriesMId
-
+		for i := range t.Episodes {
 			err := tx.Clauses(clause.OnConflict{
 				Columns: []clause.Column{
 					{Name: "m_name"},
 					{Name: "m_id"},
 				},
-				UpdateAll: true,
-			}).Create(&episode).Error
+				DoUpdates: clause.AssignmentColumns([]string{
+					"series_m_id",
+					"series_name",
+					"name",
+					"overview",
+					"season",
+					"episode",
+					"runtime",
+					"air_date",
+					"updated_at",
+				}),
+			}).Create(&t.Episodes[i]).Error
 			if err != nil {
 				return err
 			}
