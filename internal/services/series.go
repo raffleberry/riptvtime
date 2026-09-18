@@ -109,10 +109,7 @@ func (srv *SeriesService) cGetTvMeta(mId int) (*meta.TvDetails, error) {
 			return nil, err
 		}
 
-		expireTime := time.Now()
-		if rv.InProduction {
-			expireTime = srv.GetTvCacheExpireTime(rv)
-		}
+		expireTime := srv.GetTvCacheExpireTime(rv)
 
 		rv := &db.Cached{
 			What:      what,
