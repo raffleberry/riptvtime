@@ -5,9 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/raffleberry/riptvtime/internal/config"
 	"github.com/raffleberry/riptvtime/internal/db"
 	"github.com/raffleberry/riptvtime/internal/meta"
 	"github.com/raffleberry/riptvtime/internal/services"
+	"github.com/raffleberry/riptvtime/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -269,4 +271,90 @@ func TestSeriesService_GetTvCacheExpireTime(t *testing.T) {
 		t.Errorf("GetTvCacheExpireTime() - want [%v] got:[%v]", airDate, got)
 	}
 
+}
+
+func TestSeriesService_MakeUpNext(t *testing.T) {
+
+	fd1 := services.SeriesFullItem{
+		TvDetails: &meta.TvDetails{
+			NumberOfSeasons:  1,
+			NumberOfEpisodes: 13,
+			Seasons: []meta.TvSeason{
+				meta.TvSeason{
+					Name:         "Season 1",
+					EpisodeCount: 13,
+					SeasonNumber: 1,
+				},
+			},
+			LastEpisodeToAir: meta.TvEpisode{
+				SeasonNumber:  1,
+				EpisodeNumber: 6,
+			},
+		},
+		EpisodesAired: 6,
+		EpsWatched: []services.SeriesEpisode{
+			services.SeriesEpisode{S: 1, E: 1},
+			services.SeriesEpisode{S: 1, E: 2},
+			services.SeriesEpisode{S: 1, E: 3},
+			services.SeriesEpisode{S: 1, E: 4},
+			services.SeriesEpisode{S: 1, E: 5},
+		},
+	}
+
+	fd2, err := utils.DeepCopy[services.SeriesFullItem](fd1)
+	if err != nil {
+		t.Fatalf("failed to deepcopy")
+	}
+	// add a special episode so that airedCount = watchedCount = 6
+	fd2.EpsWatched = append(fd2.EpsWatched, services.SeriesEpisode{S: 0, E: 1})
+
+	want1 := services.SeriesEpisode{
+		S: 1, E: 6,
+	}
+
+	want2 := want1
+
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for receiver constructor.
+		cfg  *config.Config
+		db   db.Db
+		meta meta.Meta
+		ipt  *services.ImportSvc
+		// Named input parameters for target function.
+		mId  int
+		fd   *services.SeriesFullItem
+		want *services.SeriesEpisode
+	}{
+		{
+			"Test UpNext",
+			nil,
+			nil,
+			nil,
+			nil,
+			1,
+			&fd1,
+			&want1,
+		},
+		{
+			"Test UpNext with special ep watched",
+			nil,
+			nil,
+			nil,
+			nil,
+			1,
+			&fd2,
+			&want2,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := services.NewTvService(tt.cfg, tt.db, tt.meta, tt.ipt)
+			got := srv.MakeUpNext(tt.mId, tt.fd)
+			// TODO: update the condition below to compare got with tt.want.
+			if tt.want.S != got.S || tt.want.E != got.E {
+				t.Errorf("MakeUpNext() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

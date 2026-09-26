@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"net"
 	"os"
@@ -81,4 +83,18 @@ func OpenBrowser(url string) error {
 	}
 
 	return exec.Command(cmd, url).Start()
+}
+
+// Deprecated: Very slow, use only for tests.
+func DeepCopy[T any](src T) (T, error) {
+	var buf bytes.Buffer
+	var dst T
+
+	if err := gob.NewEncoder(&buf).Encode(src); err != nil {
+		return dst, err
+	}
+	if err := gob.NewDecoder(&buf).Decode(&dst); err != nil {
+		return dst, err
+	}
+	return dst, nil
 }

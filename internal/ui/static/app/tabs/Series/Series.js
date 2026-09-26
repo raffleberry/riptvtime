@@ -24,7 +24,7 @@ export const Series = {
     const r = useRoute()
 
     const seriesStore = useSeriesStore()
-    const { loading, sd, SnWatchedEps, watchedEps } = storeToRefs(seriesStore)
+    const { loading, sd, SnWatchedEps, watchedEps, watchedSpls } = storeToRefs(seriesStore)
     const Id = computed(() => r.params.id)
 
     const { epMarkWatched, fetchSeries } = seriesStore
@@ -163,6 +163,11 @@ export const Series = {
       for (const ep of watchedEps.value) {
         mp[ky(ep.S, ep.E)] = ep.Cnt
       }
+
+      for (const ep of watchedSpls.value) {
+        mp[ky(ep.S, ep.E)] = ep.Cnt
+      }
+
       return mp
     })
 
@@ -177,6 +182,11 @@ export const Series = {
     })
 
     const getEpsPopCnt = (s, e) => {
+      // specials
+      if (s === 0) {
+        return [{ S: s, E: e }]
+      }
+
       let episodes = []
       let foundWatched = false
       let watchedCnt = 0

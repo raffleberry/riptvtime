@@ -222,6 +222,7 @@ func (srv *SeriesService) GetDetails(mId int, withEpsDetails bool) (*SeriesFullI
 	}
 
 	for _, tep := range tEps {
+
 		idx := slices.IndexFunc(epsWatched, func(ep SeriesEpisode) bool {
 			return ep.S == tep.Season && ep.E == tep.Episode
 		})
@@ -348,7 +349,7 @@ func (srv *SeriesService) MakeFeedList(series []db.TvSeries, freshSeriesData []*
 		srs.Overview = fd.Overview
 		srs.Year = fd.Year
 
-		upNxt, _, _ := srv.MakeUpNext(int(srs.MId), fd)
+		upNxt := srv.MakeUpNext(int(srs.MId), fd)
 		if upNxt == nil {
 			continue
 		}
@@ -420,12 +421,12 @@ func (srv *SeriesService) UpNext(mId int) (*SeriesEpisode, error) {
 		return nil, err
 	}
 
-	rv, _, _ := srv.MakeUpNext(mId, fd)
+	rv := srv.MakeUpNext(mId, fd)
 	return rv, nil
 }
 
-// null if watched everything
-func (srv *SeriesService) MakeUpNext(mId int, fd *SeriesFullItem) (*SeriesEpisode, int, int) {
+// null if watched everything(only legit season episodes)
+func (srv *SeriesService) MakeUpNext(mId int, fd *SeriesFullItem) *SeriesEpisode {
 
 	rv := SeriesEpisode{}
 
@@ -468,14 +469,21 @@ func (srv *SeriesService) MakeUpNext(mId int, fd *SeriesFullItem) (*SeriesEpisod
 		}
 	}
 
-	if len(fd.EpsWatched) == fd.EpisodesAired || isWatched(lastAiredS, lastAiredE) {
-		return nil, len(fd.EpsWatched), fd.EpisodesAired
+	legitEpsWatchedCnt := 0
+	for i := range fd.EpsWatched {
+		if fd.EpsWatched[i].S >= 1 && fd.EpsWatched[i].S <= fd.NumberOfSeasons {
+			legitEpsWatchedCnt += 1
+		}
+	}
+
+	if legitEpsWatchedCnt == fd.EpisodesAired || isWatched(lastAiredS, lastAiredE) {
+		return nil
 	}
 
 	rv.S = upNextS
 	rv.E = upNextE
 
-	return &rv, len(fd.EpsWatched), fd.EpisodesAired
+	return &rv
 }
 
 // Returns insertModel from db

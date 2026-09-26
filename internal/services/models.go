@@ -45,7 +45,8 @@ type SeriesFullItem struct {
 	*meta.TvDetails
 	ImdbRating    *meta.ImdbRating
 	EpisodesAired int
-	EpsWatched    []SeriesEpisode
+	// including special episodes(specials)
+	EpsWatched []SeriesEpisode
 }
 
 type SeriesTracked struct {

@@ -8,6 +8,8 @@ export const useSeriesStore = defineStore("series", () => {
   const loading = ref(false)
   const sd = ref({})
   const watchedEps = ref([])
+  const watchedSpls = ref([])
+
   window.we = watchedEps
   const SnWatchedEps = computed(() => {
     let rv = {}
@@ -15,6 +17,12 @@ export const useSeriesStore = defineStore("series", () => {
       rv[i] = []
     }
     for (const ep of watchedEps.value) {
+      if (rv[ep.S].includes(ep.E)) {
+        continue
+      }
+      rv[ep.S].push(ep.E)
+    }
+    for (const ep of watchedSpls.value) {
       if (rv[ep.S].includes(ep.E)) {
         continue
       }
@@ -50,12 +58,22 @@ export const useSeriesStore = defineStore("series", () => {
         throw err
       }
 
-      let we = data.EpsWatched
+      let weps = []
+      let wspls = []
+      for (const ep of data.EpsWatched) {
+        if (ep.S === 0) {
+          wspls.push(ep)
+        } else {
+          weps.push(ep)
+        }
+      }
+
       delete data.EpsWatched
 
       sd.value = data
 
-      watchedEps.value = we || []
+      watchedEps.value = weps
+      watchedSpls.value = wspls
     } catch (error) {
       console.error("Error getting series data:", error)
       notify(MsgType.Error, "Series", error)
@@ -78,15 +96,20 @@ export const useSeriesStore = defineStore("series", () => {
         throw err
       }
       for (const ep of eps) {
-        let idx = watchedEps.value.findIndex((sep) => sep.S === ep.S && sep.E === ep.E)
+        let watched = watchedEps
+        if (ep.S === 0) {
+          watched = watchedSpls
+        }
+
+        let idx = watched.value.findIndex((sep) => sep.S === ep.S && sep.E === ep.E)
         if (idx === -1) {
-          watchedEps.value.push({
+          watched.value.push({
             S: ep.S,
             E: ep.E,
             Cnt: 1,
           })
         } else {
-          watchedEps.value[idx].Cnt += 1
+          watched.value[idx].Cnt += 1
         }
       }
       updateTrackingStore(mId)
@@ -103,17 +126,21 @@ export const useSeriesStore = defineStore("series", () => {
       if (err) {
         throw err
       }
+      let watched = watchedEps
+      if (sNo === 0) {
+        watched = watchedSpls
+      }
 
-      const idx = watchedEps.value.findIndex((ep) => ep.S === sNo && ep.E === epNo)
+      const idx = watched.value.findIndex((ep) => ep.S === sNo && ep.E === epNo)
       if (idx !== -1) {
-        if (watchedEps.value[idx].Cnt > 1) {
-          watchedEps.value[idx].Cnt -= 1
+        if (watched.value[idx].Cnt > 1) {
+          watched.value[idx].Cnt -= 1
         } else {
-          watchedEps.value.splice(idx, 1)
+          watched.value.splice(idx, 1)
           updateTrackingStore(mId)
         }
       } else {
-        console.error(watchedEps)
+        console.error(watched)
         throw new Error("Episode not found in watched list")
       }
     } catch (error) {
@@ -159,6 +186,7 @@ export const useSeriesStore = defineStore("series", () => {
     SnWatchedEps,
     selectedEp,
     watchedEps,
+    watchedSpls,
 
     // actions
     fetchSeries,
