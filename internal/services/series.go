@@ -425,6 +425,16 @@ func (srv *SeriesService) UpNext(mId int) (*SeriesEpisode, error) {
 	return rv, nil
 }
 
+func (srv *SeriesService) LegitEpsWatchedCnt(fd *SeriesFullItem) int {
+	rv := 0
+	for i := range fd.EpsWatched {
+		if fd.EpsWatched[i].S >= 1 && fd.EpsWatched[i].S <= fd.NumberOfSeasons {
+			rv += 1
+		}
+	}
+	return rv
+}
+
 // null if watched everything(only legit season episodes)
 func (srv *SeriesService) MakeUpNext(mId int, fd *SeriesFullItem) *SeriesEpisode {
 
@@ -469,12 +479,7 @@ func (srv *SeriesService) MakeUpNext(mId int, fd *SeriesFullItem) *SeriesEpisode
 		}
 	}
 
-	legitEpsWatchedCnt := 0
-	for i := range fd.EpsWatched {
-		if fd.EpsWatched[i].S >= 1 && fd.EpsWatched[i].S <= fd.NumberOfSeasons {
-			legitEpsWatchedCnt += 1
-		}
-	}
+	legitEpsWatchedCnt := srv.LegitEpsWatchedCnt(fd)
 
 	if legitEpsWatchedCnt == fd.EpisodesAired || isWatched(lastAiredS, lastAiredE) {
 		return nil
@@ -695,7 +700,7 @@ func (srv *SeriesService) deriveStatus(mId int, cur db.TvStatus) (db.TvStatus, e
 	if err != nil {
 		return -1, err
 	}
-	if fd.EpisodesAired == len(fd.EpsWatched) {
+	if fd.EpisodesAired == srv.LegitEpsWatchedCnt(fd) {
 		if fd.InProduction {
 			rv = db.TvStatusUpToDate
 		} else {

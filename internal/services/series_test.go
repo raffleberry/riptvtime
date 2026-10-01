@@ -298,6 +298,7 @@ func TestSeriesService_MakeUpNext(t *testing.T) {
 			services.SeriesEpisode{S: 1, E: 3},
 			services.SeriesEpisode{S: 1, E: 4},
 			services.SeriesEpisode{S: 1, E: 5},
+			services.SeriesEpisode{S: 0, E: 5},
 		},
 	}
 
@@ -354,6 +355,68 @@ func TestSeriesService_MakeUpNext(t *testing.T) {
 			// TODO: update the condition below to compare got with tt.want.
 			if tt.want.S != got.S || tt.want.E != got.E {
 				t.Errorf("MakeUpNext() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSeriesService_LegitEpsWatchedCnt(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for receiver constructor.
+		cfg  *config.Config
+		db   db.Db
+		meta meta.Meta
+		ipt  *services.ImportSvc
+		// Named input parameters for target function.
+		fd   *services.SeriesFullItem
+		want int
+	}{
+		{
+			name: "EPs watch count 2|3",
+			cfg:  nil,
+			db:   nil,
+			meta: nil,
+			ipt:  nil,
+			fd: &services.SeriesFullItem{
+				TvDetails: &meta.TvDetails{
+					NumberOfSeasons: 1,
+				},
+				EpsWatched: []services.SeriesEpisode{
+					{S: 1, E: 3},
+					{S: 1, E: 2},
+					{S: 0, E: 1},
+				},
+				EpisodesAired: 3,
+			},
+			want: 2,
+		},
+		{
+			name: "EPs watch count 3|3",
+			cfg:  nil,
+			db:   nil,
+			meta: nil,
+			ipt:  nil,
+			fd: &services.SeriesFullItem{
+				TvDetails: &meta.TvDetails{
+					NumberOfSeasons: 1,
+				},
+				EpsWatched: []services.SeriesEpisode{
+					{S: 1, E: 3},
+					{S: 1, E: 2},
+					{S: 1, E: 1},
+				},
+				EpisodesAired: 3,
+			},
+			want: 3,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := services.NewTvService(tt.cfg, tt.db, tt.meta, tt.ipt)
+			got := srv.LegitEpsWatchedCnt(tt.fd)
+			if got != tt.want {
+				t.Errorf("LegitEpsWatchedCnt() = %v, want %v", got, tt.want)
 			}
 		})
 	}
