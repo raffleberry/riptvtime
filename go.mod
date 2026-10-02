@@ -1,6 +1,6 @@
 module github.com/raffleberry/riptvtime
 
-go 1.27
+go 1.26
 
 require (
 	github.com/cyruzin/golang-tmdb v1.9.4

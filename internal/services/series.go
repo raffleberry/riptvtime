@@ -18,6 +18,7 @@ import (
 	"github.com/raffleberry/riptvtime/internal/meta"
 	"github.com/raffleberry/riptvtime/internal/services/state"
 	"golang.org/x/sync/errgroup"
+	"gorm.io/gorm"
 )
 
 var (
@@ -924,11 +925,13 @@ func (srv *SeriesService) IptImportTvTimeData(zipPath string) error {
 			continue
 		}
 		fav := db.TvSeriesFav{
-			MName:     ttd.MName,
-			MId:       int64(ttd.Id),
-			Name:      ttd.Name,
-			Year:      ttd.Year,
-			CreatedAt: srs.CreatedAt,
+			MName: ttd.MName,
+			MId:   int64(ttd.Id),
+			Name:  ttd.Name,
+			Year:  ttd.Year,
+			Model: gorm.Model{
+				CreatedAt: srs.CreatedAt,
+			},
 		}
 		err = srv.db.SeriesFavAdd(&fav)
 		if err != nil {
@@ -1096,8 +1099,10 @@ func (srv *SeriesService) GetGenresAll() ([]Genre, error) {
 
 	for i := range dg.Data {
 		rv = append(rv, Genre{
-			Id:   dg.Data[i].Id,
-			Name: dg.Data[i].Name,
+			Genre: meta.Genre{
+				Id:   dg.Data[i].Id,
+				Name: dg.Data[i].Name,
+			},
 		})
 	}
 
