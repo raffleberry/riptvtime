@@ -83,11 +83,13 @@ func (srv *SeriesService) GetTvCacheExpireTime(res *meta.TvDetails) time.Time {
 	}
 
 	rv := db.GetInProdExpireTime()
-	airDate := res.NextEpisodeToAir.AirDate
-	if !airDate.IsZero() {
+	nxtAirDate := res.NextEpisodeToAir.AirDate
+	if !nxtAirDate.IsZero() {
 		now := time.Now().UTC()
-		if !IsSameDate(airDate, now) && airDate.Before(rv) {
-			rv = airDate
+		if !IsSameDate(nxtAirDate, now) && nxtAirDate.Before(rv) {
+			rv = nxtAirDate
+		} else if IsSameDate(nxtAirDate, now) {
+			rv = now.Add(time.Hour * 3)
 		}
 	}
 	return rv
@@ -350,7 +352,14 @@ func (srv *SeriesService) MakeFeedList(series []db.TvSeries, freshSeriesData []*
 		srs.Overview = fd.Overview
 		srs.Year = fd.Year
 
+		if srs.MId == 196322 {
+			slog.Debug("Dark Matter")
+		}
+
 		upNxt := srv.MakeUpNext(int(srs.MId), fd)
+		if srs.MId == 196322 {
+			slog.Debug("", "upNxt", upNxt)
+		}
 		if upNxt == nil {
 			continue
 		}
@@ -481,6 +490,10 @@ func (srv *SeriesService) MakeUpNext(mId int, fd *SeriesFullItem) *SeriesEpisode
 	}
 
 	legitEpsWatchedCnt := srv.LegitEpsWatchedCnt(fd)
+
+	if fd.Id == 196322 {
+		slog.Debug("MakeUpNext - Dark Matter", "legit", legitEpsWatchedCnt, "aired", fd.EpisodesAired, "lastAiredS", lastAiredS, "lastAiredE", lastAiredE, "isWatched", isWatched(lastAiredS, lastAiredE))
+	}
 
 	if legitEpsWatchedCnt == fd.EpisodesAired || isWatched(lastAiredS, lastAiredE) {
 		return nil

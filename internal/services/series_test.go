@@ -262,15 +262,13 @@ func TestSeriesService_GetTvCacheExpireTime(t *testing.T) {
 	}
 
 	// airdate == now
-	// assuming it's now is airdate & Next episode to air is not updated in meta service
-	// asuming GetTvCacheExpireTime is called right after FRESH data is fetched from the meta service
+	// assuming today is airdate & Next episode to air is not updated in meta service
 	airDate = time.Now().UTC()
 	inProdSrs.NextEpisodeToAir.AirDate = airDate
 	got = srv.GetTvCacheExpireTime(inProdSrs)
-	if !got.After(airDate) {
+	if !got.After(airDate) || got.Sub(airDate) >= time.Hour*3+time.Minute {
 		t.Errorf("GetTvCacheExpireTime() - want [%v] got:[%v]", airDate, got)
 	}
-
 }
 
 func TestSeriesService_MakeUpNext(t *testing.T) {
