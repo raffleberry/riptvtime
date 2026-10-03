@@ -489,6 +489,35 @@ func (a *Api) GetImdbRatingFromMid() http.HandlerFunc {
 	})
 }
 
+// queryParams = { list: recommended|airing_today|on_the_air|top_rated|popular, p: page, sort_by: sort }
+func (a *Api) SeriesDiscover() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		urlVals := c.R.URL.Query()
+		list := urlVals.Get("list")
+		pageStr := urlVals.Get("p")
+		sortBy := urlVals.Get("sort_by")
+		slog.Debug("discover", "list", list, "page", pageStr, "sort_by", sortBy)
+
+		page := 1
+		if pageStr != "" {
+			var err error
+			page, err = strconv.Atoi(pageStr)
+			if err != nil {
+				return c.Error(http.StatusBadRequest, err.Error())
+			}
+		}
+
+		respRes, err := a.tv.Discover(list, page, sortBy)
+		if err != nil {
+			if errors.Is(err, services.ErrInvalidData) {
+				return c.Error(http.StatusBadRequest, err.Error())
+			}
+			return err
+		}
+		return c.JSON(http.StatusOK, respRes)
+	})
+}
+
 func (a *Api) FeatureImdb() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
 		if c.R.Method == http.MethodGet {

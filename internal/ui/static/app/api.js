@@ -55,6 +55,13 @@ const ENDPOINT = Object.freeze({
   SERIES_STATS_MY_SHOWS: (limit) => {
     return `${base}/api/series/stats/my?limit=${limit}`
   },
+  DISCOVER_TV: (list, page, sortBy) => {
+    let url = `${base}/api/discover/tv?list=${list}&p=${page}`
+    if (sortBy) {
+      url += `&sort_by=${encodeURIComponent(sortBy)}`
+    }
+    return url
+  },
 })
 
 export const apiFetchFeed = async () => {
@@ -526,4 +533,27 @@ export const apiGetUpcoming = async () => {
     return error
   }
   return null
+}
+
+export const apiDiscoverTv = async (list, page, sortBy) => {
+  if (!page) page = 1
+  let url = ENDPOINT.DISCOVER_TV(list, page, sortBy)
+  try {
+    const res = await fetch(url)
+    if (!res.ok) {
+      const errTxt = await res.text()
+      return {
+        err: new Error(`Error, response from server: ${res.status} - ${errTxt}`),
+      }
+    }
+    const data = await res.json()
+    return {
+      data: data,
+    }
+  } catch (error) {
+    console.error("Error Discover data:", error)
+    return {
+      err: error,
+    }
+  }
 }

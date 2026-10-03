@@ -66,6 +66,8 @@ func NewApi(prefix string, db db.Db, meta meta.Meta, tv *services.SeriesService,
 	mux.HandleFunc("GET /api/genres/tv/all", a.GetGenresAll())
 	mux.HandleFunc("GET /api/genres/tv/recent", a.GetGenresTvRecents())
 
+	mux.HandleFunc("GET /api/discover/tv", a.SeriesDiscover())
+
 	mux.HandleFunc("GET /api/imdb/{mId}", a.GetImdbRatingFromMid())
 
 	mux.HandleFunc("GET /api/features/imdb", a.FeatureImdb())

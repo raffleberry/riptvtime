@@ -13,9 +13,7 @@ const Navigation = {
       theme.value = theme.value === "light" ? "dark" : "light"
     }
 
-    const tabs = routes.filter(
-      (r) => ![PAGE.SERIES.path, PAGE.DISCOVER.path, PAGE.UNRESOLVED.path].includes(r.path),
-    )
+    const tabs = routes.filter((r) => ![PAGE.SERIES.path, PAGE.UNRESOLVED.path].includes(r.path))
 
     return {
       curPath,

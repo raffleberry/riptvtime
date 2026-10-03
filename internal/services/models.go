@@ -76,3 +76,35 @@ type Genre struct {
 	meta.Genre
 	Cnt int
 }
+
+// Discover list names served by SeriesService.Discover
+const (
+	DiscoverRecommended = "recommended"
+	DiscoverAiringToday = "airing_today"
+	DiscoverOnTheAir    = "on_the_air"
+	DiscoverTopRated    = "top_rated"
+	DiscoverPopular     = "popular"
+)
+
+var DiscoverLists = []string{
+	DiscoverRecommended,
+	DiscoverAiringToday,
+	DiscoverOnTheAir,
+	DiscoverTopRated,
+	DiscoverPopular,
+}
+
+var DiscoverSortOptions = []string{
+	"popularity.desc",
+	"popularity.asc",
+	"first_air_date.desc",
+	"first_air_date.asc",
+	"vote_average.desc",
+	"vote_average.asc",
+	"vote_count.desc",
+	"vote_count.asc",
+	"name.asc",
+	"name.desc",
+	"original_name.asc",
+	"original_name.desc",
+}
