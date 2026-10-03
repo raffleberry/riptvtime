@@ -12,6 +12,7 @@ export const {
   useTemplateRef,
   nextTick,
   reactive,
+  onUnmounted,
 } = Vue
 export const {
   createRouter,

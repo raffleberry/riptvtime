@@ -1184,6 +1184,17 @@ func (srv *SeriesService) IptGetUnresolved() (*ImportedData, error) {
 	return srv.ipt.GetUnresolved()
 }
 
+func (srv *SeriesService) IptIgnoreUnresolved(key string) error {
+	if key == "" {
+		return errors.Join(ErrInvalidData, errors.New("missing key"))
+	}
+	err := srv.ipt.Ignore(key)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return errors.Join(err, ErrNotFound)
+	}
+	return err
+}
+
 func (srv *SeriesService) Stats() (*db.Stats, error) {
 	return srv.db.SeriesStats()
 }

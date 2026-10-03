@@ -1,11 +1,11 @@
-import { apiSearchTv, apiUploadImportZip } from "../../api.js"
+import { apiSearchTv } from "../../api.js"
 import { MsgType, notify } from "../../components/Notify/Notify.js"
-import { imgPosterUrl, PAGE, theme } from "../../utils.js"
+import { imgPosterUrl } from "../../utils.js"
 import { computed, onMounted, ref, watch } from "../../vue.js"
 
 const Match = {
   props: {
-    data: Object,
+    item: Object,
   },
   components: {},
   emits: ["matchDone"],
@@ -16,10 +16,10 @@ const Match = {
     const selected = ref(null)
 
     const tv = computed(() => {
-      if (!props.series || props.series.length === 0) {
+      if (!props.item) {
         return {}
       }
-      return props.series[0]
+      return props.item
     })
 
     const searchResults = ref([])
@@ -51,10 +51,10 @@ const Match = {
     }
 
     watch(
-      () => props.series,
+      () => props.item,
       () => {
-        if (props.series.length === 0) return
-        searchTerm.value = props.series[0].Name.replace(/ \(\s*\d{4}\s*\)\s*/g, "")
+        if (!props.item) return
+        searchTerm.value = (props.item.Name || props.item.SeriesName || "").replace(/ \(\s*\d{4}\s*\)\s*/g, "")
         handleSearch()
       },
       { immediate: true },
@@ -76,92 +76,88 @@ const Match = {
       handleSearch,
     }
   },
-  template: /* HTML */ `{data}`,
-  templatex: /* HTML */ `
+  template: /* HTML */ `
     <div>
-      <h4 class="mt-4">Match ({{ series.length }} Pending) - {{ tv.Name }}</h4>
-      <div class="col">
-        <div class="d-flex flex-row align-items-center my-2">
-          <button
-            v-if="selected"
-            class="btn btn-success me-2"
-            @click="onMatchDone(tv.TvTimeSId, selected.Id)"
-          >
-            Confirm
-          </button>
-          <span class="align-middle me-2" v-if="selected"
-            >Selected: {{selected.Name}} ({{selected.Year}})</span
-          >
+      <div class="d-flex flex-row align-items-center my-2">
+        <button
+          v-if="selected"
+          class="btn btn-success me-2"
+          @click="onMatchDone(tv.TvTimeId, selected.Id)"
+        >
+          Confirm
+        </button>
+        <span class="align-middle me-2" v-if="selected"
+          >Selected: {{selected.Name}} ({{selected.Year}})</span
+        >
 
-          <p v-if="!selected">Please Select the correct one:</p>
-        </div>
-
-        <div class="row my-2 px-0">
-          <div class="input-group search-container">
-            <input
-              v-model="searchTerm"
-              type="text"
-              class="form-control search-input"
-              placeholder="Search..."
-              @keyup.enter="handleSearch"
-            />
-            <button
-              class="btn btn-outline-primary"
-              type="button"
-              id="searchButton"
-              @click="handleSearch"
-            >
-              <i class="bi bi-search"></i>
-            </button>
-          </div>
-        </div>
-        <div
-          v-if="loading"
-          class="d-flex flex-row justify-content-center align-items-center"
-          style="min-height: 320px;"
-        >
-          <div class="spinner-border text-secondary" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-        </div>
-        <div
-          v-if="!loading && sr.length == 0"
-          class="d-flex justify-content-center align-items-center"
-        >
-          <h2>No Results</h2>
-        </div>
-        <div
-          v-if="!loading && sr.length > 0"
-          class="mx-0 pb-2 row d-flex flex-nowrap overflow-x-auto"
-        >
-          <div
-            v-for="(r, idx) in sr"
-            class="me-3 d-flex flex-column justify-content-between card p-1"
-            :class="{ 'bg-primary': r.Id === selected?.Id }"
-            style="width: 240px; cursor: pointer;"
-            @click="selected = r"
-          >
-            <div class="position-relative" style="min-height: 320px;">
-              <div
-                v-if="!srl[idx] && r.Image"
-                class="position-absolute top-50 start-50 translate-middle spinner-border text-secondary"
-                role="status"
-              >
-                <span class="visually-hidden">Loading...</span>
-              </div>
-              <img
-                :src="imgUrl(r.Image)"
-                loading="lazy"
-                class="img-fluid rounded"
-                :alt="r.Name"
-                @load="srl[idx] = true"
-              />
-            </div>
-            <div class="text-center mt-2">{{ r.Name }} ({{r.Year}})</div>
-          </div>
-        </div>
-        <div v-if="selected" class="row"><p>Overview: {{selected?.Overview}}</p></div>
+        <p v-if="!selected">Please Select the correct one:</p>
       </div>
+
+      <div class="row my-2 px-0">
+        <div class="input-group search-container">
+          <input
+            v-model="searchTerm"
+            type="text"
+            class="form-control search-input"
+            placeholder="Search..."
+            @keyup.enter="handleSearch"
+          />
+          <button
+            class="btn btn-outline-primary"
+            type="button"
+            id="searchButton"
+            @click="handleSearch"
+          >
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </div>
+      <div
+        v-if="loading"
+        class="d-flex flex-row justify-content-center align-items-center"
+        style="min-height: 320px;"
+      >
+        <div class="spinner-border text-secondary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+      <div
+        v-if="!loading && sr.length == 0"
+        class="d-flex justify-content-center align-items-center"
+      >
+        <h2>No Results</h2>
+      </div>
+      <div
+        v-if="!loading && sr.length > 0"
+        class="mx-0 pb-2 row d-flex flex-nowrap overflow-x-auto"
+      >
+        <div
+          v-for="(r, idx) in sr"
+          class="me-3 d-flex flex-column justify-content-between card p-1"
+          :class="{ 'bg-primary': r.Id === selected?.Id }"
+          style="width: 240px; cursor: pointer;"
+          @click="selected = r"
+        >
+          <div class="position-relative" style="min-height: 320px;">
+            <div
+              v-if="!srl[idx] && r.Image"
+              class="position-absolute top-50 start-50 translate-middle spinner-border text-secondary"
+              role="status"
+            >
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <img
+              :src="imgUrl(r.Image)"
+              loading="lazy"
+              class="img-fluid rounded"
+              :alt="r.Name"
+              @load="srl[idx] = true"
+            />
+          </div>
+          <div class="text-center mt-2">{{ r.Name }} ({{r.Year}})</div>
+        </div>
+      </div>
+      <div v-if="selected" class="row"><p>Overview: {{selected?.Overview}}</p></div>
     </div>
   `,
 }

@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	ErrNotFound = errors.New("meta not found")
+	ErrNotFound = errors.New("metadata not found")
 	ErrConfused = errors.New("got more than expected")
 	ErrBadGZip  = errors.New("Invalid or corrupt gz file")
 )

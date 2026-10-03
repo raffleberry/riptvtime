@@ -43,6 +43,9 @@ const ENDPOINT = Object.freeze({
   IMPORT_RESOLVE: () => {
     return `${base}/api/import/resolve`
   },
+  IMPORT_IGNORE: () => {
+    return `${base}/api/import/ignore`
+  },
   STATE: () => {
     return `${base}/api/state`
   },
@@ -435,6 +438,24 @@ export const apiImportMatch = async (TvTimeSId, MId) => {
       }),
     })
 
+    if (!res.ok) {
+      const errTxt = await res.text()
+      return new Error(`Error, response from server: ${res.status} - ${errTxt}`)
+    }
+  } catch (error) {
+    console.error(error)
+    return error
+  }
+  return null
+}
+
+export const apiIgnoreUnresolved = async (key) => {
+  try {
+    const res = await fetch(ENDPOINT.IMPORT_IGNORE(), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ Key: key }),
+    })
     if (!res.ok) {
       const errTxt = await res.text()
       return new Error(`Error, response from server: ${res.status} - ${errTxt}`)

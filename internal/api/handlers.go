@@ -365,6 +365,38 @@ func (a *Api) SeriesImportResolve() http.HandlerFunc {
 	})
 }
 
+func (a *Api) SeriesImportIgnore() http.HandlerFunc {
+	return WithCtx(func(c *Context) error {
+		var payload struct {
+			Key string
+		}
+
+		if err := json.NewDecoder(c.R.Body).Decode(&payload); err != nil {
+			return c.Error(http.StatusBadRequest, err.Error())
+		}
+
+		if payload.Key == "" {
+			return c.Error(http.StatusBadRequest, "missing key")
+		}
+
+		err := a.tv.IptIgnoreUnresolved(payload.Key)
+		if err != nil {
+			if errors.Is(err, services.ErrNotFound) {
+				return c.Error(http.StatusNotFound, err.Error())
+			}
+			if errors.Is(err, services.ErrMovieIgnoreNotImplemented) {
+				return c.Error(http.StatusNotImplemented, err.Error())
+			}
+			if errors.Is(err, services.ErrInvalidData) {
+				return c.Error(http.StatusBadRequest, err.Error())
+			}
+			return err
+		}
+
+		return c.JSON(http.StatusOK, struct{}{})
+	})
+}
+
 func (a *Api) SeriesStats() http.HandlerFunc {
 	return WithCtx(func(c *Context) error {
 		v, err := a.tv.Stats()

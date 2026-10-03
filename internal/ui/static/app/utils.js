@@ -1,6 +1,7 @@
 import { Discover } from "./tabs/Discover.js"
 import { Feed } from "./tabs/Feed/Feed.js"
 import { Import } from "./tabs/Import/Import.js"
+import { Unresolved } from "./tabs/Import/Unresolved.js"
 import { Search } from "./tabs/Search/Search.js"
 import { Series } from "./tabs/Series/Series.js"
 import { Stats } from "./tabs/Stats.js"
@@ -17,6 +18,7 @@ export const PAGE = Object.freeze({
   SEARCH: { name: "Search", path: "/search" },
   STATS: { name: "Stats", path: "/stats" },
   IMPORT: { name: "Import", path: "/import" },
+  UNRESOLVED: { name: "Unresolved", path: "/import/unresolved" },
 })
 
 export const TvStatus = Object.freeze({
@@ -35,6 +37,7 @@ export const routes = Object.freeze([
   { path: PAGE.SEARCH.path, name: PAGE.SEARCH.name, component: Search },
   { path: PAGE.STATS.path, name: PAGE.STATS.name, component: Stats },
   { path: PAGE.IMPORT.path, name: PAGE.IMPORT.name, component: Import },
+  { path: PAGE.UNRESOLVED.path, name: PAGE.UNRESOLVED.name, component: Unresolved },
 ])
 
 export const highlight = (text, highlight) => {

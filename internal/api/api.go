@@ -56,6 +56,7 @@ func NewApi(prefix string, db db.Db, meta meta.Meta, tv *services.SeriesService,
 	mux.HandleFunc("POST /api/import/upload", a.SeriesImportUpload())
 	mux.HandleFunc("GET /api/import/unresolved", a.SeriesImportUnresolved())
 	mux.HandleFunc("PUT /api/import/resolve", a.SeriesImportResolve())
+	mux.HandleFunc("PUT /api/import/ignore", a.SeriesImportIgnore())
 
 	mux.HandleFunc("GET /api/state", a.GetState())
 	// mux.HandleFunc("POST /api/state", a.SetState()) // dev

@@ -100,6 +100,11 @@ type ImportedMovies struct {
 var (
 	ErrBadZip = errors.New("Invalid or corrupt zip file")
 	ErrBadCsv = errors.New("Invalid or corrupt csv file")
+
+	ErrBadKey = errors.New("Invalid import key")
+
+	// Stub for future movie unresolved ignore support.
+	ErrMovieIgnoreNotImplemented = errors.New("Movie ignore not implemented")
 )
 
 type ImportSvc struct {
@@ -169,6 +174,47 @@ func (ipt *ImportSvc) isEpisode(key string) bool {
 
 func (ipt *ImportSvc) isSeries(key string) bool {
 	return strings.HasPrefix(key, "user-series")
+}
+
+func (ipt *ImportSvc) isMovie(key string) bool {
+	return false
+}
+
+func (ipt *ImportSvc) SetSeriesIgnored(key string) (int64, error) {
+	tx := ipt.idb.Model(&ImportedSeries{}).Where("key = ?", key).Update("ignored", true)
+	return tx.RowsAffected, tx.Error
+}
+
+func (ipt *ImportSvc) SetEpisodeIgnored(key string) (int64, error) {
+	tx := ipt.idb.Model(&ImportedTrackedEps{}).Where("key = ?", key).Update("ignored", true)
+	return tx.RowsAffected, tx.Error
+}
+
+func (ipt *ImportSvc) Ignore(key string) error {
+	if ipt.isSeries(key) {
+		n, err := ipt.SetSeriesIgnored(key)
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			return gorm.ErrRecordNotFound
+		}
+		return nil
+	}
+	if ipt.isEpisode(key) {
+		n, err := ipt.SetEpisodeIgnored(key)
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			return gorm.ErrRecordNotFound
+		}
+		return nil
+	}
+	if ipt.isMovie(key) {
+		return ErrMovieIgnoreNotImplemented
+	}
+	return ErrBadKey
 }
 
 func (ipt *ImportSvc) SetSeriesUnresolved(key string, reason string) error {
@@ -380,13 +426,13 @@ func (ipt *ImportSvc) GetUnmatched() (*ImportedData, error) {
 
 func (ipt *ImportSvc) GetUnresolved() (*ImportedData, error) {
 	var srs []*ImportedSeries
-	err := ipt.idb.Where("unresolved = ?", true).Find(&srs).Error
+	err := ipt.idb.Where("unresolved = ?", true).Where("ignored = ?", false).Find(&srs).Error
 	if err != nil {
 		return nil, err
 	}
 
 	var eps []*ImportedTrackedEps
-	err = ipt.idb.Where("unresolved = ?", true).Find(&eps).Error
+	err = ipt.idb.Where("unresolved = ?", true).Where("ignored = ?", false).Find(&eps).Error
 	if err != nil {
 		return nil, err
 	}
@@ -394,21 +440,6 @@ func (ipt *ImportSvc) GetUnresolved() (*ImportedData, error) {
 		Series:   srs,
 		Episodes: eps,
 	}, nil
-}
-
-func (ipt *ImportSvc) GetMatched() ([]*ImportedSeries, []*ImportedTrackedEps, error) {
-	var rv1 []*ImportedSeries
-	err := ipt.idb.Find(&rv1, "m_id != 0").Error
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var rv2 []*ImportedTrackedEps
-	err = ipt.idb.Find(&rv2, "m_id != 0").Error
-	if err != nil {
-		return nil, nil, err
-	}
-	return rv1, rv2, nil
 }
 
 func (ipt *ImportSvc) DeleteSeries(key string) (int, error) {
@@ -421,38 +452,19 @@ func (ipt *ImportSvc) DeleteTrackedEps(key string) (int, error) {
 	return int(tx.RowsAffected), tx.Error
 }
 
-func (ipt *ImportSvc) Match(tvTimeSId, mId int) error {
-	tx := ipt.idb.Model(&ImportedSeries{}).Where("tv_time_s_id = ?", tvTimeSId).Update("m_id", mId)
-	slog.Debug("ipt matched", "tvTimeSId", tvTimeSId, "mId", mId, "table", "ImportedSeries", "Rows Affected", tx.RowsAffected)
+func (ipt *ImportSvc) MatchSeries(tvTimeId, mId int) error {
+	tx := ipt.idb.Model(&ImportedSeries{}).Where("tv_time_id = ?", tvTimeId).Update("m_id", mId)
+	slog.Debug("ipt matched", "tvTimeId", tvTimeId, "mId", mId, "table", "ImportedSeries", "Rows Affected", tx.RowsAffected)
 	if tx.Error != nil {
 		return tx.Error
 	}
 
-	tx = ipt.idb.Model(&ImportedTrackedEps{}).Where("tv_time_s_id = ?", tvTimeSId).Update("m_id", mId)
-	slog.Debug("ipt matched", "tvTimeSId", tvTimeSId, "mId", mId, "table", "ImportedTrackedEps", "Rows Affected", tx.RowsAffected)
+	tx = ipt.idb.Model(&ImportedTrackedEps{}).Where("tv_time_id = ?", tvTimeId).Update("m_id", mId)
+	slog.Debug("ipt matched", "tvTimeSId", tvTimeId, "mId", mId, "table", "ImportedTrackedEps", "Rows Affected", tx.RowsAffected)
 	if tx.Error != nil {
 		return tx.Error
 	}
 	return nil
-}
-
-func (ipt *ImportSvc) UpdateMeta(mId int, tvTimeSId int) (int, error) {
-	updatedEntriesCnt := 0
-	err := ipt.idb.Transaction(func(tx *gorm.DB) error {
-		t := tx.Model(&ImportedSeries{}).Where("tv_time_s_id = ?", tvTimeSId).Update("m_id", mId)
-		if t.Error != nil {
-			return t.Error
-		}
-		updatedEntriesCnt += int(t.RowsAffected)
-		t = tx.Model(&ImportedTrackedEps{}).Where("tv_time_s_id = ?", tvTimeSId).Update("m_id", mId)
-		if t.Error != nil {
-			return t.Error
-		}
-		updatedEntriesCnt += int(t.RowsAffected)
-		return nil
-	})
-
-	return updatedEntriesCnt, err
 }
 
 func (ipt *ImportSvc) ParseFavMovies(data string) ([]ImportedFavMovies, error) {
