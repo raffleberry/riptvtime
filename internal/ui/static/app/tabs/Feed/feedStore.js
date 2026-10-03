@@ -1,4 +1,4 @@
-import { apiEpUpNext, apiEpWatch } from "../../api.js"
+import { apiEpUpNext, apiEpWatch, apiFetchFeed } from "../../api.js"
 import { MsgType, notify } from "../../components/Notify/Notify.js"
 import { defineStore, ref } from "../../vue.js"
 
@@ -9,14 +9,11 @@ export const useFeedStore = defineStore("feed", () => {
   const fetchFeed = async () => {
     loading.value = true
     try {
-      const response = await fetch("/api/series/feed")
-      if (response.status === 200) {
-        const result = await response.json()
-        feed.value = result
-      } else {
-        const msg = `${response.status} - ${await response.text()}`
-        throw new Error(msg)
+      const { data, err } = await apiFetchFeed()
+      if (err) {
+        throw err
       }
+      feed.value = data
     } catch (error) {
       console.error("Error fetching feed data:", error)
       notify(MsgType.Error, "Feed", error)

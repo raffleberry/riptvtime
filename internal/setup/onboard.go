@@ -170,9 +170,10 @@ func GetConfigFromUser() (*config.Config, error) {
 	fmt.Println("=====================")
 
 	err = utils.OpenBrowser(url)
-	BrowserOpened = true
 	if err != nil {
-		panic(err)
+		slog.Error("Failed to open browser", "err", err)
+	} else {
+		BrowserOpened = true
 	}
 
 	<-done

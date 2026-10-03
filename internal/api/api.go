@@ -15,18 +15,18 @@ import (
 // if response is not 200, error should be sent in plain text as response
 // with the appropriate error code as status
 type Api struct {
-	Router *http.ServeMux
+	Router http.Handler
 	db     db.Db
 	meta   meta.Meta
 	tv     *services.SeriesService
 	cfg    *config.Config
 }
 
-func NewApi(db db.Db, meta meta.Meta, tv *services.SeriesService, cfg *config.Config) *Api {
+func NewApi(prefix string, db db.Db, meta meta.Meta, tv *services.SeriesService, cfg *config.Config) *Api {
 	mux := http.NewServeMux()
 
 	a := &Api{
-		Router: mux,
+		Router: http.StripPrefix(prefix, mux),
 		db:     db,
 		meta:   meta,
 		tv:     tv,
@@ -69,7 +69,7 @@ func NewApi(db db.Db, meta meta.Meta, tv *services.SeriesService, cfg *config.Co
 
 	mux.HandleFunc("GET /api/features/imdb", a.FeatureImdb())
 
-	mux.Handle("GET /", ui.NewSpaHandler("internal/ui/static"))
+	mux.Handle("GET /", ui.NewSpaHandler("internal/ui/static", prefix))
 	return a
 }
 

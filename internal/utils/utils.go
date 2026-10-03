@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"os/exec"
@@ -65,24 +66,29 @@ func OpenBrowser(url string) error {
 	}
 
 	var cmd string
-	var args []string
+	args := []string{}
 
 	switch runtime.GOOS {
 	case "windows":
 		cmd = "cmd"
-		args = []string{"/c", "start"}
+		args = append(args, "/c", "start")
 	case "darwin":
 		cmd = "open"
 	default:
 		cmd = "xdg-open"
 	}
 
-	if runtime.GOOS == "windows" {
-		args = append(args, url)
-		return exec.Command(cmd, args...).Start()
+	args = append(args, url)
+
+	c := exec.Command(cmd, args...)
+
+	err := c.Start()
+	if err != nil {
+		slog.Error("Failed to open browser", "err", err)
+		return err
 	}
 
-	return exec.Command(cmd, url).Start()
+	return c.Wait()
 }
 
 // Deprecated: Very slow, use only for tests.

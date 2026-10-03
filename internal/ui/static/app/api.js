@@ -1,56 +1,77 @@
+import { base } from "./base.js"
+
 const ENDPOINT = Object.freeze({
   FEED: () => {
-    return "/api/series/feed"
+    return `${base}/api/series/feed`
   },
   SERIES_ALL: () => {
-    return `/api/series`
+    return `${base}/api/series`
   },
   SEARCH_SERIES: () => {
-    return "/api/series/search"
+    return `${base}/api/series/search`
   },
   SERIES_STATUS: (Id) => {
-    return `/api/series/${Id}/status`
+    return `${base}/api/series/${Id}/status`
   },
   SERIES_ADD: () => {
-    return `/api/series`
+    return `${base}/api/series`
   },
   SERIES_REM: (Id) => {
-    return `/api/series/${Id}`
+    return `${base}/api/series/${Id}`
   },
   SERIES_GET: (Id) => {
-    return `/api/series/${Id}?full=1`
+    return `${base}/api/series/${Id}?full=1`
   },
   SERIES_EP_MARK: (Id) => {
-    return `/api/series/episode`
+    return `${base}/api/series/episode`
   },
   SERIES_EP_UPNEXT: (Id) => {
-    return `/api/series/${Id}/upnext`
+    return `${base}/api/series/${Id}/upnext`
   },
   SERIES_UPCOMING: () => {
-    return `/api/series/upcoming`
+    return `${base}/api/series/upcoming`
   },
   SERIES_FAVS: (limit) => {
-    return `/api/series/favs?limit=${limit}`
+    return `${base}/api/series/favs?limit=${limit}`
   },
   IMPORT_UPLOAD: () => {
-    return `/api/import/upload`
+    return `${base}/api/import/upload`
   },
   IMPORT_UNRESOLVED: () => {
-    return `/api/import/unresolved`
+    return `${base}/api/import/unresolved`
   },
   IMPORT_RESOLVE: () => {
-    return `/api/import/resolve`
+    return `${base}/api/import/resolve`
   },
   STATE: () => {
-    return `/api/state`
+    return `${base}/api/state`
   },
   SERIES_STATS: () => {
-    return `/api/series/stats`
+    return `${base}/api/series/stats`
   },
   SERIES_STATS_MY_SHOWS: (limit) => {
-    return `/api/series/stats/my?limit=${limit}`
+    return `${base}/api/series/stats/my?limit=${limit}`
   },
 })
+
+export const apiFetchFeed = async () => {
+  let url = `${ENDPOINT.FEED()}`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) {
+      throw new Error(`Error, response from server: ${res.status} - ${res.statusText}`)
+    }
+    const result = await res.json()
+    return {
+      data: result,
+    }
+  } catch (error) {
+    console.error("Error fetching feed data:", error)
+    return {
+      err: error,
+    }
+  }
+}
 
 export const apiSearchTv = async (search, page) => {
   let url = `${ENDPOINT.SEARCH_SERIES()}?q=${search}&p=${page}`

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/raffleberry/riptvtime/internal/api"
 	"github.com/raffleberry/riptvtime/internal/config"
@@ -15,7 +17,14 @@ import (
 )
 
 func main() {
-	logLevel := slog.LevelInfo
+
+	prefix := flag.String("prefix", "", "server prefix")
+	logLvl := flag.Int("log-level", 8, "value of log level = {-4, 0, 4, 8 <- default} | where -4 = debug, 0 = info, 4 = warn, 8 = error")
+	conf := flag.String("conf", "", "pass config file path")
+	flag.Parse()
+
+	logLevel := slog.Level(*logLvl)
+
 	isDev := utils.IsGoRun()
 	if isDev {
 		logLevel = slog.LevelDebug
@@ -33,7 +42,7 @@ func main() {
 	if isDev {
 		cfg, err = config.LoadFromEnv()
 	} else {
-		if len(os.Args) < 2 {
+		if len(*conf) == 0 {
 			cfg, err = setup.GetConfigFromUser()
 			if cfg == nil {
 				if err != nil {
@@ -42,7 +51,7 @@ func main() {
 				return
 			}
 		} else {
-			cfg, err = config.LoadFromFile(os.Args[1])
+			cfg, err = config.LoadFromFile(*conf)
 		}
 	}
 
@@ -62,7 +71,7 @@ func main() {
 	}
 	tvSrv := services.NewTvService(cfg, d, m, iptSrv)
 
-	a := api.NewApi(d, m, tvSrv, cfg)
+	a := api.NewApi(*prefix, d, m, tvSrv, cfg)
 	s := api.NewServer(addr, a.Router)
 
 	fmt.Printf("Starting server...\n")
@@ -70,14 +79,11 @@ func main() {
 	if err := s.Start(); err != nil {
 		panic(err)
 	}
-	url := fmt.Sprintf("http://%s/", addr)
+
+	url := fmt.Sprintf("http://%s/%s", addr, strings.TrimPrefix(*prefix, "/"))
 	if !setup.BrowserOpened {
-		err = utils.OpenBrowser(url)
-		if err != nil {
-			slog.Error("Failed to open browser", "err", err)
-		} else {
-			setup.BrowserOpened = true
-		}
+		utils.OpenBrowser(url)
+		setup.BrowserOpened = true
 	}
 	fmt.Printf("Address - %s ...\n", url)
 	s.WaitSIGINT()
