@@ -285,6 +285,66 @@ func (t *MetaTmdb) GetGenresTv() ([]Genre, error) {
 	return t.toGenre(res.Genres), nil
 }
 
+func (t *MetaTmdb) DiscoverTV(params DiscoverTVParams) (*TvSearchResults, error) {
+	opts := map[string]string{}
+	if params.Page > 0 {
+		opts["page"] = strconv.Itoa(params.Page)
+	}
+	if params.SortBy != "" {
+		opts["sort_by"] = params.SortBy
+	}
+	if params.WithGenres != "" {
+		opts["with_genres"] = params.WithGenres
+	}
+	if params.FirstAirDateGte != "" {
+		opts["first_air_date.gte"] = params.FirstAirDateGte
+	}
+	if params.FirstAirDateLte != "" {
+		opts["first_air_date.lte"] = params.FirstAirDateLte
+	}
+	if params.AirDateGte != "" {
+		opts["air_date.gte"] = params.AirDateGte
+	}
+	if params.AirDateLte != "" {
+		opts["air_date.lte"] = params.AirDateLte
+	}
+	if params.VoteCountGte != "" {
+		opts["vote_count.gte"] = params.VoteCountGte
+	}
+	if params.VoteAverageGte != "" {
+		opts["vote_average.gte"] = params.VoteAverageGte
+	}
+	if params.Language != "" {
+		opts["language"] = params.Language
+	}
+	if params.Timezone != "" {
+		opts["timezone"] = params.Timezone
+	}
+
+	res, err := t.c.GetDiscoverTV(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	rv := TvSearchResults{
+		Page:         int(res.Page),
+		TotalPages:   int(res.TotalPages),
+		TotalResults: int(res.TotalResults),
+	}
+	for _, v := range res.Results {
+		rv.Results = append(rv.Results, TvSearchResult{
+			Id:       int(v.ID),
+			Name:     v.Name,
+			Overview: v.Overview,
+			Year:     parseYear(v.FirstAirDate),
+			MName:    t.Name(),
+			Image:    v.PosterPath,
+			Genres:   v.GenreIDs,
+		})
+	}
+	return &rv, nil
+}
+
 func (t *MetaTmdb) GetImdbId(mId int) (string, error) {
 	res, err := t.c.GetTVExternalIDs(mId, nil)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/rand"
 	"slices"
 	"strconv"
 	"strings"
@@ -1268,6 +1269,129 @@ func (srv *SeriesService) Upcoming() ([]*UpcomingItem, error) {
 
 	return rv, nil
 
+}
+
+func (srv *SeriesService) Discover(list string, page int, sortBy string) (*SeriesSearchResult, error) {
+	if page <= 0 {
+		page = 1
+	}
+
+	defaultSort := func() string {
+		if list == DiscoverTopRated {
+			return "vote_average.desc"
+		}
+		return "popularity.desc"
+	}
+	if sortBy == "" {
+		sortBy = defaultSort()
+	} else if !slices.Contains(DiscoverSortOptions, sortBy) {
+		return nil, errors.Join(ErrInvalidData, fmt.Errorf("invalid sort_by: %s", sortBy))
+	}
+
+	now := time.Now()
+	today := now.Format(time.DateOnly)
+	params := meta.DiscoverTVParams{
+		Page:   page,
+		SortBy: sortBy,
+	}
+
+	switch list {
+	case DiscoverPopular:
+		// popularity sort already set; no extra filters
+	case DiscoverTopRated:
+		// keep one-vote wonders out of the list
+		params.VoteCountGte = "200"
+	case DiscoverAiringToday:
+		params.AirDateGte = today
+		params.AirDateLte = today
+	case DiscoverOnTheAir:
+		params.AirDateGte = today
+		params.AirDateLte = now.AddDate(0, 0, 7).Format(time.DateOnly)
+	case DiscoverRecommended:
+		genres, err := srv.buildRecommendationGenres()
+		if err != nil {
+			return nil, err
+		}
+		params.WithGenres = genres
+		params.FirstAirDateGte = now.AddDate(-2, 0, 0).Format(time.DateOnly)
+	default:
+		return nil, errors.Join(ErrInvalidData, fmt.Errorf("unknown discover list: %s", list))
+	}
+
+	metaRes, err := srv.meta.DiscoverTV(params)
+	if err != nil {
+		return nil, err
+	}
+
+	rv := SeriesSearchResult{
+		Page:         metaRes.Page,
+		TotalPages:   metaRes.TotalPages,
+		TotalResults: metaRes.TotalResults,
+	}
+	for _, r := range metaRes.Results {
+		status, err := srv.db.SeriesStatusGet(r.Id)
+		if err != nil {
+			return nil, err
+		}
+		rv.Results = append(rv.Results, SeriesSearchItem{
+			TvSearchResult: r,
+			Status:         status,
+		})
+	}
+	return &rv, nil
+}
+
+// buildRecommendationGenres returns a single pipe (OR) separated
+// with_genres value: 60% from the user's top genres (by recent activity)
+// and 40% sampled at random from the remaining genres.
+// With the default of 5 genre IDs that is 3 top + 2 random.
+func (srv *SeriesService) buildRecommendationGenres() (string, error) {
+	const total = 5
+	const topCnt = 3 // 60% of 5
+
+	recents, err := srv.GetGenresTvRecents(50)
+	if err != nil {
+		return "", err
+	}
+	if len(recents) == 0 {
+		return "", nil
+	}
+
+	topN := min(topCnt, len(recents))
+	picked := make([]int64, 0, total)
+	seen := make(map[int64]bool)
+	for _, g := range recents[:topN] {
+		picked = append(picked, g.Id)
+		seen[g.Id] = true
+	}
+
+	need := total - len(picked)
+	if need > 0 {
+		all, err := srv.GetGenresAll()
+		if err != nil {
+			return "", err
+		}
+		pool := make([]int64, 0, len(all))
+		for _, g := range all {
+			if !seen[g.Id] {
+				pool = append(pool, g.Id)
+			}
+		}
+		rand.Shuffle(len(pool), func(i, j int) { pool[i], pool[j] = pool[j], pool[i] })
+		for _, id := range pool {
+			if need == 0 {
+				break
+			}
+			picked = append(picked, id)
+			need--
+		}
+	}
+
+	strs := make([]string, 0, len(picked))
+	for _, id := range picked {
+		strs = append(strs, strconv.FormatInt(id, 10))
+	}
+	return strings.Join(strs, "|"), nil
 }
 
 func (srv *SeriesService) GetPoster(mId int) string {

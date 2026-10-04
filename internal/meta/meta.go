@@ -78,6 +78,25 @@ type Genre struct {
 	Name string
 }
 
+type DiscoverTVParams struct {
+	Page   int
+	SortBy string
+	// pipe (|) separated genre IDs (OR), e.g. "18|35|80"
+	WithGenres string
+	// YYYY-MM-DD
+	FirstAirDateGte string
+	FirstAirDateLte string
+	// YYYY-MM-DD, filters on episode air dates
+	AirDateGte string
+	AirDateLte string
+	// minimum vote count filter, e.g. "200"
+	VoteCountGte string
+	// minimum vote average filter, e.g. "7"
+	VoteAverageGte string
+	Language       string
+	Timezone       string
+}
+
 type ImdbRating struct {
 	Id     string
 	Rating float32
@@ -95,6 +114,7 @@ type Meta interface {
 	GetGenresTv() ([]Genre, error)
 	GetImdbId(mId int) (string, error)
 	GetImdbRating(imdbId string) (*ImdbRating, error)
+	DiscoverTV(params DiscoverTVParams) (*TvSearchResults, error)
 }
 
 // func GetEpisodeDetails(seriesTmdbId int64, sNo int, epNo int) (*TvEpisode, error) {
