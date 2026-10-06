@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
-	"time"
 
 	"github.com/glebarez/sqlite"
 	"github.com/raffleberry/riptvtime/internal/config"
@@ -318,16 +317,13 @@ func (db *DbSqlite) SeriesGenreGet() (Misc[[]Genre], error) {
 		}
 		return rv, err
 	}
-
-	if rv.ExpiredAt.Before(time.Now()) {
-		return rv, errors.Join(err, ErrExpired, fmt.Errorf("Genres expired"))
-	}
-
 	return rv, nil
 }
 
 func (db *DbSqlite) SeriesGenreSet(g Misc[[]Genre]) error {
-	err := db.orm.Create(&g).Error
+	err := db.orm.Clauses(clause.OnConflict{
+		DoUpdates: clause.AssignmentColumns([]string{"updated_at", "expired_at", "json_data"}),
+	}).Create(&g).Error
 	if err != nil {
 		return err
 	}
