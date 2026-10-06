@@ -26,7 +26,7 @@ export const EpisodeOpts = {
 
     const { epMarkWatched, epUnMarkWatched } = store
 
-    const { watchedEps } = storeToRefs(store)
+    const { watchedEps, watchedSpls } = storeToRefs(store)
 
     const handleIncr = async () => {
       try {
@@ -55,9 +55,17 @@ export const EpisodeOpts = {
     }
 
     const cnt = computed(() => {
-      let idx = watchedEps.value.findIndex(
-        (sep) => sep.S === props.ep.SeasonNumber && sep.E === props.ep.EpisodeNumber,
-      )
+      let idx = -1
+      if (props.ep.SeasonNumber === 0) {
+        // specials
+        idx = watchedSpls.value.findIndex(
+          (sep) => sep.S === props.ep.SeasonNumber && sep.E === props.ep.EpisodeNumber,
+        )
+      } else {
+        idx = watchedEps.value.findIndex(
+          (sep) => sep.S === props.ep.SeasonNumber && sep.E === props.ep.EpisodeNumber,
+        )
+      }
       if (idx === -1) {
         return 0
       } else {

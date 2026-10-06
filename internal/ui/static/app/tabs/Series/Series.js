@@ -253,6 +253,18 @@ export const Series = {
       document.querySelector("#season" + num).scrollIntoView()
     }
 
+    const fmtAirDate = (ep) => {
+      if (!isDateTimeZero(ep.AirDate)) {
+        return new Date(ep.AirDate).toDateString()
+      } else {
+        console.log(ep.SeasonNumber)
+        if (ep.SeasonNumber === 0) {
+          return ""
+        }
+        return "soon"
+      }
+    }
+
     return {
       ky,
       loading,
@@ -274,6 +286,7 @@ export const Series = {
       isDateTimeZero,
       isSeen,
       fmtRating,
+      fmtAirDate,
     }
   },
   template: /* HTML */ `
@@ -379,13 +392,13 @@ export const Series = {
                       'text-secondary' : !isAired(ep.AirDate)
                      }"
                     >
-                      {{ isDateTimeZero(ep.AirDate) ? "soon" : new Date(ep.AirDate).toDateString()}}
+                      {{ fmtAirDate(ep) }}
                     </span>
                     <span class="ms-2" v-if="cnt[ky(ep.SeasonNumber, ep.EpisodeNumber)] > 1"
                       >{{ cnt[ky(ep.SeasonNumber, ep.EpisodeNumber)] }}x</span
                     >
                     <button
-                      :disabled="!isAired(ep.AirDate)"
+                      :disabled="ep.SeasonNumber !== 0 && !isAired(ep.AirDate)"
                       class="btn"
                       :class="!isAired(ep.AirDate) ? 'border-0' : ''"
                       @click="() => { openEpOpts(ep) }"

@@ -1,6 +1,6 @@
 import { apiSearchTv } from "../../api.js"
-import { notify } from "../../components/Notify/Notify.js"
-import { defineStore, ref, useRouter } from "../../vue.js"
+import { MsgType, notify } from "../../components/Notify/Notify.js"
+import { defineStore, ref } from "../../vue.js"
 
 export const useSearchStore = defineStore("search", () => {
   const loading = ref(false)
