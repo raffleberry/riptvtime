@@ -112,7 +112,7 @@ const Stats = {
   },
   template: /* HTML */ `
     <div class="d-flex flex-grow-1 flex-column align-items-center">
-      <div class="d-flex align-items-center">
+      <div class="d-flex align-items-stretch stat-cards">
         <div class="card text-center me-2">
           <div class="card-body">
             <h5 class="card-title">{{ Math.ceil(stats.TotalHours) }}</h5>
@@ -151,13 +151,13 @@ const Stats = {
       </div>
       <div
         v-if="!showsLoading"
-        class="d-flex mt-2 flex-wrap justify-content-center"
+        class="d-flex mt-2 flex-wrap justify-content-center poster-grid"
         style="min-height: 330px;"
       >
-        <div class="mx-2 my-1" v-for="show in shows" class="col-2" style="width: 180px">
+        <div class="mx-2 my-1" v-for="show in shows" style="width: 180px">
           <img
             :src="imgUrl(show.Image, show.MId)"
-            class="img-fluid object-fit-cover rounded-start"
+            class="img-fluid poster-img rounded"
             :alt="show.Name"
             loading="lazy"
           />
@@ -190,13 +190,13 @@ const Stats = {
       </div>
       <div
         v-if="!favsLoading"
-        class="d-flex mt-2 flex-wrap justify-content-center "
+        class="d-flex mt-2 flex-wrap justify-content-center poster-grid"
         style="min-height: 330px;"
       >
-        <div class="mx-2 my-1" v-for="fav in favs" class="col-2" style="width: 180px">
+        <div class="mx-2 my-1" v-for="fav in favs" style="width: 180px">
           <img
             :src="imgUrl(fav.ImgPoster, fav.MId)"
-            class="img-fluid object-fit-cover rounded-start"
+            class="img-fluid poster-img rounded"
             :alt="fav.Name"
             loading="lazy"
           />

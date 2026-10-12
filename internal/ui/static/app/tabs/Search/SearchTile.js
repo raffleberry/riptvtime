@@ -72,18 +72,19 @@ const SearchTile = {
 
   template: /* HTML */ `
     <div :class="statusCss.card">
-      <div class="row">
-        <div class="col-2" style="width: 180px">
+      <div class="d-flex flex-column flex-sm-row">
+        <div class="tile-poster align-self-center align-self-sm-start p-2 p-sm-0">
           <img
             :src="imgPosterUrl(tv.Image)"
-            class="img-fluid object-fit-cover rounded-start"
-            alt="..."
+            class="img-fluid poster-img rounded"
+            :alt="tv.Name"
+            loading="lazy"
           />
         </div>
-        <div class="col">
+        <div class="flex-grow-1" style="min-width: 0;">
           <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <h5 class="card-title">
+            <div class="d-flex justify-content-between gap-2">
+              <h5 class="card-title mb-0" style="min-width: 0;">
                 <router-link :to="'/series/' + tv.Id">
                   {{ tv.Name }} <span class="text-muted">({{ tv.Year }})</span>
                   <span class="badge bg-secondary"> </span>
@@ -94,12 +95,13 @@ const SearchTile = {
                 data-bs-toggle="offcanvas"
                 data-bs-target="#searchTileOpts"
                 type="button"
-                class="btn p-2 d-inline-flex align-items-center justify-content-center"
+                class="btn p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                aria-label="Series options"
               >
                 <i :class="statusCss.icon"></i>
               </button>
             </div>
-            <p class="card-text">{{ tv.Overview }}</p>
+            <p class="card-text clamp-3">{{ tv.Overview }}</p>
           </div>
         </div>
       </div>

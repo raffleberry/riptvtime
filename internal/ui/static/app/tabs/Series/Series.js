@@ -173,7 +173,6 @@ export const Series = {
 
     const cardStyle = computed(() => {
       return {
-        height: "360px",
         backgroundImage: `url(${imgBackdropUrl(sd.value.ImgBackdrop)})`,
         backgroundSize: "cover",
         backgroundRepeat: "no-repeat",
@@ -305,7 +304,8 @@ export const Series = {
       <div v-else>
         <div :class="statusCss.card" style="z-index: 5;">
           <div
-            class="card-body d-flex flex-column justify-content-between p-0 rounded"
+            class="card-body d-flex flex-column justify-content-between p-0 rounded series-hero"
+            style="height: 360px;"
             :style="cardStyle"
           >
             <div class="d-flex justify-content-between">
@@ -379,12 +379,14 @@ export const Series = {
                 <div
                   v-for="(ep, idx) in sn.Episodes"
                   :class="idx % 2 === 0 ? 'bg-body' : 'bg-body-secondary'"
-                  class="d-flex flex-row justify-content-between align-items-center"
+                  class="ep-row d-flex flex-row justify-content-between align-items-center gap-1 py-1"
                 >
-                  <div>{{ ep.SeasonNumber }}x{{ ep.EpisodeNumber }} - {{ ep.Name }}</div>
-                  <div>
+                  <div class="ep-name">
+                    {{ ep.SeasonNumber }}x{{ ep.EpisodeNumber }} - {{ ep.Name }}
+                  </div>
+                  <div class="d-flex align-items-center flex-shrink-0">
                     <span
-                      class="fst-italic"
+                      class="fst-italic d-none d-sm-inline"
                       :class="{
                       'text-success': isSeen(ep.SeasonNumber, ep.EpisodeNumber),
                       'text-warning': isAired(ep.AirDate) && !isSeen(ep.SeasonNumber, ep.EpisodeNumber),

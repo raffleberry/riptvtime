@@ -1,0 +1,192 @@
+/* Mobile-first enhancements. Plain CSS, no build tool.
+   Loaded after index.css and Bootstrap. All rules are additive. */
+
+:root {
+  --rtt-bottom-nav-h: 60px;
+  --rtt-touch-min: 44px;
+}
+
+/* Notched devices + desktop: respect safe areas */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Minimum touch targets for interactive controls */
+.btn,
+.nav-link,
+.list-group-item-action,
+.page-link {
+  min-height: var(--rtt-touch-min);
+}
+
+.btn-sm {
+  min-height: 38px;
+}
+
+/* Anchor scroll offset for season accordions opened via hash links */
+[id^="season"] {
+  scroll-margin-top: 76px;
+}
+
+/* Discover rails: snap + edge affordance on touch */
+.rail-scroll {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.rail-scroll::-webkit-scrollbar {
+  display: none;
+}
+.rail-scroll > * {
+  scroll-snap-align: start;
+}
+
+/* Clamp long overviews on cards */
+.clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+/* Poster images: avoid layout shift */
+.poster-img {
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  background: var(--bs-secondary-bg);
+}
+
+/* Bottom tab bar (mobile only, toggled via d-md-none in template) */
+.rtt-bottom-nav {
+  height: calc(var(--rtt-bottom-nav-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 1030;
+}
+.rtt-bottom-nav .nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.68rem;
+  padding: 6px 2px;
+  min-height: var(--rtt-touch-min);
+  color: var(--bs-secondary-color);
+}
+.rtt-bottom-nav .nav-link.active {
+  color: var(--bs-primary);
+  background: none;
+}
+.rtt-bottom-nav .nav-link i {
+  font-size: 1.2rem;
+}
+
+/* Leave room for the bottom nav */
+.rtt-has-bottom-nav {
+  padding-bottom: calc(var(--rtt-bottom-nav-h) + env(safe-area-inset-bottom) + 12px);
+}
+
+/* Offcanvas sheets: full-width on phones so the 400px side panel never
+   overflows a 360px viewport. Bottom-sheet conversion is intentionally
+   avoided: Bootstrap's translateX/translateY transforms conflict. */
+@media (max-width: 767.98px) {
+  .offcanvas.offcanvas-end {
+    width: 100vw;
+    border-radius: 16px 0 0 0;
+  }
+
+  .stat-cards {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .stat-cards .card {
+    margin-right: 0 !important;
+  }
+
+  .poster-grid > * {
+    width: calc(50% - 0.5rem) !important;
+    max-width: 200px;
+  }
+
+  .tile-poster {
+    width: 96px !important;
+    flex-shrink: 0;
+  }
+
+  .viewall-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .viewall-header .form-select {
+    flex: 1 1 100%;
+  }
+}
+
+@media (min-width: 768px) {
+  .poster-grid > * {
+    width: 180px;
+  }
+  .tile-poster {
+    width: 180px;
+  }
+}
+
+/* Sticky pagination bars so prev/next stay reachable */
+.sticky-pager {
+  position: sticky;
+  bottom: 0;
+  background: var(--bs-body-bg);
+  padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom));
+  z-index: 5;
+}
+
+/* Unresolved detail panel becomes a bottom sheet on mobile */
+@media (max-width: 767.98px) {
+  .unresolved-layout {
+    flex-direction: column !important;
+  }
+  .unresolved-detail {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-start: 0 !important;
+    border-top: var(--bs-border-width) solid var(--bs-border-color);
+    max-height: 60dvh;
+  }
+}
+
+/* Series hero: cap height on narrow screens */
+@media (max-width: 767.98px) {
+  .series-hero {
+    height: min(58vw, 300px) !important;
+  }
+  .series-hero h3 {
+    font-size: 1.1rem;
+  }
+  .ep-row {
+    gap: 0.25rem;
+  }
+  .ep-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1 1 auto;
+  }
+}
+
+/* Reduce heavy backdrop blur on low-power devices */
+@media (max-width: 767.98px) {
+  .txt-bg-blur {
+    backdrop-filter: none;
+    background-color: rgba(0, 0, 0, 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-scroll {
+    scroll-snap-type: none;
+  }
+}

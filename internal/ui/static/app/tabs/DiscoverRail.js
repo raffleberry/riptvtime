@@ -32,7 +32,7 @@ const DiscoverRail = {
           <span class="visually-hidden">Loading...</span>
         </div>
       </div>
-      <div v-else class="d-flex flex-row overflow-auto gap-3 px-3 pb-2">
+      <div v-else class="d-flex flex-row overflow-auto gap-3 px-3 pb-2 rail-scroll">
         <router-link
           v-for="tv in items"
           :key="tv.Id"

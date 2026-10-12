@@ -218,13 +218,17 @@ const Unresolved = {
         </div>
       </div>
 
-      <div v-else class="d-flex flex-row flex-grow-1 gap-3" style="min-height: 0;">
+      <div
+        v-else
+        class="d-flex flex-row flex-grow-1 gap-3 unresolved-layout"
+        style="min-height: 0;"
+      >
         <div class="flex-grow-1 overflow-auto" style="min-width: 0;">
           <div v-if="currentList().length === 0" class="text-center text-muted py-4">
             No unresolved {{ activeTab }}
           </div>
 
-          <table v-else class="table table-hover table-sm">
+          <table v-else class="table table-hover table-sm d-none d-md-table">
             <thead>
               <tr>
                 <th>TvTimeId</th>
@@ -251,11 +255,30 @@ const Unresolved = {
               </tr>
             </tbody>
           </table>
+          <div v-else class="list-group d-md-none">
+            <button
+              v-for="(item, idx) in currentList()"
+              :key="item.Key"
+              :ref="(el) => setRowRef(el, idx)"
+              class="list-group-item list-group-item-action"
+              :class="{ active: selectedIdx === idx }"
+              @click="onSelect(item, idx)"
+            >
+              <div class="d-flex justify-content-between gap-2">
+                <span class="text-truncate">{{ item.Name || item.SeriesName }}</span>
+                <span class="text-muted flex-shrink-0">#{{ item.TvTimeId }}</span>
+              </div>
+              <div class="small text-muted" v-if="activeTab === 'episodes'">
+                S{{ item.Season }} E{{ item.Episode }}
+              </div>
+              <div class="small text-danger text-truncate">{{ item.UnresolvedMsg }}</div>
+            </button>
+          </div>
         </div>
 
         <div
           v-if="selected"
-          class="flex-shrink-0 overflow-auto bg-body border-start"
+          class="flex-shrink-0 overflow-auto bg-body border-start unresolved-detail"
           style="width: 400px; min-width: 300px;"
         >
           <div class="p-3">

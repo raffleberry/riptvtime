@@ -51,7 +51,7 @@ const SearchButtons = {
   },
 
   template: /* HTML */ `
-    <div class="d-flex flex-column justify-content-center align-items-center">
+    <div class="d-flex flex-column justify-content-center align-items-center sticky-pager">
       <div class="input-group mt-3 justify-content-center">
         <button
           :disabled="page <= 1 || loading"

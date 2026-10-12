@@ -37,30 +37,32 @@ const TvFeedTile = {
 
   template: /* HTML */ `
     <div class="card">
-      <div class="d-flex flex-row">
-        <div class="col-2" style="width: 180px">
+      <div class="d-flex flex-column flex-sm-row">
+        <div class="tile-poster align-self-center align-self-sm-start p-2 p-sm-0">
           <img
             :src="imgPosterUrl(tv.Image)"
-            class="img-fluid object-fit-cover rounded-top rounded-end-0"
-            alt="..."
+            class="img-fluid poster-img rounded"
+            :alt="tv.Name"
+            loading="lazy"
           />
         </div>
 
         <div class="d-flex flex-column card-body justify-content-between">
           <div>
-            <h5 class="card-title d-flex justify-content-between">
+            <h5 class="card-title d-flex flex-wrap gap-2 justify-content-between">
               <router-link :to="'/series/' + tv.MId + '#season' + tv.UpNext.S">
                 {{ tv.Name }} <span class="text-muted">({{ tv.Year }})</span>
                 <span class="badge bg-secondary" v-if="tv.RecentlyAired">New</span>
               </router-link>
-              <span v-if="tv.ImdbRating">IMDb: {{ fmtRating(tv.ImdbRating) }}</span>
+              <span class="text-muted fs-6" v-if="tv.ImdbRating"
+                >IMDb: {{ fmtRating(tv.ImdbRating) }}</span
+              >
             </h5>
-            <p class="card-text">{{ tv.Overview }}</p>
+            <p class="card-text clamp-3">{{ tv.Overview }}</p>
           </div>
-          <p class="card-text text-end">
+          <p class="card-text text-end mt-2">
             Up Next :
             <button
-              :disabled="loading"
               @click="markUpNext"
               type="button"
               class="btn btn-outline-primary position-relative"

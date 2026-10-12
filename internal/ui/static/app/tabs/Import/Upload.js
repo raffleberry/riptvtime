@@ -1,7 +1,6 @@
 import { apiUploadImportZip } from "../../api.js"
 import { MsgType, notify } from "../../components/Notify/Notify.js"
-import { PAGE, theme } from "../../utils.js"
-import { onMounted, ref } from "../../vue.js"
+import { onMounted, onUnmounted, ref, useTemplateRef } from "../../vue.js"
 
 const Upload = {
   props: {},
@@ -12,6 +11,8 @@ const Upload = {
     const selectedFile = ref(null)
     const isUploading = ref(false)
     const uploadProgress = ref(0)
+    const fileInput = useTemplateRef("fileInput")
+    let resetTimer = null
 
     const onDragOver = (e) => {
       if (isUploading.value) return
@@ -39,9 +40,9 @@ const Upload = {
       }
     }
 
-    const triggerFileSelect = (fileInputRef) => {
+    const triggerFileSelect = () => {
       if (isUploading.value) return
-      fileInputRef.click()
+      fileInput.value?.click()
     }
 
     const startUpload = async () => {
@@ -64,7 +65,7 @@ const Upload = {
         console.error("Upload error details:", error)
         notify(MsgType.Error, "Upload", error)
       } finally {
-        setTimeout(() => {
+        resetTimer = setTimeout(() => {
           isUploading.value = false
           ctx.emit("uploadDone")
           uploadProgress.value = 0
@@ -74,7 +75,15 @@ const Upload = {
 
     onMounted(() => {})
 
+    onUnmounted(() => {
+      if (resetTimer) {
+        clearTimeout(resetTimer)
+        resetTimer = null
+      }
+    })
+
     return {
+      fileInput,
       isDragging,
       selectedFile,
       isUploading,
@@ -91,7 +100,7 @@ const Upload = {
     <h4 class="mt-4">Upload</h4>
 
     <div
-      class="mb-3 card text-center p-5 border-2 position-relative"
+      class="mb-3 card text-center p-3 p-md-5 border-2 position-relative"
       :class="[
                 isDragging ? 'border-primary bg-primary bg-opacity-10' : 'border-secondary-subtle bg-body-tertiary',
                 isUploading ? 'opacity-75' : ''
@@ -103,7 +112,7 @@ const Upload = {
       @dragover="onDragOver"
       @dragleave="onDragLeave"
       @drop="onDrop"
-      @click="triggerFileSelect($refs.fileInput)"
+      @click="triggerFileSelect"
     >
       <div
         v-if="isUploading"
@@ -135,7 +144,10 @@ const Upload = {
           <i class="bi bi-cloud-arrow-up fs-2"></i>
         </div>
 
-        <p class="card-text fw-bold mb-1">Drop your 'tvtime-gdpr-data.zip' file here</p>
+        <p class="card-text fw-bold mb-1 d-none d-sm-block">
+          Drop your 'tvtime-gdpr-data.zip' file here
+        </p>
+        <p class="card-text fw-bold mb-1 d-sm-none">Select your 'tvtime-gdpr-data.zip' file</p>
         <p class="card-text text-muted small mb-3">or click to browse & select</p>
 
         <!-- Hidden Input -->
@@ -143,6 +155,7 @@ const Upload = {
           type="file"
           ref="fileInput"
           class="d-none"
+          accept=".zip,application/zip"
           :disabled="isUploading"
           @change="onFileChange"
         />

@@ -27,10 +27,17 @@ export const UpcomingTile = {
   },
   template: /* HTML */ `
     <div class="card">
-      <div class="d-flex flex-row ">
-        <img :src="imgPosterUrl(item.ImgPoster)" class="img-fluid rounded-start" alt="..." />
-        <div class="card-body">
-          <span>
+      <div class="d-flex flex-column flex-sm-row">
+        <div class="tile-poster align-self-center align-self-sm-start p-2 p-sm-0">
+          <img
+            :src="imgPosterUrl(item.ImgPoster)"
+            class="img-fluid poster-img rounded"
+            :alt="item.SeriesName"
+            loading="lazy"
+          />
+        </div>
+        <div class="card-body" style="min-width: 0;">
+          <span class="text-muted small">
             In {{ timeLeft }} days • {{ (new Date(item.Episode.AirDate)).toDateString() }}</span
           >
           <h5 class="card-title">
@@ -43,7 +50,7 @@ export const UpcomingTile = {
 
           <p class="card-text">{{ ky(item.Episode.Season, item.Episode.Episode) }}</p>
           <p class="card-text text-start"></p>
-          <p class="card-text">{{ item.Episode.Overview }}</p>
+          <p class="card-text clamp-3">{{ item.Episode.Overview }}</p>
         </div>
       </div>
     </div>

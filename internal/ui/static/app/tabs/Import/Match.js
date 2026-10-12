@@ -131,7 +131,7 @@ const Match = {
       </div>
       <div
         v-if="!loading && sr.length > 0"
-        class="mx-0 pb-2 row d-flex flex-nowrap overflow-x-auto"
+        class="mx-0 pb-2 row d-flex flex-nowrap overflow-x-auto rail-scroll"
       >
         <div
           v-for="(r, idx) in sr"

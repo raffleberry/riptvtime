@@ -78,16 +78,17 @@ const DiscoverViewAll = {
   },
   template: /* HTML */ `
     <SearchTileOpts></SearchTileOpts>
-    <div class="d-flex justify-content-between align-items-center px-3 my-2">
+    <div class="d-flex justify-content-between align-items-center px-3 my-2 viewall-header">
       <button type="button" class="btn btn-sm btn-outline-secondary" @click="goBack">
         <i class="bi bi-arrow-left"></i> Discover
       </button>
-      <h4 class="m-0">{{ title }}</h4>
+      <h4 class="m-0 text-truncate">{{ title }}</h4>
       <select
         class="form-select form-select-sm"
         style="width: auto;"
         :value="sort"
         @change="onSortChange"
+        aria-label="Sort results"
       >
         <option v-for="s in DISCOVER_SORTS" :key="s" :value="s">Sort: {{ s }}</option>
       </select>
@@ -114,7 +115,7 @@ const DiscoverViewAll = {
       </div>
     </div>
     <div
-      class="d-flex flex-column justify-content-center align-items-center my-2"
+      class="d-flex flex-column justify-content-center align-items-center my-2 sticky-pager"
       v-if="viewTotalResults > 0"
     >
       <div class="input-group mt-3 justify-content-center">
