@@ -14,13 +14,11 @@ const Feed = {
   setup: (props) => {
     const store = useFeedStore()
     const { feed, loading } = storeToRefs(store)
-    const { fetchFeed } = store
+    const { fetchFeed, epMarkAndGetUpNext } = store
 
     onMounted(() => {
       fetchFeed()
     })
-
-    const { epMarkAndGetUpNext } = useFeedStore()
 
     const handleMarkUpNext = async (d) => {
       try {
@@ -54,7 +52,7 @@ const Feed = {
         </div>
       </div>
       <div v-else>
-        <div v-for="tv in feed" :key="tv.ID" class="mb-3">
+        <div v-for="tv in feed" :key="tv.MId || tv.ID" class="mb-3">
           <TvFeedTile :tv="tv" @markupnext="handleMarkUpNext"></TvFeedTile>
         </div>
       </div>

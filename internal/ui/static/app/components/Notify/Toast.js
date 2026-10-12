@@ -1,4 +1,4 @@
-import { computed, onMounted, useTemplateRef, watch } from "../../vue.js"
+import { onMounted, onUnmounted, useTemplateRef } from "../../vue.js"
 
 export const Toast = {
   props: {
@@ -22,16 +22,26 @@ export const Toast = {
       }
     }
 
-    var el = useTemplateRef("liveToast")
+    const toastRef = useTemplateRef("el")
     var bsEl = null
 
     onMounted(() => {
-      bsEl = bootstrap.Toast.getOrCreateInstance(el.value)
+      if (!toastRef.value) return
+      bsEl = bootstrap.Toast.getOrCreateInstance(toastRef.value)
       bsEl.show()
     })
 
+    onUnmounted(() => {
+      try {
+        bsEl?.dispose?.()
+      } catch {
+        // ignore dispose errors on unmount
+      }
+      bsEl = null
+    })
+
     return {
-      el,
+      el: toastRef,
       border,
     }
   },
