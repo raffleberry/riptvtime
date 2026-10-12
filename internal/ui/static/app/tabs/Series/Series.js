@@ -58,7 +58,7 @@ export const Series = {
 
     watch(sd, () => {
       if (sd.value?.Name) {
-        document.title = `${sd.value.Name} (${sd.value.Year}) - ${document.title}`
+        document.title = `${sd.value.Name} (${sd.value.Year}) | riptvtime`
       }
     })
 
@@ -257,7 +257,6 @@ export const Series = {
       if (!isDateTimeZero(ep.AirDate)) {
         return new Date(ep.AirDate).toDateString()
       } else {
-        console.log(ep.SeasonNumber)
         if (ep.SeasonNumber === 0) {
           return ""
         }

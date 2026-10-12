@@ -1,12 +1,9 @@
-import { apiGetState, apiGetUnrImportData, apiImportMatch, apiResetState } from "../../api.js"
+import { apiGetState, apiGetUnrImportData, apiResetState } from "../../api.js"
 import { MsgType, notify } from "../../components/Notify/Notify.js"
-import { generateRandomString, PAGE, theme } from "../../utils.js"
-import { computed, onMounted, ref, watch } from "../../vue.js"
+import { generateRandomString, PAGE } from "../../utils.js"
+import { computed, onMounted, onUnmounted, ref } from "../../vue.js"
 import { Match } from "./Match.js"
 import { Upload } from "./Upload.js"
-
-var errCnt = 0
-var pollingId = null
 
 const Import = {
   props: {},
@@ -18,6 +15,10 @@ const Import = {
     const unresolved = ref([])
 
     const loading = ref(false)
+    let errCnt = 0
+    let pollingId = null
+    let pollTimer = null
+    let unmounted = false
 
     const refresh = async () => {
       try {
@@ -62,15 +63,14 @@ const Import = {
     })
 
     const pollState = async (id = generateRandomString(6)) => {
+      if (unmounted) return
       if (pollingId === null) {
         pollingId = id
-      } else if (pollingId === id) {
-        console.log("Polling, id: ", id)
-      } else {
+      } else if (pollingId !== id) {
         return
       }
       const { data, err } = await apiGetState()
-      // if network error, then let theUI KNOW TODO
+      if (unmounted) return
       if (err) {
         console.error(err)
         if (errCnt++ > 3) {
@@ -79,17 +79,23 @@ const Import = {
           pollingId = null
           return
         }
+      } else {
+        errCnt = 0
       }
 
-      let again = data.uploadActive
-      // let stop = (data.uploadActive === false && state.value.uploadActive) || data.uploadError
+      if (data) {
+        const again = data.uploadActive
+        state.value = data
 
-      state.value = data
-
-      if (again) {
-        setTimeout(() => pollState(id), 2000)
-      } else {
+        if (again) {
+          pollTimer = setTimeout(() => pollState(id), 2000)
+        } else {
+          pollingId = null
+        }
+      } else if (!err) {
         pollingId = null
+      } else {
+        pollTimer = setTimeout(() => pollState(id), 2000)
       }
     }
 
@@ -110,6 +116,15 @@ const Import = {
 
     onMounted(() => {
       entrypoint()
+    })
+
+    onUnmounted(() => {
+      unmounted = true
+      pollingId = null
+      if (pollTimer) {
+        clearTimeout(pollTimer)
+        pollTimer = null
+      }
     })
 
     const onUploadSuccess = (data) => {

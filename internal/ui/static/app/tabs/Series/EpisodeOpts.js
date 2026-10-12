@@ -1,4 +1,5 @@
 import { computed, onMounted, ref, storeToRefs } from "../../vue.js"
+import { MsgType, notify } from "../../components/Notify/Notify.js"
 import { useSeriesStore } from "./seriesStore.js"
 
 export const EpisodeOpts = {
@@ -38,6 +39,7 @@ export const EpisodeOpts = {
           },
         ])
       } catch (e) {
+        notify(MsgType.Error, "Episode", e)
       } finally {
         bSelf.hide()
         loading.value = false
@@ -48,6 +50,7 @@ export const EpisodeOpts = {
         loading.value = true
         await epUnMarkWatched(props.mid, props.ep.SeasonNumber, props.ep.EpisodeNumber)
       } catch (e) {
+        notify(MsgType.Error, "Episode", e)
       } finally {
         bSelf.hide()
         loading.value = false
@@ -55,22 +58,15 @@ export const EpisodeOpts = {
     }
 
     const cnt = computed(() => {
-      let idx = -1
+      let list = watchedEps.value
       if (props.ep.SeasonNumber === 0) {
         // specials
-        idx = watchedSpls.value.findIndex(
-          (sep) => sep.S === props.ep.SeasonNumber && sep.E === props.ep.EpisodeNumber,
-        )
-      } else {
-        idx = watchedEps.value.findIndex(
-          (sep) => sep.S === props.ep.SeasonNumber && sep.E === props.ep.EpisodeNumber,
-        )
+        list = watchedSpls.value
       }
-      if (idx === -1) {
-        return 0
-      } else {
-        return watchedEps.value[idx].Cnt
-      }
+      const found = list.find(
+        (sep) => sep.S === props.ep.SeasonNumber && sep.E === props.ep.EpisodeNumber,
+      )
+      return found ? found.Cnt : 0
     })
 
     const getIncrTxt = (c) => {
@@ -130,14 +126,14 @@ export const EpisodeOpts = {
           </div>
           <button
             :disabled="loading"
-            class="list-group-item list-group-item-action btn btn-primary px-4 py-3 d-flex align-items-center border-0 text-primary"
+            class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-primary"
             @click="handleIncr"
           >
             <i class="bi bi-plus-circle me-2"></i> {{ getIncrTxt(cnt) }}
           </button>
           <button
             :disabled="loading"
-            class="list-group-item list-group-item-action btn btn-primary px-4 py-3 d-flex align-items-center border-0 text-danger"
+            class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-danger"
             @click="handleDecr"
           >
             <i class="bi bi-dash-circle me-2"></i> {{ getDecrTxt(cnt) }}

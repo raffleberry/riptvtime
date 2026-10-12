@@ -1,4 +1,4 @@
-import { apiGetUnrImportData, apiIgnoreUnresolved } from "../../api.js"
+import { apiGetUnrImportData, apiIgnoreUnresolved, apiImportMatch } from "../../api.js"
 import { MsgType, notify } from "../../components/Notify/Notify.js"
 import { nextTick, onMounted, onUnmounted, ref } from "../../vue.js"
 import { Match } from "./Match.js"
@@ -85,7 +85,7 @@ const Unresolved = {
       try {
         ignoring.value = true
         const removedIdx = selectedIdx.value
-        const err = await apiIgnoreUnresolved(item.Key)
+        const { err } = await apiIgnoreUnresolved(item.Key)
         if (err) {
           throw err
         }
@@ -112,14 +112,26 @@ const Unresolved = {
       }
     }
 
-    const onMatchDone = ({ TvTimeSId, MId }) => {
-      // TODO: implement backend API call
-      console.log("matchDone", TvTimeSId, MId)
-      if (activeTab.value === "series") {
-        data.value.Series = data.value.Series.filter((s) => s.TvTimeId !== TvTimeSId)
+    const onMatchDone = async ({ TvTimeSId, MId }) => {
+      try {
+        ignoring.value = true
+        const { err } = await apiImportMatch(TvTimeSId, MId)
+        if (err) {
+          throw err
+        }
+        if (activeTab.value === "series") {
+          data.value.Series = data.value.Series.filter((s) => s.TvTimeId !== TvTimeSId)
+        } else if (activeTab.value === "episodes") {
+          data.value.Episodes = data.value.Episodes.filter((e) => e.TvTimeId !== TvTimeSId)
+        }
+        selected.value = null
+        selectedIdx.value = -1
+      } catch (error) {
+        console.error("Error matching unresolved item:", error)
+        notify(MsgType.Error, "Unresolved", error)
+      } finally {
+        ignoring.value = false
       }
-      selected.value = null
-      selectedIdx.value = -1
     }
 
     const rowRefs = ref([])
@@ -139,6 +151,8 @@ const Unresolved = {
     }
 
     const onKeydown = (e) => {
+      const tag = (e.target && e.target.tagName) || ""
+      if (/INPUT|TEXTAREA|SELECT/.test(tag) || (e.target && e.target.isContentEditable)) return
       if (e.key === "ArrowDown") {
         e.preventDefault()
         const list = currentList()
@@ -278,21 +292,13 @@ const Unresolved = {
                 <dt class="col-sm-3">Reason</dt>
                 <dd class="col-sm-9 text-danger">{{ selected.UnresolvedMsg }}</dd>
               </dl>
-              <button
-                class="btn btn-warning"
-                :disabled="ignoring"
-                @click="onIgnore(selected)"
-              >
+              <button class="btn btn-warning" :disabled="ignoring" @click="onIgnore(selected)">
                 Ignore
               </button>
             </div>
 
             <div v-if="activeTab === 'series'">
-              <button
-                class="btn btn-warning mb-2"
-                :disabled="ignoring"
-                @click="onIgnore(selected)"
-              >
+              <button class="btn btn-warning mb-2" :disabled="ignoring" @click="onIgnore(selected)">
                 Ignore
               </button>
               <Match :item="selected" @matchDone="onMatchDone"></Match>

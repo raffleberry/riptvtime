@@ -9,8 +9,8 @@ export const useSeriesStore = defineStore("series", () => {
   const sd = ref({})
   const watchedEps = ref([])
   const watchedSpls = ref([])
+  let fetchSeq = 0
 
-  window.we = watchedEps
   const SnWatchedEps = computed(() => {
     let rv = {}
     for (let i = 0; i <= sd.value.NumberOfSeasons; i++) {
@@ -51,16 +51,18 @@ export const useSeriesStore = defineStore("series", () => {
   }
 
   const fetchSeries = async (id) => {
+    const seq = ++fetchSeq
     loading.value = true
     try {
       const { data, err } = await apiGetSeriesDetails(id)
+      if (seq !== fetchSeq) return
       if (err) {
         throw err
       }
 
-      let weps = []
-      let wspls = []
-      for (const ep of data.EpsWatched) {
+      const weps = []
+      const wspls = []
+      for (const ep of data.EpsWatched || []) {
         if (ep.S === 0) {
           wspls.push(ep)
         } else {
@@ -75,10 +77,13 @@ export const useSeriesStore = defineStore("series", () => {
       watchedEps.value = weps
       watchedSpls.value = wspls
     } catch (error) {
+      if (seq !== fetchSeq) return
       console.error("Error getting series data:", error)
       notify(MsgType.Error, "Series", error)
     } finally {
-      loading.value = false
+      if (seq === fetchSeq) {
+        loading.value = false
+      }
     }
   }
 
@@ -91,7 +96,7 @@ export const useSeriesStore = defineStore("series", () => {
         }
       }
 
-      const err = await apiEpWatch(mId, eps)
+      const { err } = await apiEpWatch(mId, eps)
       if (err) {
         throw err
       }
@@ -122,7 +127,7 @@ export const useSeriesStore = defineStore("series", () => {
 
   const epUnMarkWatched = async (mId, sNo, epNo) => {
     try {
-      const err = await apiEpUnWatch(mId, sNo, epNo)
+      const { err } = await apiEpUnWatch(mId, sNo, epNo)
       if (err) {
         throw err
       }
@@ -137,8 +142,8 @@ export const useSeriesStore = defineStore("series", () => {
           watched.value[idx].Cnt -= 1
         } else {
           watched.value.splice(idx, 1)
-          updateTrackingStore(mId)
         }
+        updateTrackingStore(mId)
       } else {
         console.error(watched)
         throw new Error("Episode not found in watched list")
@@ -172,7 +177,7 @@ export const useSeriesStore = defineStore("series", () => {
       }
     } catch (error) {
       console.error(error)
-      notify(MsgType.Error, "Series", err)
+      notify(MsgType.Error, "Series", error)
     } finally {
     }
   }

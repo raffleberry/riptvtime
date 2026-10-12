@@ -110,21 +110,18 @@ export const SeriesMarkPrev = {
 
           <button
             class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-primary"
-            class="btn btn-primary"
             @click="handleMarkAll"
           >
             Mark all Previous too - ({{eps.length}} episodes)
           </button>
           <button
             class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-primary"
-            class="btn btn-primary"
             @click="handleMark"
           >
             Mark as watched <span v-if="eps.length > 1"> ({{ky(eps[0].S, eps[0].E)}})</span>
           </button>
           <button
             class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-danger"
-            class="btn btn-danger"
             @click="handleCancel"
           >
             Cancel

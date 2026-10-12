@@ -1,4 +1,4 @@
-import { computed, onMounted, storeToRefs, useRoute, useRouter, watch } from "../vue.js"
+import { computed, storeToRefs, useRoute, useRouter, watch } from "../vue.js"
 import { SearchTile } from "./Search/SearchTile.js"
 import { SearchTileOpts } from "./Search/SearchTileOpts.js"
 import {
@@ -41,8 +41,6 @@ const DiscoverViewAll = {
       () => load(),
       { immediate: true },
     )
-
-    onMounted(() => load())
 
     const onSortChange = (event) => {
       router.push({

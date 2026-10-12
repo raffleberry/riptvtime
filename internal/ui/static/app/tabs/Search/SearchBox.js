@@ -37,9 +37,8 @@ const SearchBox = {
     // )
 
     const handleSearch = () => {
-      let st = searchTerm.value.trim()
+      const st = searchTerm.value.trim()
       if (st !== "") {
-        console.log(st)
         router.push({ path: "/search", query: { q: st, p: 1 } })
       }
     }

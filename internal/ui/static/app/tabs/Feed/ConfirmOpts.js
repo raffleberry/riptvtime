@@ -12,13 +12,10 @@ export const openConfirm = (title, message) => {
   state.value.title = title
   state.value.message = message
   show.value = true
-  console.log(title, message)
   return new Promise((resolve) => {
     resolver = resolve
   })
 }
-
-window.openConfirm = openConfirm
 
 export const ConfirmOpts = {
   props: {},
@@ -87,13 +84,13 @@ export const ConfirmOpts = {
         <p class="px-3 mt-2">{{ state.message }}</p>
         <div class="list-group list-group-flush">
           <button
-            class="list-group-item list-group-item-action btn btn-primary px-4 py-3 d-flex align-items-center border-0 text-primary"
+            class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-primary"
             @click="confirm"
           >
             <i class="bi bi-plus-circle me-2"></i> Confirm
           </button>
           <button
-            class="list-group-item list-group-item-action btn btn-primary px-4 py-3 d-flex align-items-center border-0 text-danger"
+            class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-danger"
             @click="cancel"
           >
             <i class="bi bi-dash-circle me-2"></i> Cancel

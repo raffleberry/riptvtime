@@ -42,7 +42,8 @@ export const routes = Object.freeze([
 
 export const highlight = (text, highlight) => {
   if (!highlight) return text
-  const regex = new RegExp(`(${highlight})`, "gi")
+  const escaped = highlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const regex = new RegExp(`(${escaped})`, "gi")
   return text.replace(regex, `<strong>$1</strong>`)
 }
 
@@ -68,12 +69,16 @@ export const imgBackdropUrl = (id) => {
   return `https://image.tmdb.org/t/p/w780/${id}`
 }
 
-const mediaQuery = window.matchMedia("(max-width: 1000px)")
+const mediaQuery = window.matchMedia("(max-width: 768px)")
 export const isMobile = ref(mediaQuery.matches)
 const updateIsMobile = (event) => {
   isMobile.value = event.matches
 }
-mediaQuery.addEventListener("change", updateIsMobile)
+if (typeof mediaQuery.addEventListener === "function") {
+  mediaQuery.addEventListener("change", updateIsMobile)
+} else if (typeof mediaQuery.addListener === "function") {
+  mediaQuery.addListener(updateIsMobile)
+}
 
 export const theme = ref(localStorage.getItem("theme") || "light")
 watch(

@@ -34,9 +34,6 @@ export const notify = (type, title, message) => {
   }, 5500)
 }
 
-window.notify = notify
-window.ntype = MsgType
-
 export const Notify = {
   components: {
     Toast,

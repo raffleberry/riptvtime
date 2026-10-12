@@ -1,5 +1,6 @@
 import { ky } from "../../utils.js"
 import { onMounted, storeToRefs } from "../../vue.js"
+import { MsgType, notify } from "../../components/Notify/Notify.js"
 import { ConfirmOpts, openConfirm } from "./ConfirmOpts.js"
 import { TvFeedTile } from "./TvFeedTile.js"
 import { useFeedStore } from "./feedStore.js"

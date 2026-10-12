@@ -15,16 +15,18 @@ const Upcoming = {
 
     const fetchUpcoming = async () => {
       loading.value = true
-
-      const { data, err } = await apiGetUpcoming()
-      if (err) {
-        console.log(err)
+      try {
+        const { data, err } = await apiGetUpcoming()
+        if (err) {
+          throw err
+        }
+        upcoming.value = data || []
+      } catch (err) {
+        console.error(err)
         notify(MsgType.Error, "Upcoming", err)
-        return
+      } finally {
+        loading.value = false
       }
-      upcoming.value = data
-
-      loading.value = false
     }
 
     onMounted(() => {

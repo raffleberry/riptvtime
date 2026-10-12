@@ -1,47 +1,46 @@
 import { apiSearchTv } from "../../api.js"
 import { MsgType, notify } from "../../components/Notify/Notify.js"
-import { defineStore, ref } from "../../vue.js"
+import { computed, defineStore, ref } from "../../vue.js"
 
 export const useSearchStore = defineStore("search", () => {
   const loading = ref(false)
 
-  let searchTerm = ""
-  let page = 1
-
-  var pageTotal = 1
+  const searchTerm = ref("")
+  const page = ref(1)
+  const pageTotal = ref(1)
   const resultsCnt = ref(0)
   const results = ref({})
 
   const onSearch = async (searchText, pg) => {
     if (loading.value) return
 
-    if (searchText === searchTerm && page === pg) {
+    if (!pg) pg = 1
+    pg = Number(pg) || 1
+
+    if (searchText === searchTerm.value && page.value === pg) {
       return
     }
 
-    if (searchText === searchTerm && results.value[pg]) {
-      page = pg
+    if (searchText === searchTerm.value && results.value[pg]) {
+      page.value = pg
       return
     }
 
     try {
       loading.value = true
-      if (!pg) {
-        pg = 1
-      }
-      page = pg
+      page.value = pg
 
       const { data, err } = await apiSearchTv(searchText, pg)
       if (err) {
         throw err
       }
 
-      if (searchTerm !== searchText) {
-        searchTerm = searchText
+      if (searchTerm.value !== searchText) {
+        searchTerm.value = searchText
         results.value = {}
       }
-      pageTotal = data.TotalPages
-      resultsCnt.value = data.TotalResults
+      pageTotal.value = data.TotalPages || 1
+      resultsCnt.value = data.TotalResults || 0
       results.value = {
         ...results.value,
         [pg]: data.Results,
@@ -55,7 +54,7 @@ export const useSearchStore = defineStore("search", () => {
   }
 
   const getTotalPages = () => {
-    return pageTotal
+    return pageTotal.value
   }
 
   return {
@@ -63,7 +62,8 @@ export const useSearchStore = defineStore("search", () => {
     results,
     loading,
     getTotalPages,
-    pageTotal,
+    pageTotal: computed(() => pageTotal.value),
+    page: computed(() => page.value),
     resultsCnt,
 
     // actions

@@ -117,14 +117,12 @@ export const SeriesOpts = {
           <button
             class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-primary"
             v-if="[TvStatus.Watching, TvStatus.Stopped].includes(status)"
-            class="btn btn-primary"
             @click="handleStatusChange"
           >
             {{ getStatusBtnTxt(status) }}
           </button>
           <button
             class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-danger"
-            class="btn btn-primary"
             @click="handleAddRemSeries"
           >
             {{ getAddRemBtnTxt(status) }}

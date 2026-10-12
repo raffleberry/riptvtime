@@ -34,8 +34,7 @@ const Match = {
         selected.value = null
         const { data, err } = await apiSearchTv(searchTerm.value, 1)
         if (err) {
-          console.log(err)
-          return
+          throw err
         }
         if (!data.Results) {
           searchResults.value = []
@@ -54,7 +53,10 @@ const Match = {
       () => props.item,
       () => {
         if (!props.item) return
-        searchTerm.value = (props.item.Name || props.item.SeriesName || "").replace(/ \(\s*\d{4}\s*\)\s*/g, "")
+        searchTerm.value = (props.item.Name || props.item.SeriesName || "").replace(
+          / \(\s*\d{4}\s*\)\s*/g,
+          "",
+        )
         handleSearch()
       },
       { immediate: true },

@@ -44,7 +44,7 @@ export const useDiscoverStore = defineStore("discover", () => {
 
   const fetchRail = async (list) => {
     const cur = rails.value[list]
-    if (cur && (cur.loading || cur.items)) return
+    if (cur && (cur.loading || (cur.items && cur.items.length > 0))) return
     rails.value = {
       ...rails.value,
       [list]: { items: null, totalPages: 1, totalResults: 0, loading: true, err: null },

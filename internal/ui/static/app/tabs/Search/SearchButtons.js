@@ -1,5 +1,5 @@
 import { useSearchStore } from "./searchStore.js"
-import { ref, storeToRefs, useRouter } from "../../vue.js"
+import { computed, ref, storeToRefs, useRouter, watch } from "../../vue.js"
 
 const SearchButtons = {
   components: {},
@@ -14,28 +14,35 @@ const SearchButtons = {
     const { loading, resultsCnt } = storeToRefs(store)
     const router = useRouter()
 
-    const page = ref(props.pageCur)
+    const page = ref(Number(props.pageCur) || 1)
+    watch(
+      () => props.pageCur,
+      (v) => {
+        page.value = Number(v) || 1
+      },
+    )
+
+    const totalPages = computed(() => props.pageTotal || getTotalPages() || 1)
 
     const onPrvBtn = () => {
-      if (page.value === 1) {
+      if (page.value <= 1) {
         return
       }
-      page.value -= 1
-      router.push({ path: "/search", query: { q: props.term, p: page.value } })
+      router.push({ path: "/search", query: { q: props.term, p: page.value - 1 } })
     }
 
     const onNxtBtn = () => {
-      if (page.value >= getTotalPages()) {
+      if (page.value >= totalPages.value) {
         return
       }
-      page.value += 1
-      router.push({ path: "/search", query: { q: props.term, p: page.value } })
+      router.push({ path: "/search", query: { q: props.term, p: page.value + 1 } })
     }
 
     return {
       loading,
       resultsCnt,
       page,
+      totalPages,
       getTotalPages,
 
       onNxtBtn,
@@ -47,7 +54,7 @@ const SearchButtons = {
     <div class="d-flex flex-column justify-content-center align-items-center">
       <div class="input-group mt-3 justify-content-center">
         <button
-          :disabled="page === 1 || loading"
+          :disabled="page <= 1 || loading"
           type="button"
           class="btn btn-outline-primary"
           @click="onPrvBtn"
@@ -56,10 +63,10 @@ const SearchButtons = {
         </button>
         <div class="mx-3 d-flex flex-column align-items-center">
           <div>{{ resultsCnt }} Results</div>
-          <div>{{ page }} / {{ getTotalPages() }}</div>
+          <div>{{ page }} / {{ totalPages }}</div>
         </div>
         <button
-          :disabled="page === getTotalPages() || loading"
+          :disabled="page >= totalPages || loading"
           type="button"
           class="btn btn-outline-primary"
           @click="onNxtBtn"

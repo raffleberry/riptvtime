@@ -40,6 +40,9 @@ const ENDPOINT = Object.freeze({
   IMPORT_UNRESOLVED: () => {
     return `${base}/api/import/unresolved`
   },
+  IMPORT_MATCH: () => {
+    return `${base}/api/import/match`
+  },
   IMPORT_RESOLVE: () => {
     return `${base}/api/import/resolve`
   },
@@ -64,287 +67,134 @@ const ENDPOINT = Object.freeze({
   },
 })
 
-export const apiFetchFeed = async () => {
-  let url = `${ENDPOINT.FEED()}`
+// Shared fetch helpers. Every api* function resolves to { data, err } so
+// callers have a single contract to handle. Void endpoints resolve to {}.
+const errOf = async (res) => {
+  let txt = ""
   try {
-    const res = await fetch(url)
-    if (!res.ok) {
-      throw new Error(`Error, response from server: ${res.status} - ${res.statusText}`)
-    }
-    const result = await res.json()
-    return {
-      data: result,
-    }
-  } catch (error) {
-    console.error("Error fetching feed data:", error)
-    return {
-      err: error,
-    }
+    txt = await res.text()
+  } catch {
+    txt = res.statusText
   }
+  return new Error(`Error, response from server: ${res.status} - ${txt}`)
+}
+
+const getJson = async (url, fetchOpts) => {
+  try {
+    const res = await fetch(url, fetchOpts)
+    if (!res.ok) {
+      return { err: await errOf(res) }
+    }
+    // 204 No Content has no body to parse.
+    if (res.status === 204) {
+      return { data: null }
+    }
+    const data = await res.json()
+    return { data }
+  } catch (error) {
+    console.error("Error fetching:", url, error)
+    return { err: error }
+  }
+}
+
+const sendJson = async (url, method, body) => {
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+    if (!res.ok) {
+      return { err: await errOf(res) }
+    }
+    const ct = res.headers.get("content-type") || ""
+    if (ct.includes("application/json")) {
+      return { data: await res.json() }
+    }
+    return {}
+  } catch (error) {
+    console.error("Error fetching:", url, error)
+    return { err: error }
+  }
+}
+
+export const apiFetchFeed = async () => {
+  return getJson(ENDPOINT.FEED())
 }
 
 export const apiSearchTv = async (search, page) => {
-  let url = `${ENDPOINT.SEARCH_SERIES()}?q=${search}&p=${page}`
-  try {
-    const res = await fetch(url)
-
-    if (!res.ok) {
-      throw new Error(`Error, response from server: ${res.status} - ${res.statusText}`)
-    }
-
-    const result = await res.json()
-    return {
-      data: result,
-    }
-  } catch (error) {
-    console.error("Error Search data:", error)
-    return {
-      err: error,
-    }
-  }
+  let url = `${ENDPOINT.SEARCH_SERIES()}?q=${encodeURIComponent(search)}&p=${page}`
+  return getJson(url)
 }
 
 export const apiSetStatus = async (Id, newStatus) => {
-  let url = `${ENDPOINT.SERIES_STATUS(Id)}`
-  try {
-    const response = await fetch(url, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Status: newStatus }),
-    })
-
-    if (!response.ok) {
-      throw new Error(
-        `Error, bad response from server: ${response.status} - ${response.statusText}`,
-      )
-    }
-  } catch (error) {
-    return {
-      err: error,
-    }
-  }
-  return {}
+  return sendJson(ENDPOINT.SERIES_STATUS(Id), "PUT", { Status: newStatus })
 }
-export const apiGetStatus = async (mId) => {
-  let url = `${ENDPOINT.SERIES_STATUS(mId)}`
-  try {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Status: newStatus }),
-    })
 
-    if (!response.ok) {
-      throw new Error(
-        `Error, bad response from server: ${response.status} - ${response.statusText}`,
-      )
-    }
-  } catch (error) {
-    return {
-      err: error,
-    }
-  }
-  return {}
+export const apiGetStatus = async (mId) => {
+  return getJson(ENDPOINT.SERIES_STATUS(mId))
 }
 
 export const apiAddSeries = async (Id) => {
-  try {
-    const res = await fetch(ENDPOINT.SERIES_ADD(), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        MId: Id,
-      }),
-    })
-
-    if (!res.ok) {
-      const errTxt = await res.text()
-      return {
-        err: new Error(`Error, response from server: ${res.status} - ${errTxt}`),
-      }
-    }
-
-    const data = await res.json()
-
-    return {
-      data: data,
-    }
-  } catch (error) {
-    console.error(error)
-    return {
-      err: error,
-    }
-  }
+  return sendJson(ENDPOINT.SERIES_ADD(), "POST", { MId: Id })
 }
 
 export const apiRemSeries = async (Id) => {
   try {
-    const res = await fetch(ENDPOINT.SERIES_REM(Id), {
-      method: "DELETE",
-    })
-
+    const res = await fetch(ENDPOINT.SERIES_REM(Id), { method: "DELETE" })
     if (!res.ok && res.status !== 404) {
-      const errTxt = await res.text()
-      return {
-        err: new Error(`Error, response from server: ${res.status} - ${errTxt}`),
-      }
+      return { err: await errOf(res) }
     }
-  } catch (error) {
-    console.error(error)
-    return {
-      err: error,
-    }
-  }
-
-  return {}
-}
-
-export const apiGetSeriesFavs = async (limit) => {
-  try {
-    if (!limit) limit = -1
-    const res = await fetch(ENDPOINT.SERIES_FAVS(limit))
-    if (!res.ok) {
-      const errTxt = await res.text()
-      return {
-        err: new Error(`Error, response from server: ${res.status} - ${errTxt}`),
-      }
-    }
-    const data = await res.json()
-    return {
-      data: data,
-    }
-  } catch (error) {
-    console.error(error)
-    return error
-  }
-
-  return {}
-}
-
-export const apiSeriesTracked = async (Id) => {
-  try {
-    const res = await fetch(ENDPOINT.SERIES_ALL())
-
-    if (!res.ok) {
-      const errTxt = await res.text()
-      return {
-        err: new Error(`Error, response from server: ${res.status} - ${errTxt}`),
-      }
-    }
-
-    const data = await res.json()
-
-    return {
-      data: data,
-    }
-  } catch (error) {
-    console.error(error)
-    return {
-      err: error,
-    }
-  }
-
-  return {}
-}
-
-export const apiEpWatch = async (mId, eps) => {
-  try {
-    const res = await fetch(ENDPOINT.SERIES_EP_MARK(), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        SeriesMId: mId,
-        Episodes: eps,
-      }),
-    })
-
-    if (!res.ok) {
-      const errTxt = await res.text()
-      return new Error(`Error, response from server: ${res.status} - ${errTxt}`)
-    }
-  } catch (error) {
-    console.error(error)
-    return error
-  }
-  return null
-}
-
-export const apiEpUnWatch = async (mId, sNo, epNo) => {
-  try {
-    const res = await fetch(ENDPOINT.SERIES_EP_MARK(), {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        SeriesMId: mId,
-        SeasonNo: sNo,
-        EpisodeNo: epNo,
-      }),
-    })
-
-    if (!res.ok) {
-      const errTxt = await res.text()
-      return new Error(`Error, response from server: ${res.status} - ${errTxt}`)
-    }
-  } catch (error) {
-    console.error(error)
-    return error
-  }
-  return null
-}
-
-export const apiEpUpNext = async (mId) => {
-  try {
-    const res = await fetch(ENDPOINT.SERIES_EP_UPNEXT(mId), {
-      method: "GET",
-    })
-
-    if (res.status !== 200) {
-      if (res.status === 204) {
-        return {
-          data: {
-            S: -1,
-            E: -1,
-          },
-        }
-      }
-
-      const errTxt = await res.text()
-      return {
-        err: new Error(`Error, response from server: ${res.status} - ${errTxt}`),
-      }
-    }
-
-    const data = await res.json()
-
-    return {
-      data: data,
-    }
+    return {}
   } catch (error) {
     console.error(error)
     return { err: error }
   }
-  return {}
+}
+
+export const apiGetSeriesFavs = async (limit) => {
+  if (!limit) limit = -1
+  return getJson(ENDPOINT.SERIES_FAVS(limit))
+}
+
+export const apiSeriesTracked = async () => {
+  return getJson(ENDPOINT.SERIES_ALL())
+}
+
+export const apiEpWatch = async (mId, eps) => {
+  return sendJson(ENDPOINT.SERIES_EP_MARK(), "POST", {
+    SeriesMId: mId,
+    Episodes: eps,
+  })
+}
+
+export const apiEpUnWatch = async (mId, sNo, epNo) => {
+  return sendJson(ENDPOINT.SERIES_EP_MARK(), "PUT", {
+    SeriesMId: mId,
+    SeasonNo: sNo,
+    EpisodeNo: epNo,
+  })
+}
+
+export const apiEpUpNext = async (mId) => {
+  try {
+    const res = await fetch(ENDPOINT.SERIES_EP_UPNEXT(mId), { method: "GET" })
+    if (res.status === 204) {
+      return { data: { S: -1, E: -1 } }
+    }
+    if (!res.ok) {
+      return { err: await errOf(res) }
+    }
+    const data = await res.json()
+    return { data }
+  } catch (error) {
+    console.error(error)
+    return { err: error }
+  }
 }
 
 export const apiGetSeriesDetails = async (id) => {
-  try {
-    const res = await fetch(ENDPOINT.SERIES_GET(id))
-    if (!res.ok) {
-      return {
-        err: new Error(`${res.status} - ${await res.text()}`),
-      }
-    }
-    const data = await res.json()
-
-    return {
-      data: data,
-    }
-  } catch (error) {
-    console.error(error)
-    return {
-      err: new Error(`Error fetching series data:, ${error}`),
-    }
-  }
+  return getJson(ENDPOINT.SERIES_GET(id))
 }
 
 export const apiUploadImportZip = async (formData, progress) => {
@@ -358,14 +208,18 @@ export const apiUploadImportZip = async (formData, progress) => {
     }
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(JSON.parse(xhr.responseText))
+        try {
+          resolve(JSON.parse(xhr.responseText))
+        } catch {
+          resolve({})
+        }
       } else {
-        reject(xhr.statusText)
+        reject(new Error(xhr.statusText || `Upload failed: ${xhr.status}`))
       }
     }
 
     xhr.onerror = () => {
-      reject("Something went wrong")
+      reject(new Error("Something went wrong"))
     }
     xhr.open("POST", ENDPOINT.IMPORT_UPLOAD())
     xhr.send(formData)
@@ -373,187 +227,48 @@ export const apiUploadImportZip = async (formData, progress) => {
 }
 
 export const apiGetUnrImportData = async () => {
-  try {
-    const res = await fetch(ENDPOINT.IMPORT_UNRESOLVED())
-    if (!res.ok) {
-      return {
-        err: new Error(`${res.status} - ${await res.text()}`),
-      }
-    }
-    const data = await res.json()
-
-    return {
-      data: data,
-    }
-  } catch (error) {
-    console.error(error)
-    return {
-      err: new Error(`Error fetching unmatched data:, ${error}`),
-    }
-  }
+  return getJson(ENDPOINT.IMPORT_UNRESOLVED())
 }
 
 export const apiGetState = async () => {
-  try {
-    const res = await fetch(ENDPOINT.STATE())
-    if (!res.ok) {
-      return {
-        err: new Error(`${res.status} - ${await res.text()}`),
-      }
-    }
-    const data = await res.json()
-
-    return {
-      data: data,
-    }
-  } catch (error) {
-    console.error(error)
-    return {
-      err: error,
-    }
-  }
+  return getJson(ENDPOINT.STATE())
 }
 
 export const apiResetState = async () => {
   try {
     const res = await fetch(ENDPOINT.STATE(), { method: "DELETE" })
     if (!res.ok) {
-      return {
-        err: new Error(`${res.status} - ${await res.text()}`),
-      }
+      return { err: await errOf(res) }
     }
-    const data = await res.json()
-
-    return {
-      data: data,
-    }
+    return { data: await res.json() }
   } catch (error) {
     console.error(error)
-    return {
-      err: error,
-    }
+    return { err: error }
   }
 }
-export const apiImportMatch = async (TvTimeSId, MId) => {
-  try {
-    const res = await fetch(ENDPOINT.IMPORT_MATCH(), {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        TvTimeSId: TvTimeSId,
-        MId: MId,
-      }),
-    })
 
-    if (!res.ok) {
-      const errTxt = await res.text()
-      return new Error(`Error, response from server: ${res.status} - ${errTxt}`)
-    }
-  } catch (error) {
-    console.error(error)
-    return error
-  }
-  return null
+export const apiImportMatch = async (TvTimeSId, MId) => {
+  return sendJson(ENDPOINT.IMPORT_MATCH(), "PUT", { TvTimeSId, MId })
 }
 
 export const apiIgnoreUnresolved = async (key) => {
-  try {
-    const res = await fetch(ENDPOINT.IMPORT_IGNORE(), {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Key: key }),
-    })
-    if (!res.ok) {
-      const errTxt = await res.text()
-      return new Error(`Error, response from server: ${res.status} - ${errTxt}`)
-    }
-  } catch (error) {
-    console.error(error)
-    return error
-  }
-  return null
+  return sendJson(ENDPOINT.IMPORT_IGNORE(), "PUT", { Key: key })
 }
 
 export const apiGetSeriesStats = async () => {
-  try {
-    const res = await fetch(ENDPOINT.SERIES_STATS())
-    if (!res.ok) {
-      const errTxt = await res.text()
-      return {
-        err: new Error(`Error, response from server: ${res.status} - ${errTxt}`),
-      }
-    }
-    const data = await res.json()
-    return {
-      data: data,
-    }
-  } catch (error) {
-    console.error(error)
-    return error
-  }
-  return null
+  return getJson(ENDPOINT.SERIES_STATS())
 }
 
 export const apiGetSeriesStatsMyShows = async (limit) => {
-  try {
-    if (!limit) limit = -1
-    const res = await fetch(ENDPOINT.SERIES_STATS_MY_SHOWS(limit))
-    if (!res.ok) {
-      const errTxt = await res.text()
-      return {
-        err: new Error(`Error, response from server: ${res.status} - ${errTxt}`),
-      }
-    }
-    const data = await res.json()
-    return {
-      data: data,
-    }
-  } catch (error) {
-    console.error(error)
-    return error
-  }
-  return null
+  if (!limit) limit = -1
+  return getJson(ENDPOINT.SERIES_STATS_MY_SHOWS(limit))
 }
 
 export const apiGetUpcoming = async () => {
-  try {
-    const res = await fetch(ENDPOINT.SERIES_UPCOMING())
-    if (!res.ok) {
-      const errTxt = await res.text()
-      return {
-        err: new Error(`Error, response from server: ${res.status} - ${errTxt}`),
-      }
-    }
-    const data = await res.json()
-    return {
-      data: data,
-    }
-  } catch (error) {
-    console.error(error)
-    return error
-  }
-  return null
+  return getJson(ENDPOINT.SERIES_UPCOMING())
 }
 
 export const apiDiscoverTv = async (list, page, sortBy) => {
   if (!page) page = 1
-  let url = ENDPOINT.DISCOVER_TV(list, page, sortBy)
-  try {
-    const res = await fetch(url)
-    if (!res.ok) {
-      const errTxt = await res.text()
-      return {
-        err: new Error(`Error, response from server: ${res.status} - ${errTxt}`),
-      }
-    }
-    const data = await res.json()
-    return {
-      data: data,
-    }
-  } catch (error) {
-    console.error("Error Discover data:", error)
-    return {
-      err: error,
-    }
-  }
+  return getJson(ENDPOINT.DISCOVER_TV(list, page, sortBy))
 }

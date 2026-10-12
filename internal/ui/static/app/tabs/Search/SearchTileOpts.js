@@ -1,7 +1,7 @@
-import { notify } from "../../components/Notify/Notify.js"
+import { MsgType, notify } from "../../components/Notify/Notify.js"
 import { useTracked } from "../../stores/tracked.js"
 import { TvStatus } from "../../utils.js"
-import { computed, onMounted, ref, storeToRefs } from "../../vue.js"
+import { computed, onMounted, ref, storeToRefs, useRouter } from "../../vue.js"
 
 export const selected = ref({
   Id: null,
@@ -13,6 +13,7 @@ export const selected = ref({
 export const SearchTileOpts = {
   setup() {
     const loading = ref(false)
+    const router = useRouter()
 
     const trackedStore = useTracked()
 
@@ -20,7 +21,11 @@ export const SearchTileOpts = {
     const { changeStatus, remSeries, addSeries } = trackedStore
 
     const onDetails = () => {
-      console.log("Details")
+      if (selected.value?.Id) {
+        const id = selected.value.Id
+        bSelf.hide()
+        router.push({ path: `/series/${id}` })
+      }
     }
 
     const status = computed(() => {
@@ -140,20 +145,19 @@ export const SearchTileOpts = {
         <div v-else class="list-group list-group-flush">
           <button
             class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-primary"
+            @click="onDetails"
           >
             Show details
           </button>
           <button
             class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-primary"
             v-if="[TvStatus.Watching, TvStatus.Stopped].includes(status)"
-            class="btn btn-primary"
             @click="handleStatusChange"
           >
             {{ statusActionTxt }}
           </button>
           <button
             class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center border-0 text-danger"
-            class="btn btn-primary"
             @click="handleAddRemSeries"
           >
             {{ addRemActionTxt }}
