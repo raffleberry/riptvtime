@@ -65,8 +65,8 @@ func (s TvStatus) IsValid() bool {
 
 type TvSeries struct {
 	gorm.Model
-	MName          string
-	MId            int64
+	MName          string `gorm:"uniqueIndex:idx_series_id"`
+	MId            int64  `gorm:"uniqueIndex:idx_series_id"`
 	Name           string
 	Overview       string
 	Year           int
