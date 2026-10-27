@@ -1,3 +1,4 @@
+import { Empty } from "../../components/Empty.js"
 import { ky } from "../../utils.js"
 import { onMounted, storeToRefs } from "../../vue.js"
 import { ConfirmOpts, openConfirm } from "./ConfirmOpts.js"
@@ -7,6 +8,7 @@ import { useFeedStore } from "./feedStore.js"
 const Feed = {
   props: {},
   components: {
+    Empty,
     TvFeedTile,
     ConfirmOpts,
   },
@@ -53,7 +55,13 @@ const Feed = {
         </div>
       </div>
       <div v-else>
-        <div v-for="tv in feed" :key="tv.ID" class="mb-3">
+        <div v-if="feed.length == 0">
+          <Empty icon="bi bi-calendar-check-fill"
+            title="That's all folks!"
+            message="That's a wrap! You're completely up to date. Ready for something new? Swing by the Discover page and dive into some fresh shows."
+          />
+        </div>
+        <div v-else v-for="tv in feed" :key="tv.ID" class="mb-3">
           <TvFeedTile :tv="tv" @markupnext="handleMarkUpNext"></TvFeedTile>
         </div>
       </div>

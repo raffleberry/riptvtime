@@ -7,7 +7,12 @@ const Stats = {
   props: {},
   components: {},
   setup: (props) => {
-    const stats = ref({})
+    const stats = ref({
+      TotalHours: 0,
+      TotalEpisodes: 0,
+      TotalShows: 0,
+      FavShows: 0,
+    })
     const fetchStats = async () => {
       const { data, err } = await apiGetSeriesStats()
       if (err) {
@@ -15,7 +20,13 @@ const Stats = {
         notify(MsgType.Error, "Stats", err)
         return
       }
-      stats.value = data
+      console.log(data)
+      stats.value = {
+        TotalHours: Math.ceil(data.TotalHours),
+        TotalEpisodes: data.TotalEpisodes,
+        TotalShows: data.TotalShows,
+        FavShows: data.FavShows,
+      }
     }
 
     const shows = ref([])
@@ -115,30 +126,30 @@ const Stats = {
       <div class="d-flex align-items-center">
         <div class="card text-center me-2">
           <div class="card-body">
-            <h5 class="card-title">{{ Math.ceil(stats.TotalHours) }}</h5>
+            <h5 class="card-title">{{ stats.TotalHours }}</h5>
             <p class="card-text">Hours Watched</p>
           </div>
         </div>
         <div class="card text-center me-2">
           <div class="card-body">
-            <h5 class="card-title">{{ Math.ceil(stats.TotalEpisodes) }}</h5>
+            <h5 class="card-title">{{ stats.TotalEpisodes }}</h5>
             <p class="card-text">Episodes Watched</p>
           </div>
         </div>
         <div class="card text-center me-2">
           <div class="card-body">
-            <h5 class="card-title">{{ Math.ceil(stats.TotalShows) }}</h5>
+            <h5 class="card-title">{{ stats.TotalShows }}</h5>
             <p class="card-text">Shows Tracked</p>
           </div>
         </div>
         <div class="card text-center me-2">
           <div class="card-body">
-            <h5 class="card-title">{{ Math.ceil(stats.FavShows) }}</h5>
+            <h5 class="card-title">{{ stats.FavShows }}</h5>
             <p class="card-text">Favourite Shows</p>
           </div>
         </div>
       </div>
-      <div class="mt-2 d-flex w-100 justify-content-center">
+      <div v-if="shows.length !== 0" class="mt-2 d-flex w-100 justify-content-center">
         <span class="mt-2 me-2">My Shows </span>
         <button
           type="button"
@@ -177,7 +188,7 @@ const Stats = {
         </div>
       </div>
 
-      <div class="mt-2 d-flex w-100 justify-content-center">
+      <div v-if="favs.length !== 0" class="mt-2 d-flex w-100 justify-content-center">
         <span class="mt-2 me-2">Favourites</span>
         <button
           type="button"

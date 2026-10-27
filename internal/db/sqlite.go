@@ -252,7 +252,7 @@ func (db *DbSqlite) SeriesStats() (*Stats, error) {
 
 // limit = -1 for all
 func (db *DbSqlite) SeriesMy(limit int) ([]MySeries, error) {
-	var results []MySeries
+	results := make([]MySeries, 0)
 
 	trackedSubQuery := db.orm.Model(&TvTrackedEps{}).
 		Select("series_m_id, MAX(created_at) AS last_tracked").

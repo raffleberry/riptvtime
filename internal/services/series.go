@@ -1214,7 +1214,7 @@ func (srv *SeriesService) Upcoming() ([]*UpcomingItem, error) {
 		return nil, err
 	}
 
-	var rv []*UpcomingItem
+	rv := make([]*UpcomingItem, 0)
 	now := time.Now()
 
 	for _, srs := range fsd {
