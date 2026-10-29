@@ -39,11 +39,13 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           STAGING="staging-${{ matrix.goos }}-${{ matrix.goarch }}"
           mkdir -p "${STAGING}" dist
+          LDFLAGS="-s -w -X 'main.Version=${TAG}'"
+
           if [ "${{ matrix.goos }}" = "windows" ]; then
-            go build -trimpath -ldflags="-s -w" -o "${STAGING}/rtt.exe" ./cmd/app/main.go
+            go build -trimpath -ldflags="${LDFLAGS}" -o "${STAGING}/rtt.exe" ./cmd/app/main.go
             (cd "${STAGING}" && zip "../dist/rtt-windows-${{ matrix.goarch }}-${TAG}.zip" rtt.exe)
           else
-            go build -trimpath -ldflags="-s -w" -o "${STAGING}/rtt" ./cmd/app/main.go
+            go build -trimpath -ldflags="${LDFLAGS}" -o "${STAGING}/rtt" ./cmd/app/main.go
             chmod +x "${STAGING}/rtt"
             tar -czf "dist/rtt-linux-${{ matrix.goarch }}-${TAG}.tar.gz" -C "${STAGING}" rtt
           fi

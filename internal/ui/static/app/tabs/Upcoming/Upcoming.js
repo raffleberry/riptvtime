@@ -8,7 +8,7 @@ const Upcoming = {
   props: {},
   components: {
     UpcomingTile,
-    Empty
+    Empty,
   },
   setup: (props) => {
     const loading = ref(false)
@@ -51,7 +51,8 @@ const Upcoming = {
       </div>
       <div v-else>
         <div v-if="upcoming.length === 0">
-          <Empty icon="bi bi-send-check-fill"
+          <Empty
+            icon="bi bi-send-check-fill"
             title="All caught up!"
             message="Explore the Discover Page to find more shows you'll love."
           />

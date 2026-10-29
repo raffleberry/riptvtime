@@ -278,21 +278,13 @@ const Unresolved = {
                 <dt class="col-sm-3">Reason</dt>
                 <dd class="col-sm-9 text-danger">{{ selected.UnresolvedMsg }}</dd>
               </dl>
-              <button
-                class="btn btn-warning"
-                :disabled="ignoring"
-                @click="onIgnore(selected)"
-              >
+              <button class="btn btn-warning" :disabled="ignoring" @click="onIgnore(selected)">
                 Ignore
               </button>
             </div>
 
             <div v-if="activeTab === 'series'">
-              <button
-                class="btn btn-warning mb-2"
-                :disabled="ignoring"
-                @click="onIgnore(selected)"
-              >
+              <button class="btn btn-warning mb-2" :disabled="ignoring" @click="onIgnore(selected)">
                 Ignore
               </button>
               <Match :item="selected" @matchDone="onMatchDone"></Match>

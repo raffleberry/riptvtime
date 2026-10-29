@@ -16,12 +16,20 @@ import (
 	"github.com/raffleberry/riptvtime/internal/utils"
 )
 
+var Version = "dev"
+
 func main() {
 
 	prefix := flag.String("prefix", "", "server prefix")
 	logLvl := flag.Int("log-level", 8, "value of log level = {-4, 0, 4, 8 <- default} | where -4 = debug, 0 = info, 4 = warn, 8 = error")
 	conf := flag.String("conf", "", "pass config file path")
+	version := flag.Bool("version", false, "shows riptvtime version")
 	flag.Parse()
+
+	if *version {
+		fmt.Println(Version)
+		return
+	}
 
 	logLevel := slog.Level(*logLvl)
 

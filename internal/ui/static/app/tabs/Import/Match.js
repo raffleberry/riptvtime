@@ -54,7 +54,10 @@ const Match = {
       () => props.item,
       () => {
         if (!props.item) return
-        searchTerm.value = (props.item.Name || props.item.SeriesName || "").replace(/ \(\s*\d{4}\s*\)\s*/g, "")
+        searchTerm.value = (props.item.Name || props.item.SeriesName || "").replace(
+          / \(\s*\d{4}\s*\)\s*/g,
+          "",
+        )
         handleSearch()
       },
       { immediate: true },
